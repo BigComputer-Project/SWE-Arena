@@ -40,7 +40,7 @@ class SandboxEnvironment(StrEnum):
     VUE = 'Vue'
     GRADIO = 'Gradio'
     STREAMLIT = 'Streamlit'
-    NICEGUI = 'NiceGUI'
+    # NICEGUI = 'NiceGUI'
     PYGAME = 'PyGame'
 
 
@@ -54,7 +54,7 @@ WEB_UI_SANDBOX_ENVIRONMENTS = [
     SandboxEnvironment.VUE,
     SandboxEnvironment.GRADIO,
     SandboxEnvironment.STREAMLIT,
-    SandboxEnvironment.NICEGUI,
+    # SandboxEnvironment.NICEGUI,
     SandboxEnvironment.PYGAME,
 ]
 
@@ -225,7 +225,7 @@ You can choose from the following sandbox environments:
 + 'Sandbox Environment Name: ' + SandboxEnvironment.HTML + '\n' + DEFAULT_HTML_SANDBOX_INSTRUCTION.strip() + '\n------\n'
 + 'Sandbox Environment Name: ' + SandboxEnvironment.GRADIO + '\n' + DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip() + '\n------\n'
 + 'Sandbox Environment Name: ' + SandboxEnvironment.STREAMLIT + '\n' + DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip() + '\n------\n'
-+ 'Sandbox Environment Name: ' + SandboxEnvironment.NICEGUI + '\n' + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip() + '\n------\n'
+# + 'Sandbox Environment Name: ' + SandboxEnvironment.NICEGUI + '\n' + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip() + '\n------\n'
 + 'Sandbox Environment Name: ' + SandboxEnvironment.PYGAME + '\n' + DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip() + '\n------\n'
 )
 
@@ -238,7 +238,7 @@ DEFAULT_SANDBOX_INSTRUCTIONS: dict[SandboxEnvironment, str] = {
     SandboxEnvironment.VUE: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_VUE_SANDBOX_INSTRUCTION.strip(),
     SandboxEnvironment.GRADIO: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip(),
     SandboxEnvironment.STREAMLIT: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.NICEGUI: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip(),
+    # SandboxEnvironment.NICEGUI: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip(),
     SandboxEnvironment.PYGAME: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip(),
 }
 
@@ -561,67 +561,18 @@ def determine_python_environment(code: str, imports: list[str]) -> SandboxEnviro
         return SandboxEnvironment.GRADIO
     elif 'streamlit' in imports:
         return SandboxEnvironment.STREAMLIT
-    elif 'nicegui' in imports:
-        return SandboxEnvironment.NICEGUI
+    # elif 'nicegui' in imports:
+    #     return SandboxEnvironment.NICEGUI
     
     return SandboxEnvironment.PYTHON_CODE_INTERPRETER
 
-def determine_js_environment(code: str, imports: list[str]) -> SandboxEnvironment | None:
+def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironment | None:
     '''
     Determine JavaScript/TypeScript sandbox environment based on imports and AST analysis.
     '''
     # First check for Vue SFC structure
     if '<template>' in code or '<script setup' in code:
         return SandboxEnvironment.VUE
-        
-    try:
-        # Initialize parser
-        ts_parser = Parser(Language(tree_sitter_typescript.language_tsx()))
-        
-        # Parse the code
-        tree = ts_parser.parse(bytes(code, "utf8"))
-        
-        def has_framework_patterns(node: Node) -> bool:
-            # Check for React patterns
-            if node.type in ['jsx_element', 'jsx_self_closing_element']:
-                return True
-            # Check for Vue template
-            elif node.type == 'template_element':
-                return True
-            return False
-        
-        # Check for Vue-specific directives and syntax
-        vue_patterns = [
-            r'v-(?:if|else|for|bind|on|model|show|html|text|once|pre|cloak)',  # Vue directives
-            r'@(?:click|change|input|submit|keyup|keydown|focus|blur)',         # Vue event handlers
-            r':(?:class|style|key|ref|is)',                                     # Vue bindings
-            r'(?:ref|reactive|computed|watch|onMounted|onUnmounted|provide|inject)', # Vue Composition API
-            r'defineComponent\(',                                               # Vue component definition
-            r'setup\(\s*(?:props|context)?\s*\)',                              # Vue setup function
-            r'(?:components|props|emits|data|methods|computed|watch)\s*:',      # Vue Options API
-        ]
-        
-        # Check for Vue patterns in the code
-        for pattern in vue_patterns:
-            if re.search(pattern, code):
-                return SandboxEnvironment.VUE
-        
-        # Check for framework-specific patterns in the AST
-        cursor = tree.walk()
-        reached_end = False
-        while not reached_end:
-            if has_framework_patterns(cursor.node):
-                if cursor.node.type.startswith('jsx'):
-                    return SandboxEnvironment.REACT
-                elif cursor.node.type == 'template_element':
-                    return SandboxEnvironment.VUE
-            
-            reached_end = not cursor.goto_next_sibling()
-            if reached_end and cursor.goto_parent():
-                reached_end = not cursor.goto_next_sibling()
-    
-    except Exception:
-        pass
     
     # Check imports for framework detection
     react_packages = {'react', '@react', 'next', '@next'}
@@ -631,6 +582,87 @@ def determine_js_environment(code: str, imports: list[str]) -> SandboxEnvironmen
         return SandboxEnvironment.REACT
     elif any(pkg in vue_packages for pkg in imports):
         return SandboxEnvironment.VUE
+
+    try:
+        # Initialize parser
+        ts_parser = Parser(Language(tree_sitter_typescript.language_tsx()))
+        
+        # Parse the code
+        tree = ts_parser.parse(bytes(code, "utf8"))
+        
+        def has_framework_patterns(node: Node) -> tuple[bool, str]:
+            # Check for React patterns
+            if node.type in ['jsx_element', 'jsx_self_closing_element']:
+                return True, 'react'
+                
+            # Check for Vue template
+            elif node.type == 'template_element':
+                return True, 'vue'
+                
+            # Check for Vue template string
+            elif node.type == 'template_string':
+                content = code[node.start_byte:node.end_byte]
+                # Look for Vue directives in template strings
+                vue_patterns = [
+                    'v-if=', 'v-else', 'v-for=', 'v-bind:', 'v-on:', 'v-model=',
+                    'v-show=', 'v-html=', 'v-text=', '@', ':',
+                    'components:', 'props:', 'emits:', 'data:', 
+                    'methods:', 'computed:', 'watch:',
+                    'setup(', 'ref(', 'reactive(', 'computed(', 'watch(',
+                    'onMounted(', 'onUnmounted(', 'provide(', 'inject(',
+                    'defineComponent(', 'defineProps(', 'defineEmits(',
+                    'createApp(', 'nextTick('
+                ]
+                if any(pattern in content for pattern in vue_patterns):
+                    return True, 'vue'
+            return False, ''
+        
+        # Check for framework-specific patterns in the AST
+        cursor = tree.walk()
+        
+        def visit_node() -> SandboxEnvironment | None:
+            is_framework, framework = has_framework_patterns(cursor.node)
+            if is_framework:
+                return SandboxEnvironment.REACT if framework == 'react' else SandboxEnvironment.VUE
+                
+            # Check children
+            if cursor.goto_first_child():
+                while True:
+                    result = visit_node()
+                    if result:
+                        return result
+                    if not cursor.goto_next_sibling():
+                        break
+                cursor.goto_parent()
+            
+            return None
+
+        result = visit_node()
+        if result:
+            return result
+
+        # Additional Vue pattern detection for script content
+        vue_patterns = [
+            r'export\s+default\s+{',
+            r'defineComponent\s*\(',
+            r'Vue\.extend\s*\(',
+            r'createApp\s*\(',
+            r'(?:ref|reactive|computed|watch|onMounted|onUnmounted|provide|inject)\s*\(',
+            r'(?:components|props|emits|data|methods|computed|watch)\s*:',
+            r'defineProps\s*\(',
+            r'defineEmits\s*\(',
+            r'v-(?:if|else|for|bind|on|model|show|html|text)=',
+            r'@(?:click|change|input|submit|keyup|keydown)',
+            r':(?:class|style|src|href|value|disabled|checked)'
+        ]
+        
+        for pattern in vue_patterns:
+            if re.search(pattern, code, re.MULTILINE):
+                return SandboxEnvironment.VUE
+    
+    except Exception as e:
+        print(f"Tree-sitter parsing error: {e}")
+        pass
     
     return SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER
 
@@ -781,6 +813,51 @@ def extract_inline_pip_install_commands(code: str) -> tuple[list[str], str]:
     return python_packages, '\n'.join(cleaned_lines)
 
 
+def extract_js_from_html_script_tags(code: str) -> list[str]:
+    '''
+    Extract JavaScript package names from HTML script tags.
+    Handles both CDN script tags and inline scripts.
+    
+    Args:
+        code: HTML code containing script tags
+        
+    Returns:
+        list[str]: List of package names
+    '''
+    packages: Set[str] = set()
+    
+    # Extract packages from CDN script tags
+    script_patterns = [
+        # unpkg.com pattern
+        r'<script[^>]*src="https?://unpkg\.com/(@?[^@/"]+(?:/[^@/"]+)?(?:@[^/"]+)?)[^"]*"[^>]*>',
+        # cdn.jsdelivr.net pattern
+        r'<script[^>]*src="https?://cdn\.jsdelivr\.net/npm/(@?[^@/"]+(?:/[^@/"]+)?(?:@[^/"]+)?)[^"]*"[^>]*>',
+        # Other CDN patterns can be added here
+    ]
+    
+    for pattern in script_patterns:
+        matches = re.finditer(pattern, code, re.IGNORECASE)
+        for match in matches:
+            pkg_name = match.group(1)
+            if pkg_name.startswith('@'):
+                # Handle scoped packages
+                parts = pkg_name.split('/')
+                if len(parts) >= 2:
+                    pkg_name = '/'.join(parts[:2])
+            else:
+                # Remove version from package name
+                pkg_name = pkg_name.split('@')[0]
+            packages.add(pkg_name)
+    
+    # Extract packages from inline scripts
+    script_tags = re.finditer(r'<script[^>]*>(.*?)</script>', code, re.DOTALL | re.IGNORECASE)
+    for script in script_tags:
+        script_content = script.group(1)
+        # Use existing extract_js_imports for inline scripts
+        packages.update(extract_js_imports(script_content))
+    
+    return list(packages)
+
 def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tuple[str, str, tuple[list[str], list[str]], SandboxEnvironment | None] | None:
     '''
     Extracts code from a markdown message by parsing code blocks directly.
@@ -820,11 +897,11 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
         main_code_lang = (longest_match.group('code_lang') or '').lower()
 
     # Define language prefixes for each environment
-    python_prefixes = ['py', 'ipython', 'pygame', 'gradio', 'streamlit', 'nicegui']
+    python_prefixes = ['py', 'ipython', 'pygame', 'gradio', 'streamlit']
     vue_prefixes = ['vue']
-    html_prefixes = ['html', 'xhtml', 'htm']
     react_prefixes = ['react', 'next']
     js_prefixes = ['js', 'javascript', 'jsx', 'coffee', 'ecma', 'node', 'es']
+    html_prefixes = ['html', 'xhtml', 'htm']
     ts_prefixes = ['ts', 'typescript', 'tsx']
 
     # Extract package dependencies from the main program
@@ -844,21 +921,27 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
         npm_packages = extract_js_imports(main_code)
         sandbox_env_name = SandboxEnvironment.VUE
         main_code_lang = detect_js_ts_code_lang(main_code)
-    elif matches_prefix(main_code_lang, html_prefixes) or ('<!DOCTYPE html>' in main_code or '<html' in main_code):
-        sandbox_env_name = SandboxEnvironment.HTML
-        main_code_lang = 'html'
     elif matches_prefix(main_code_lang, react_prefixes):
         npm_packages = extract_js_imports(main_code)
         sandbox_env_name = SandboxEnvironment.REACT
         main_code_lang = detect_js_ts_code_lang(main_code)
+    elif '<!DOCTYPE html>' in main_code or ('<head' in main_code and '<body' in main_code):
+        # For HTML files, extract both inline script dependencies and script tag dependencies
+        npm_packages = extract_js_from_html_script_tags(main_code)
+        sandbox_env_name = SandboxEnvironment.HTML
+        main_code_lang = 'html'
     elif matches_prefix(main_code_lang, js_prefixes):
         main_code_lang = 'javascript'
         npm_packages = extract_js_imports(main_code)
-        sandbox_env_name = determine_js_environment(main_code, npm_packages)
+        sandbox_env_name = determine_jsts_environment(main_code, npm_packages)
     elif matches_prefix(main_code_lang, ts_prefixes):
         main_code_lang = 'typescript'
         npm_packages = extract_js_imports(main_code)
-        sandbox_env_name = determine_js_environment(main_code, npm_packages)
+        sandbox_env_name = determine_jsts_environment(main_code, npm_packages)
+    elif matches_prefix(main_code_lang, html_prefixes):
+        main_code_lang = detect_js_ts_code_lang(main_code)
+        npm_packages = extract_js_imports(main_code)
+        sandbox_env_name = determine_jsts_environment(main_code, npm_packages)
     else:
         sandbox_env_name = None
 
@@ -1129,14 +1212,16 @@ def run_code_interpreter(code: str, code_language: str | None, code_dependencies
 def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
     """
     Executes the provided code within a sandboxed environment and returns the output.
+    Supports both React and Vue.js rendering in HTML files.
 
     Args:
         code (str): The code to be executed.
+        code_dependencies: Tuple of (python_deps, npm_deps)
 
     Returns:
-        url for remote sandbox
+        tuple: (sandbox_url, sandbox_id, stderr)
     """
-    sandbox = Sandbox(api_key=E2B_API_KEY)
+    sandbox = create_sandbox()
 
     python_dependencies, npm_dependencies = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
@@ -1152,11 +1237,10 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     stderr = run_background_command_with_timeout(
         sandbox,
         "python -m http.server 3000",
-        timeout=3,
+        timeout=0,
     )
     
     host = sandbox.get_host(3000)
-
     sandbox_url = f"https://{host}" + '/myhtml/main.html'
     return (sandbox_url, sandbox.sandbox_id, stderr)
 
@@ -1254,21 +1338,11 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     Returns:
         url for remote sandbox
     """
-    sandbox = Sandbox(api_key=E2B_API_KEY)
+    sandbox = create_sandbox()
 
     sandbox.files.make_dir('mygame')
     file_path = "~/mygame/main.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
-    
-    setup_commands = [
-        "pip install uv",
-        "uv pip install --system pygame pygbag black"
-    ]
-    for command in setup_commands:
-        sandbox.commands.run(
-            command,
-            timeout=60 * 3,
-        )
     
     python_dependencies, npm_dependencies = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
@@ -1291,45 +1365,45 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
-def run_nicegui_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
-    """
-    Executes the provided code within a sandboxed environment and returns the output.
+# def run_nicegui_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
+#     """
+#     Executes the provided code within a sandboxed environment and returns the output.
 
-    Args:
-        code (str): The code to be executed.
+#     Args:
+#         code (str): The code to be executed.
 
-    Returns:
-        url for remote sandbox
-    """
-    sandbox = Sandbox(api_key=E2B_API_KEY)
+#     Returns:
+#         url for remote sandbox
+#     """
+#     sandbox = Sandbox(api_key=E2B_API_KEY)
 
-    setup_commands = [
-        "uv pip install --system --upgrade nicegui",
-    ]
-    for command in setup_commands:
-        sandbox.commands.run(
-            command,
-            timeout=60 * 3,
-        )
+#     setup_commands = [
+#         "uv pip install --system --upgrade nicegui",
+#     ]
+#     for command in setup_commands:
+#         sandbox.commands.run(
+#             command,
+#             timeout=60 * 3,
+#         )
 
-    sandbox.files.make_dir('mynicegui')
-    file_path = "~/mynicegui/main.py"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+#     sandbox.files.make_dir('mynicegui')
+#     file_path = "~/mynicegui/main.py"
+#     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
-    python_dependencies, npm_dependencies = code_dependencies
-    install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
+#     python_dependencies, npm_dependencies = code_dependencies
+#     install_pip_dependencies(sandbox, python_dependencies)
+#     install_npm_dependencies(sandbox, npm_dependencies)
 
-    stderr = run_background_command_with_timeout(
-        sandbox,
-        "python ~/mynicegui/main.py",
-        timeout=5,
-    )
+#     stderr = run_background_command_with_timeout(
+#         sandbox,
+#         "python ~/mynicegui/main.py",
+#         timeout=5,
+#     )
 
-    host = sandbox.get_host(port=8080)
+#     host = sandbox.get_host(port=8080)
 
-    sandbox_url = f"https://{host}"
-    return (sandbox_url, sandbox.sandbox_id, stderr)
+#     sandbox_url = f"https://{host}"
+#     return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
 def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
@@ -1342,14 +1416,7 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     Returns:
         url for remote sandbox and sandbox id
     """
-    sandbox = Sandbox(api_key=E2B_API_KEY)
-
-    setup_commands = ["pip install uv", "uv pip install --system gradio"]
-    for command in setup_commands:
-        sandbox.commands.run(
-            command,
-            timeout=60 * 3,
-        )
+    sandbox = create_sandbox()
 
     file_path = "~/app.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
@@ -1361,7 +1428,7 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     stderr = run_background_command_with_timeout(
         sandbox,
         "python ~/app.py",
-        timeout=5,
+        timeout=8,
     )
 
     sandbox_url = 'https://' + sandbox.get_host(7860)
@@ -1370,14 +1437,7 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
 
 
 def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
-    sandbox = Sandbox(api_key=E2B_API_KEY)
-
-    setup_commands = ["pip install uv", "uv pip install --system streamlit"]
-    for command in setup_commands:
-        sandbox.commands.run(
-            command,
-            timeout=60 * 3,
-        )
+    sandbox = create_sandbox()
 
     sandbox.files.make_dir('mystreamlit')
     file_path = "~/mystreamlit/app.py"
@@ -1390,7 +1450,7 @@ def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[st
     stderr = run_background_command_with_timeout(
         sandbox,
         "streamlit run ~/mystreamlit/app.py --server.port 8501 --server.headless true",
-        timeout=5,
+        timeout=8,
     )
 
     host = sandbox.get_host(port=8501)
@@ -1578,7 +1638,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-            )
+                )
         case SandboxEnvironment.GRADIO:
             yield update_output("🔄 Setting up Gradio sandbox...")
             sandbox_url, sandbox_id, stderr = run_gradio_sandbox(code=code, code_dependencies=code_dependencies)
@@ -1615,20 +1675,20 @@ def on_run_code(
                     ),
                     gr.skip(),
                 )
-        case SandboxEnvironment.NICEGUI:
-            yield update_output("🔄 Setting up NiceGUI sandbox...")
-            sandbox_url, sandbox_id, std_err = run_nicegui_sandbox(code=code, code_dependencies=code_dependencies)
-            yield update_output("✅ NiceGUI sandbox ready!", clear_output=True)
-            yield (
-                gr.Markdown(value=output_text, visible=True),
-                SandboxComponent(
-                    value=(sandbox_url, True, []),
-                    label="Example",
-                    visible=True,
-                    key="newsandbox",
-                ),
-                gr.skip(),
-            )
+        # case SandboxEnvironment.NICEGUI:
+        #     yield update_output("🔄 Setting up NiceGUI sandbox...")
+        #     sandbox_url, sandbox_id, std_err = run_nicegui_sandbox(code=code, code_dependencies=code_dependencies)
+        #     yield update_output("✅ NiceGUI sandbox ready!", clear_output=True)
+        #     yield (
+        #         gr.Markdown(value=output_text, visible=True),
+        #         SandboxComponent(
+        #             value=(sandbox_url, True, []),
+        #             label="Example",
+        #             visible=True,
+        #             key="newsandbox",
+        #         ),
+        #         gr.skip(),
+        #     )
         case SandboxEnvironment.PYTHON_CODE_INTERPRETER:
             yield update_output("🔄 Running Python Code Interpreter...", clear_output=True)
             output, stderr = run_code_interpreter(
@@ -1660,7 +1720,7 @@ def on_run_code(
             else:
                 yield update_output("✅ Code execution complete!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text + "\n\n" + output, visible=True),
+                    gr.Markdown(value=output_text + "\n\n" + output, sanitize_html=False, visible=True),
                     SandboxComponent(
                         value=('', False, []),
                         label="Example",
