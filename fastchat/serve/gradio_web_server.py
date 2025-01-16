@@ -588,11 +588,7 @@ def bot_response(
             else:
                 output = data["text"] + f"\n\n(error_code: {data['error_code']})"
                 conv.update_last_message(output)
-                yield (state, state.to_gradio_chatbot()) + (
-                    (disable_btn,) * (sandbox_state["btn_list_length"]-2),
-                    enable_btn,
-                    enable_btn,
-                )
+                yield (state, state.to_gradio_chatbot()) + (disable_btn,) * (sandbox_state["btn_list_length"]-2) + (enable_btn, enable_btn)
                 return
         output = data["text"].strip()
         conv.update_last_message(output)
@@ -612,22 +608,14 @@ def bot_response(
             f"{SERVER_ERROR_MSG}\n\n"
             f"(error_code: {ErrorCode.GRADIO_REQUEST_ERROR}, {e})"
         )
-        yield (state, state.to_gradio_chatbot()) + (
-            (disable_btn,) * (sandbox_state["btn_list_length"]-2),
-            enable_btn,
-            enable_btn,
-        )
+        yield (state, state.to_gradio_chatbot()) + (disable_btn,) * (sandbox_state["btn_list_length"]-2) + (enable_btn, enable_btn)
         return
     except Exception as e:
         conv.update_last_message(
             f"{SERVER_ERROR_MSG}\n\n"
             f"(error_code: {ErrorCode.GRADIO_STREAM_UNKNOWN_ERROR}, {e})"
         )
-        yield (state, state.to_gradio_chatbot()) + (
-            (disable_btn,) * (sandbox_state["btn_list_length"]-2),
-            enable_btn,
-            enable_btn,
-        )
+        yield (state, state.to_gradio_chatbot()) + (disable_btn,) * (sandbox_state["btn_list_length"]-2) + (enable_btn, enable_btn)
         return
 
     finish_tstamp = time.time()
