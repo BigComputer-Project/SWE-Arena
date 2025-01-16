@@ -1784,53 +1784,100 @@ def on_run_code(
 
 def extract_installation_commands(code: str) -> tuple[list[str], list[str]]:
     '''
-    Extracts package installation commands from the code block.
+    Extracts package installation commands from the code block, preserving version information.
 
     Args:
         code (str): The code block to analyze.
 
     Returns:
         tuple[list[str], list[str]]: A tuple containing two lists:
-            1. Python packages from pip install commands.
-            2. npm packages from npm install commands.
+            1. Python packages from pip install commands (with versions if specified).
+            2. npm packages from npm install commands (with versions if specified).
     '''
     python_packages = []
     npm_packages = []
 
-    # Regex patterns to find pip and npm install commands
-    # Match pip install with various forms (pip, pip3, python -m pip)
-    pip_patterns = [
-        r'(?:pip|pip3|python -m pip)\s+install\s+(?:(?:--upgrade|--user|--no-cache-dir|-U)\s+)*([^-\s][\w\-\[\]<>=~\.]+(?:\s+[^-\s][\w\-\[\]<>=~\.]+)*)',
-        r'(?:pip|pip3|python -m pip)\s+install\s+(?:-r\s+[\w\-\.\/]+\s+)*([^-\s][\w\-\[\]<>=~\.]+(?:\s+[^-\s][\w\-\[\]<>=~\.]+)*)',
-    ]
-    
-    # Match npm install with various flags
-    npm_patterns = [
-        r'npm\s+i(?:nstall)?\s+(?:(?:--save|--save-dev|-[SD]|--global|-g)\s+)*([^-\s][\w\-@/\.]+(?:\s+[^-\s][\w\-@/\.]+)*)',
-        r'yarn\s+add\s+(?:(?:--dev|-D)\s+)*([^-\s][\w\-@/\.]+(?:\s+[^-\s][\w\-@/\.]+)*)',
-    ]
-
-    # Find all pip install commands
-    for pattern in pip_patterns:
-        matches = re.finditer(pattern, code, re.MULTILINE)
-        for match in matches:
-            # Split packages and clean each one
-            pkgs = match.group(1).strip().split()
-            python_packages.extend(pkg.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0] for pkg in pkgs)
-
-    # Find all npm install commands
-    for pattern in npm_patterns:
-        matches = re.finditer(pattern, code, re.MULTILINE)
-        for match in matches:
-            # Split packages and clean each one
-            pkgs = match.group(1).strip().split()
-            npm_packages.extend(pkg.split('@')[0] for pkg in pkgs if not pkg.startswith('@'))
-            # Handle scoped packages (e.g., @types/node)
-            npm_packages.extend(f"{pkg.split('/')[0]}/{pkg.split('/')[1].split('@')[0]}" 
-                              for pkg in pkgs if pkg.startswith('@') and '/' in pkg)
+    # Process the code line by line to handle both pip and npm commands
+    lines = code.split('\n')
+    for line in lines:
+        line = line.strip()
+        
+        # Skip empty lines and comments
+        if not line or line.startswith('#'):
+            continue
+            
+        # Handle pip install commands
+        if any(x in line for x in ['pip install', 'pip3 install', 'python -m pip install']):
+            # Remove the command part and any flags
+            parts = line.split('install', 1)[1].strip()
+            # Handle flags at the start
+            while parts.startswith(('-', '--')):
+                parts = parts.split(None, 1)[1]
+            
+            # Split by whitespace, respecting quotes
+            current = ''
+            in_quotes = False
+            quote_char = None
+            packages = []
+            
+            for char in parts:
+                if char in '"\'':
+                    if not in_quotes:
+                        in_quotes = True
+                        quote_char = char
+                    elif char == quote_char:
+                        in_quotes = False
+                        quote_char = None
+                elif char.isspace() and not in_quotes:
+                    if current:
+                        packages.append(current)
+                        current = ''
+                else:
+                    current += char
+            if current:
+                packages.append(current)
+            
+            # Add packages, stripping quotes and ignoring flags
+            for pkg in packages:
+                pkg = pkg.strip('"\'')
+                if pkg and not pkg.startswith(('-', '--')) and not pkg == '-r':
+                    python_packages.append(pkg)
+                    
+        # Handle npm/yarn install commands
+        elif any(x in line for x in ['npm install', 'npm i', 'yarn add']):
+            # Remove the command part and any flags
+            if 'yarn add' in line:
+                parts = line.split('add', 1)[1]
+            else:
+                parts = line.split('install', 1)[1] if 'install' in line else line.split('i', 1)[1]
+            parts = parts.strip()
+            
+            # Handle flags at the start
+            while parts.startswith(('-', '--')):
+                parts = parts.split(None, 1)[1] if ' ' in parts else ''
+            
+            # Process each package
+            for pkg in parts.split():
+                if pkg.startswith(('-', '--')) or pkg in ('install', 'i', 'add'):
+                    continue
+                    
+                if pkg.startswith('@'):
+                    # Handle scoped packages (e.g., @types/node@16.0.0)
+                    if '@' in pkg[1:]:  # Has version
+                        pkg_parts = pkg.rsplit('@', 1)
+                        base_pkg = pkg_parts[0]  # @scope/name
+                        version = pkg_parts[1]  # version
+                        npm_packages.append(f"{base_pkg}@{version}")
+                    else:
+                        npm_packages.append(pkg)
+                else:
+                    npm_packages.append(pkg)
 
     # Remove duplicates while preserving order
     python_packages = list(dict.fromkeys(python_packages))
     npm_packages = list(dict.fromkeys(npm_packages))
+    
+    # Filter out npm command words
+    npm_packages = [p for p in npm_packages if p not in ('npm', 'install', 'i', 'add')]
 
     return python_packages, npm_packages
