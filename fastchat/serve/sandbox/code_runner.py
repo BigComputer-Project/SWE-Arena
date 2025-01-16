@@ -41,6 +41,7 @@ class SandboxEnvironment(StrEnum):
     GRADIO = 'Gradio'
     STREAMLIT = 'Streamlit'
     PYGAME = 'PyGame'
+    MERMAID = 'Mermaid'
 
 
 SUPPORTED_SANDBOX_ENVIRONMENTS: list[str] = [
@@ -55,6 +56,7 @@ WEB_UI_SANDBOX_ENVIRONMENTS = [
     SandboxEnvironment.STREAMLIT,
     # SandboxEnvironment.NICEGUI,
     SandboxEnvironment.PYGAME,
+    SandboxEnvironment.MERMAID
 ]
 
 VALID_GRADIO_CODE_LANGUAGES = [
@@ -82,6 +84,7 @@ Your code must be written using one of these supported development frameworks an
 - Gradio (Python)
 - Streamlit (Python)
 - PyGame (Python)
+- Mermaid (Markdown)
 - Python Code Interpreter
 - JavaScript Code Interpreter
 
@@ -144,6 +147,13 @@ For HTML development, ensure that:
 - Include any necessary CSS and JavaScript within the HTML file
 - Ensure the code is directly executable in a browser environment
 - Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
+
+For Mermaid development:
+- Write Mermaid diagrams directly using ```mermaid code blocks, e.g.:
+```mermaid
+graph TD;
+    A-->B;
+```
 """
 
 DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION = """
@@ -928,6 +938,7 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
     js_prefixes = ['js', 'javascript', 'jsx', 'coffee', 'ecma', 'node', 'es']
     html_prefixes = ['html', 'xhtml', 'htm']
     ts_prefixes = ['ts', 'typescript', 'tsx']
+    mermaid_prefixes = ['mermaid', 'mmd']
 
     # Extract package dependencies from the main program
     python_packages: list[str] = []
@@ -967,6 +978,9 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
         main_code_lang = detect_js_ts_code_lang(main_code)
         npm_packages = extract_js_imports(main_code)
         sandbox_env_name = determine_jsts_environment(main_code, npm_packages)
+    elif matches_prefix(main_code_lang, mermaid_prefixes):
+        main_code_lang = 'markdown'
+        sandbox_env_name = SandboxEnvironment.MERMAID
     else:
         sandbox_env_name = None
 
@@ -1048,6 +1062,39 @@ def replace_placeholder_urls(code: str) -> str:
     
     # Replace all occurrences
     return re.sub(pattern, replacer, code)
+
+
+def mermaid_to_html(mermaid_code: str, theme: str = 'default') -> str:
+    """
+    Convert Mermaid diagram code to a minimal HTML document.
+    
+    Args:
+        mermaid_code: The Mermaid diagram syntax
+        theme: Theme name ('default', 'dark', 'forest', 'neutral', etc.)
+    
+    Returns:
+        str: Complete HTML document with embedded Mermaid diagram
+    """
+    html_template = f'''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        
+        mermaid.initialize({{
+            startOnLoad: true,
+            theme: '{theme}'
+        }});
+    </script>
+</head>
+<body>
+    <pre class="mermaid">
+{mermaid_code}
+    </pre>
+</body>
+</html>'''
+    return html_template
 
 
 def render_result(result):
@@ -1654,6 +1701,26 @@ def on_run_code(
                     SandboxComponent(
                         value=(sandbox_url, True, []),
                         label="Example",
+                        visible=True,
+                        key="newsandbox",
+                    ),
+                    gr.skip(),
+                )
+        case SandboxEnvironment.MERMAID:
+            yield update_output("🔄 Setting up Mermaid visualization...")
+            # Convert Mermaid to HTML at execution time
+            html_code = mermaid_to_html(code, theme='light')
+            sandbox_url, sandbox_id, stderr = run_html_sandbox(code=html_code, code_dependencies=code_dependencies)
+            if stderr:
+                yield update_output("❌ Mermaid visualization failed to render!", clear_output=True)
+                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+            else:
+                yield update_output("✅ Mermaid visualization ready!", clear_output=True)
+                yield (
+                    gr.Markdown(value=output_text, visible=True),
+                    SandboxComponent(
+                        value=(sandbox_url, True, []),
+                        label="Mermaid Diagram",
                         visible=True,
                         key="newsandbox",
                     ),
