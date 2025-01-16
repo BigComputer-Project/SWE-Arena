@@ -40,7 +40,6 @@ class SandboxEnvironment(StrEnum):
     VUE = 'Vue'
     GRADIO = 'Gradio'
     STREAMLIT = 'Streamlit'
-    # NICEGUI = 'NiceGUI'
     PYGAME = 'PyGame'
 
 
@@ -1132,7 +1131,7 @@ def run_background_command_with_timeout(
     sandbox: Sandbox,
     command: str,
     timeout: int = 5,
-) -> tuple[bool, str]:
+) -> str:
     """
     Run a command in the background and wait for a short time to check for startup errors.
     
@@ -1142,16 +1141,9 @@ def run_background_command_with_timeout(
         timeout: How long to wait for startup errors (in seconds)
     
     Returns:
-        tuple[bool, str]: (success, stderr)
-        - success: True if the command started successfully
-        - stderr: Any error output collected
+        str: Any error output collected during startup
     """
     stderr = ""
-
-    def collect_stderr(message):
-        nonlocal stderr
-        stderr += message
-    
 
     cmd = sandbox.commands.run(
         command,
@@ -1171,23 +1163,18 @@ def run_background_command_with_timeout(
         except CommandExitException as e:
             stderr += "".join(e.stderr)
             result_queue.put(stderr)
-        except TimeoutException as e:
+        except TimeoutException:
             return
-    
-    # Create a queue to store the result
+
     result_queue = queue.Queue()
-
-    # Create a thread to wait for the command
     wait_thread = threading.Thread(target=wait_for_command, args=(result_queue,))
+    wait_thread.daemon = True  # Make thread daemon so it won't prevent program exit
     wait_thread.start()
-    # Wait for the thread to complete or timeout
-    wait_thread.join(timeout)
-
-    if wait_thread.is_alive():
-        # Timeout occurred
-        return stderr
-    else:
+    
+    try:
         return result_queue.get()
+    except queue.Empty:
+        return stderr
 
 
 def run_code_interpreter(code: str, code_language: str | None, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str]:
@@ -1268,7 +1255,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     stderr = run_background_command_with_timeout(
         sandbox,
         "python -m http.server 3000",
-        timeout=0,
+        timeout=3,
     )
     
     host = sandbox.get_host(3000)
@@ -1308,15 +1295,14 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     file_path = "~/react_app/src/App.tsx"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
     print("Code files written successfully.")
-
-    # get the sandbox url
-    sandbox.commands.run(
+    
+    stderr = run_background_command_with_timeout(
+        sandbox,
         "cd ~/react_app && npm run build",
-        on_stdout=print,
-        on_stderr=print,
+        timeout=3,
     )
     sandbox_url = get_sandbox_app_url(sandbox, 'react')
-    return (sandbox_url, sandbox.sandbox_id)
+    return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
 def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str]:
@@ -1350,13 +1336,13 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
         install_npm_dependencies(sandbox, npm_dependencies)
         print("NPM dependencies installed.")
 
-    sandbox.commands.run(
+    stderr = run_background_command_with_timeout(
+        sandbox,
         "cd ~/vue_app && npm run build",
-        on_stdout=print,
-        on_stderr=print,
+        timeout=3,
     )
     sandbox_url = get_sandbox_app_url(sandbox, 'vue')
-    return (sandbox_url, sandbox.sandbox_id)
+    return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
 def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
@@ -1394,47 +1380,6 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     host = sandbox.get_host(3000)
     sandbox_url =  f"https://{host}" + '/mygame/build/web/'
     return (sandbox_url, sandbox.sandbox_id, stderr)
-
-
-# def run_nicegui_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
-#     """
-#     Executes the provided code within a sandboxed environment and returns the output.
-
-#     Args:
-#         code (str): The code to be executed.
-
-#     Returns:
-#         url for remote sandbox
-#     """
-#     sandbox = Sandbox(api_key=E2B_API_KEY)
-
-#     setup_commands = [
-#         "uv pip install --system --upgrade nicegui",
-#     ]
-#     for command in setup_commands:
-#         sandbox.commands.run(
-#             command,
-#             timeout=60 * 3,
-#         )
-
-#     sandbox.files.make_dir('mynicegui')
-#     file_path = "~/mynicegui/main.py"
-#     sandbox.files.write(path=file_path, data=code, request_timeout=60)
-
-#     python_dependencies, npm_dependencies = code_dependencies
-#     install_pip_dependencies(sandbox, python_dependencies)
-#     install_npm_dependencies(sandbox, npm_dependencies)
-
-#     stderr = run_background_command_with_timeout(
-#         sandbox,
-#         "python ~/mynicegui/main.py",
-#         timeout=5,
-#     )
-
-#     host = sandbox.get_host(port=8080)
-
-#     sandbox_url = f"https://{host}"
-#     return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
 def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
@@ -1626,8 +1571,12 @@ def on_run_code(
                 )
         case SandboxEnvironment.REACT:
             yield update_output("🔄 Setting up React sandbox...")
-            sandbox_url, sandbox_id = run_react_sandbox(code=code, code_dependencies=code_dependencies)
-            yield update_output("✅ React sandbox ready!", clear_output=True)
+            sandbox_url, sandbox_id, stderr = run_react_sandbox(code=code, code_dependencies=code_dependencies)
+            if stderr:
+                yield update_output("❌ React sandbox failed to run!", clear_output=True)
+                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+            else:
+                yield update_output("✅ React sandbox ready!", clear_output=True)
             yield (
                 gr.Markdown(value=output_text, visible=True),
                 SandboxComponent(
@@ -1640,8 +1589,12 @@ def on_run_code(
             )
         case SandboxEnvironment.VUE:
             yield update_output("🔄 Setting up Vue sandbox...")
-            sandbox_url, sandbox_id = run_vue_sandbox(code=code, code_dependencies=code_dependencies)
-            yield update_output("✅ Vue sandbox ready!", clear_output=True)
+            sandbox_url, sandbox_id, stderr = run_vue_sandbox(code=code, code_dependencies=code_dependencies)
+            if stderr:
+                yield update_output("❌ Vue sandbox failed to run!", clear_output=True)
+                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+            else:
+                yield update_output("✅ Vue sandbox ready!", clear_output=True)
             yield (
                 gr.Markdown(value=output_text, visible=True),
                 SandboxComponent(
@@ -1706,20 +1659,6 @@ def on_run_code(
                     ),
                     gr.skip(),
                 )
-        # case SandboxEnvironment.NICEGUI:
-        #     yield update_output("🔄 Setting up NiceGUI sandbox...")
-        #     sandbox_url, sandbox_id, std_err = run_nicegui_sandbox(code=code, code_dependencies=code_dependencies)
-        #     yield update_output("✅ NiceGUI sandbox ready!", clear_output=True)
-        #     yield (
-        #         gr.Markdown(value=output_text, visible=True),
-        #         SandboxComponent(
-        #             value=(sandbox_url, True, []),
-        #             label="Example",
-        #             visible=True,
-        #             key="newsandbox",
-        #         ),
-        #         gr.skip(),
-        #     )
         case SandboxEnvironment.PYTHON_CODE_INTERPRETER:
             yield update_output("🔄 Running Python Code Interpreter...", clear_output=True)
             output, stderr = run_code_interpreter(
