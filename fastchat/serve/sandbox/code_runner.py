@@ -83,6 +83,7 @@ Your code must be written using one of these supported development frameworks an
 - Gradio (Python)
 - Streamlit (Python)
 - PyGame (Python)
+- Mermaid (Embedded in HTML)
 - Python Code Interpreter
 - JavaScript Code Interpreter
 
@@ -145,6 +146,11 @@ For HTML development, ensure that:
 - Include any necessary CSS and JavaScript within the HTML file
 - Ensure the code is directly executable in a browser environment
 - Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
+
+For Mermaid development:
+- You MUST embed the Mermaid diagram within a self-contained HTML file using <pre class="mermaid"> tag
+- Import Mermaid from CDN: <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+- Initialize Mermaid with custom theme configuration to control colors and styling
 """
 
 DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION = """
