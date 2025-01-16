@@ -1063,124 +1063,34 @@ def replace_placeholder_urls(code: str) -> str:
     return re.sub(pattern, replacer, code)
 
 
-def mermaid_to_html(mermaid_code: str, theme: str = 'light') -> str:
+def mermaid_to_html(mermaid_code: str, theme: str = 'default') -> str:
     """
-    Convert Mermaid diagram code to a self-contained HTML document with enhanced styling
-    and dark/light theme support.
+    Convert Mermaid diagram code to a minimal HTML document.
     
     Args:
         mermaid_code: The Mermaid diagram syntax
-        theme: 'light' or 'dark' color scheme
+        theme: Theme name ('default', 'dark', 'forest', 'neutral', etc.)
     
     Returns:
         str: Complete HTML document with embedded Mermaid diagram
     """
-    # Theme configurations
-    themes = {
-        'light': {
-            'background': '#ffffff',
-            'page_background': '#f8fafc',
-            'primary': '#0ea5e9',  
-            'primary_text': '#0f172a', 
-            'primary_border': '#38bdf8',
-            'line': '#64748b',
-            'secondary': '#f1f5f9',
-            'tertiary': '#e2e8f0',
-            'shadow': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
-        },
-        'dark': {
-            'background': '#1e293b', 
-            'page_background': '#0f172a',
-            'primary': '#38bdf8',
-            'primary_text': '#f8fafc', 
-            'primary_border': '#0ea5e9',
-            'line': '#94a3b8',
-            'secondary': '#334155',
-            'tertiary': '#475569',
-            'shadow': '0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2)'
-        }
-    }
-    
-    current_theme = themes[theme]
-    
     html_template = f'''<!DOCTYPE html>
-<html data-theme="{theme}">
+<html>
 <head>
     <meta charset="UTF-8">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
-    <style>
-        :root {{
-            color-scheme: {theme};
-        }}
-        body {{
-            margin: 0;
-            padding: 40px 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: {current_theme['page_background']};
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-            transition: all 0.3s ease;
-        }}
-        .mermaid-container {{
-            background: {current_theme['background']};
-            border-radius: 12px;
-            box-shadow: {current_theme['shadow']};
-            padding: 3rem;
-            max-width: 90vw;
-            width: auto;
-            position: relative;
-            transition: all 0.3s ease;
-        }}
-        .mermaid {{
-            margin: auto;
-        }}
-        @media (max-width: 640px) {{
-            .mermaid-container {{
-                padding: 1.5rem;
-            }}
-        }}
-        @media (prefers-reduced-motion) {{
-            body, .mermaid-container {{
-                transition: none;
-            }}
-        }}
-    </style>
-    <script>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        
         mermaid.initialize({{
             startOnLoad: true,
-            theme: '{theme}',
-            themeVariables: {{
-                primaryColor: '{current_theme["primary"]}',
-                primaryTextColor: '{current_theme["primary_text"]}',
-                primaryBorderColor: '{current_theme["primary_border"]}',
-                lineColor: '{current_theme["line"]}',
-                secondaryColor: '{current_theme["secondary"]}',
-                tertiaryColor: '{current_theme["tertiary"]}'
-            }},
-            flowchart: {{
-                curve: 'natural',
-                padding: 24,
-                useMaxWidth: true
-            }},
-            sequence: {{
-                actorMargin: 64,
-                messageMargin: 48,
-                mirrorActors: true
-            }},
-            gantt: {{
-                fontSize: 14
-            }}
+            theme: '{theme}'
         }});
     </script>
 </head>
 <body>
-    <div class="mermaid-container">
-        <div class="mermaid">
+    <pre class="mermaid">
 {mermaid_code}
-        </div>
-    </div>
+    </pre>
 </body>
 </html>'''
     return html_template
