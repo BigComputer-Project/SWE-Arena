@@ -1302,7 +1302,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     stderr = run_background_command_with_timeout(
         sandbox,
         "python -m http.server 3000",
-        timeout=3,
+        timeout=5,
     )
     
     host = sandbox.get_host(3000)
@@ -1346,7 +1346,7 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     stderr = run_background_command_with_timeout(
         sandbox,
         "cd ~/react_app && npm run build",
-        timeout=3,
+        timeout=8,
     )
     sandbox_url = get_sandbox_app_url(sandbox, 'react')
     return (sandbox_url, sandbox.sandbox_id, stderr)
@@ -1386,7 +1386,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     stderr = run_background_command_with_timeout(
         sandbox,
         "cd ~/vue_app && npm run build",
-        timeout=3,
+        timeout=8,
     )
     sandbox_url = get_sandbox_app_url(sandbox, 'vue')
     return (sandbox_url, sandbox.sandbox_id, stderr)
@@ -1421,7 +1421,7 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     stderr = run_background_command_with_timeout(
         sandbox,
         "python -m http.server 3000",
-        timeout=5,
+        timeout=8,
     )
 
     host = sandbox.get_host(3000)
@@ -1451,7 +1451,7 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     stderr = run_background_command_with_timeout(
         sandbox,
         "python ~/app.py",
-        timeout=8,
+        timeout=10,
     )
 
     sandbox_url = 'https://' + sandbox.get_host(7860)
