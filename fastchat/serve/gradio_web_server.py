@@ -926,43 +926,34 @@ def build_single_model_ui(models, add_promotion_links=False):
 
     with gr.Group():
         with gr.Row():
-            enable_sandbox_checkbox = gr.Checkbox(
-                value=False,
-                label="Enable Sandbox",
-                info="Run generated code in a remote sandbox",
-                interactive=True,
-            )
-            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Sandbox Environment", interactive=True, visible=False)
+            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Sandbox Environment", interactive=True, visible=True)
         with gr.Group():
-            sandbox_instruction_accordion = gr.Accordion("Sandbox & Output", open=True, visible=False)
-            with sandbox_instruction_accordion:
-                sandbox_group = gr.Group(visible=False)
-                with sandbox_group:
-                    sandbox_column = gr.Column(visible=False,scale=1)
-                    with sandbox_column:
+            with gr.Accordion("Sandbox & Output", open=True, visible=True) as sandbox_instruction_accordion:
+                with gr.Group(visible=True) as sandbox_group:
+                    with gr.Column(visible=True, scale=1) as sandbox_column:
                         sandbox_state = gr.State(create_chatbot_sandbox_state(btn_list_length=5))
                         # Add containers for the sandbox output
-                        sandbox_title = gr.Markdown(value=f"### Model Sandbox", visible=False)
-                        sandbox_output_tab = gr.Tab(label="Output", visible=False)
-                        sandbox_code_tab = gr.Tab(label="Code", visible=False)
-                        with sandbox_output_tab:
-                            sandbox_output = gr.Markdown(value="", visible=False)
+                        sandbox_title = gr.Markdown(value=f"### Model Sandbox", visible=True)
+
+                        with gr.Tab(label="Output", visible=True) as sandbox_output_tab:
+                            sandbox_output = gr.Markdown(value="", visible=True)
                             sandbox_ui = SandboxComponent(
                                 value=('', False, []),
                                 show_label=True,
-                                visible=False,
+                                visible=True,
                             )
+
                         # log sandbox telemetry
                         sandbox_ui.change(
                             fn=log_sandbox_telemetry_gradio_fn,
                             inputs=[sandbox_state, sandbox_ui],
                         )
-                        with sandbox_code_tab:
+
+                        with gr.Tab(label="Code", visible=True) as sandbox_code_tab:
                             sandbox_code = gr.Code(
                                 value="",
                                 interactive=True, # allow user edit
-                                visible=False,
-                                # wrap_lines=True,
+                                visible=True,
                                 label='Sandbox Code',
                             )
                             with gr.Row():
@@ -980,27 +971,10 @@ def build_single_model_ui(models, add_promotion_links=False):
                             sandbox_code,
                         ))
 
-        sandbox_hidden_components.extend([sandbox_group, sandbox_column, sandbox_title, sandbox_code_tab,
-                                 sandbox_output_tab, sandbox_env_choice, sandbox_instruction_accordion])
-
         sandbox_env_choice.change(
             fn=update_sandbox_config,
             inputs=[
-                enable_sandbox_checkbox,
-                sandbox_env_choice,
-                sandbox_state
-            ],
-            outputs= [sandbox_state]
-        )
-        # update sandbox global config
-        enable_sandbox_checkbox.change (
-            fn=lambda visible: update_visibility_for_single_model(visible=visible, component_cnt=len(sandbox_hidden_components)),
-            inputs=[enable_sandbox_checkbox], 
-            outputs=sandbox_hidden_components
-        ).then(
-            fn=update_sandbox_config,
-            inputs=[
-                enable_sandbox_checkbox,
+                gr.State(value=True),  # Always enabled
                 sandbox_env_choice,
                 sandbox_state
             ],

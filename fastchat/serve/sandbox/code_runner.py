@@ -304,21 +304,20 @@ class ChatbotSandboxState(TypedDict):
     btn_list_length: int | None
 
 
-def create_chatbot_sandbox_state(btn_list_length: int) -> ChatbotSandboxState:
+def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxState:
     '''
-    Create a new chatbot sandbox state.
+    Create a new sandbox state for a chatbot.
     '''
     return {
-        "enable_sandbox": False,
-        "sandbox_environment": None,
-        "auto_selected_sandbox_environment": None,
-        "sandbox_instruction": None,
-        "code_to_execute": "",
-        "code_language": None,
-        "code_dependencies": ([], []),
-        "enabled_round": 0,
-        "sandbox_id": None,
-        "btn_list_length": btn_list_length
+        'enable_sandbox': True,  # Always enabled
+        'enabled_round': 0,
+        'sandbox_environment': SandboxEnvironment.AUTO,
+        'auto_selected_sandbox_environment': None,
+        'sandbox_instruction': DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
+        'code_to_execute': "",
+        'code_language': None,
+        'code_dependencies': ([], []),
+        'btn_list_length': btn_list_length,
     }
 
 
