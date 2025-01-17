@@ -60,7 +60,7 @@ WEB_UI_SANDBOX_ENVIRONMENTS = [
 
 VALID_GRADIO_CODE_LANGUAGES = [
     'python', 'c', 'cpp', 'markdown', 'json', 'html', 'css', 'javascript', 'jinja2', 'typescript', 'yaml', 'dockerfile', 'shell', 'r', 'sql',
-    'sql-msSQL', 'sql-mySQL', 'sql-mariaDB', 'sql-sqlite', 'sql-cassandra', 'sql-plSQL', 'sql-hive', 'sql-pgSQL', 'sql-gql', 'sql-gpSQL', 'sql-sparkSQL', 
+    'sql-msSQL', 'sql-mySQL', 'sql-mariaDB', 'sql-sqlite', 'sql-cassandra', 'sql-plSQL', 'sql-hive', 'sql-pgSQL', 'sql-gql', 'sql-gpSQL', 'sql-sparkSQL',
     'sql-esper'
 ]
 '''
@@ -204,12 +204,12 @@ Generate a Python NiceGUI code snippet for a single file.
 
 DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION = """
 Generate Python code for a single-file Streamlit application using the Streamlit library.
-The app should automatically reload when changes are made. 
+The app should automatically reload when changes are made.
 """
 
 AUTO_SANDBOX_INSTRUCTION = (
 """
-You are an expert Software Engineer. Generate code for a single file to be executed in a sandbox. Do not import external files. You can output information if needed. 
+You are an expert Software Engineer. Generate code for a single file to be executed in a sandbox. Do not import external files. You can output information if needed.
 
 The code should be in the markdown format:
 ```<language>
@@ -313,6 +313,19 @@ def create_chatbot_sandbox_state(btn_list_length: int) -> ChatbotSandboxState:
     }
 
 
+# def create_chatbot_sandbox_state(btn_list_length=5):
+#     return {
+#         "enabled": False,
+#         "enabled_round": 0,
+#         "sandbox_instruction": DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
+#         "dependencies": [
+#             ["python", "", ""],
+#             ["npm", "", ""],
+#         ],  # Add default empty dependencies
+#         "btn_list_length": btn_list_length,
+#     }
+
+
 def update_sandbox_config_multi(
     enable_sandbox: bool,
     sandbox_environment: SandboxEnvironment,
@@ -322,7 +335,7 @@ def update_sandbox_config_multi(
     Fn to update sandbox config.
     '''
     return [
-        update_sandbox_config(enable_sandbox, sandbox_environment, state) 
+        update_sandbox_config(enable_sandbox, sandbox_environment, state)
         for state
         in states
     ]
@@ -342,7 +355,7 @@ def update_sandbox_config(
 
 
 def update_visibility(visible):
-    return [gr.update(visible=visible)] *12
+    return [gr.update(visible=visible)] *14
 
 
 def update_visibility_for_single_model(visible: bool, component_cnt: int):
@@ -360,7 +373,7 @@ def extract_python_imports(code: str) -> list[str]:
         return []
 
     packages: Set[str] = set()
-    
+
     for node in ast.walk(tree):
         try:
             if isinstance(node, ast.Import):
@@ -369,14 +382,14 @@ def extract_python_imports(code: str) -> list[str]:
                     # e.g., 'foo.bar.baz' -> 'foo'
                     if name.name:  # Ensure there's a name
                         packages.add(name.name.split('.')[0])
-                        
+
             elif isinstance(node, ast.ImportFrom):
                 # Skip relative imports (those starting with dots)
                 if node.level == 0 and node.module:
                     # Get the top-level package name
                     # e.g., from foo.bar import baz -> 'foo'
                     packages.add(node.module.split('.')[0])
-                    
+
             # Also check for common dynamic import patterns
             elif isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name) and node.func.id == 'importlib':
@@ -394,10 +407,10 @@ def extract_python_imports(code: str) -> list[str]:
         except Exception as e:
             print(f"Error processing node {type(node)}: {e}")
             continue
-    
+
     # Filter out standard library modules using sys.stdlib_module_names
     std_libs = set(sys.stdlib_module_names)
-    
+
     return list(packages - std_libs)
 
 def extract_js_imports(code: str) -> list[str]:
@@ -415,7 +428,7 @@ def extract_js_imports(code: str) -> list[str]:
         # Initialize parsers with language modules
         ts_parser = Parser(Language(tree_sitter_typescript.language_tsx()))
         js_parser = Parser(Language(tree_sitter_javascript.language()))
-        
+
         # Try parsing as TypeScript first, then JavaScript
         code_bytes = bytes(code, "utf8")
         try:
@@ -430,9 +443,9 @@ def extract_js_imports(code: str) -> list[str]:
 
         if tree is None:
             raise Exception("Both TypeScript and JavaScript parsing failed")
-        
+
         packages: Set[str] = set()
-        
+
         def extract_package_name(node: Node) -> str | None:
             '''Extract package name from string literal or template string'''
             if node.type in ['string', 'string_fragment']:
@@ -455,7 +468,7 @@ def extract_js_imports(code: str) -> list[str]:
                     elif child.type == 'template_substitution':
                         has_template_var = True
                         continue
-                
+
                 if not content or content.startswith('.'):
                     return None
 
@@ -470,7 +483,7 @@ def extract_js_imports(code: str) -> list[str]:
                         return '/'.join(parts[:2])
                 return content.split('/')[0]
             return None
-        
+
         def visit_node(node: Node) -> None:
             if node.type == 'import_statement':
                 # Handle ES6 imports
@@ -479,7 +492,7 @@ def extract_js_imports(code: str) -> list[str]:
                     pkg_name = extract_package_name(string_node)
                     if pkg_name:
                         packages.add(pkg_name)
-                        
+
             elif node.type == 'export_statement':
                 # Handle re-exports
                 source = node.child_by_field_name('source')
@@ -487,7 +500,7 @@ def extract_js_imports(code: str) -> list[str]:
                     pkg_name = extract_package_name(source)
                     if pkg_name:
                         packages.add(pkg_name)
-                        
+
             elif node.type == 'call_expression':
                 # Handle require calls and dynamic imports
                 func_node = node.child_by_field_name('function')
@@ -500,31 +513,31 @@ def extract_js_imports(code: str) -> list[str]:
                             pkg_name = extract_package_name(arg)
                             if pkg_name:
                                 packages.add(pkg_name)
-            
+
             # Recursively visit children
             for child in node.children:
                 visit_node(child)
-        
+
         visit_node(tree.root_node)
         return list(packages)
-        
+
     except Exception as e:
         print(f"Tree-sitter parsing failed: {e}")
         # Fallback to basic regex parsing if tree-sitter fails
         packages: Set[str] = set()
-        
+
         # First try to extract script section for Vue SFC
         script_match = re.search(r'<script.*?>(.*?)</script>', code, re.DOTALL)
         if script_match:
             code = script_match.group(1).strip()
-        
+
         # Look for imports
         import_patterns = [
             r'(?:import|require)\s*\(\s*[\'"](@?[\w-]+(?:/[\w-]+)*)[\'"]',  # dynamic imports
             r'(?:import|from)\s+[\'"](@?[\w-]+(?:/[\w-]+)*)[\'"]',  # static imports
             r'require\s*\(\s*[\'"](@?[\w-]+(?:/[\w-]+)*)[\'"]',  # require statements
         ]
-        
+
         for pattern in import_patterns:
             matches = re.finditer(pattern, code)
             for match in matches:
@@ -536,7 +549,7 @@ def extract_js_imports(code: str) -> list[str]:
                             packages.add('/'.join(parts[:2]))
                     else:
                         packages.add(pkg_name.split('/')[0])
-        
+
         return list(packages)
 
 def determine_python_environment(code: str, imports: list[str]) -> SandboxEnvironment | None:
@@ -563,7 +576,7 @@ def determine_python_environment(code: str, imports: list[str]) -> SandboxEnviro
         return SandboxEnvironment.STREAMLIT
     # elif 'nicegui' in imports:
     #     return SandboxEnvironment.NICEGUI
-    
+
     return SandboxEnvironment.PYTHON_CODE_INTERPRETER
 
 def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironment | None:
@@ -573,11 +586,11 @@ def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironm
     # First check for Vue SFC structure
     if '<template>' in code or '<script setup' in code:
         return SandboxEnvironment.VUE
-    
+
     # Check imports for framework detection
     react_packages = {'react', '@react', 'next', '@next'}
     vue_packages = {'vue', '@vue', 'nuxt', '@nuxt'}
-    
+
     if any(pkg in react_packages for pkg in imports):
         return SandboxEnvironment.REACT
     elif any(pkg in vue_packages for pkg in imports):
@@ -586,19 +599,19 @@ def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironm
     try:
         # Initialize parser
         ts_parser = Parser(Language(tree_sitter_typescript.language_tsx()))
-        
+
         # Parse the code
         tree = ts_parser.parse(bytes(code, "utf8"))
-        
+
         def has_framework_patterns(node: Node) -> tuple[bool, str]:
             # Check for React patterns
             if node.type in ['jsx_element', 'jsx_self_closing_element']:
                 return True, 'react'
-                
+
             # Check for Vue template
             elif node.type == 'template_element':
                 return True, 'vue'
-                
+
             # Check for Vue template string
             elif node.type == 'template_string':
                 content = code[node.start_byte:node.end_byte]
@@ -606,7 +619,7 @@ def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironm
                 vue_patterns = [
                     'v-if=', 'v-else', 'v-for=', 'v-bind:', 'v-on:', 'v-model=',
                     'v-show=', 'v-html=', 'v-text=', '@', ':',
-                    'components:', 'props:', 'emits:', 'data:', 
+                    'components:', 'props:', 'emits:', 'data:',
                     'methods:', 'computed:', 'watch:',
                     'setup(', 'ref(', 'reactive(', 'computed(', 'watch(',
                     'onMounted(', 'onUnmounted(', 'provide(', 'inject(',
@@ -616,15 +629,15 @@ def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironm
                 if any(pattern in content for pattern in vue_patterns):
                     return True, 'vue'
             return False, ''
-        
+
         # Check for framework-specific patterns in the AST
         cursor = tree.walk()
-        
+
         def visit_node() -> SandboxEnvironment | None:
             is_framework, framework = has_framework_patterns(cursor.node)
             if is_framework:
                 return SandboxEnvironment.REACT if framework == 'react' else SandboxEnvironment.VUE
-                
+
             # Check children
             if cursor.goto_first_child():
                 while True:
@@ -634,7 +647,7 @@ def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironm
                     if not cursor.goto_next_sibling():
                         break
                 cursor.goto_parent()
-            
+
             return None
 
         result = visit_node()
@@ -655,15 +668,15 @@ def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironm
             r'@(?:click|change|input|submit|keyup|keydown)',
             r':(?:class|style|src|href|value|disabled|checked)'
         ]
-        
+
         for pattern in vue_patterns:
             if re.search(pattern, code, re.MULTILINE):
                 return SandboxEnvironment.VUE
-    
+
     except Exception as e:
         print(f"Tree-sitter parsing error: {e}")
         pass
-    
+
     return SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER
 
 
@@ -671,10 +684,10 @@ def detect_js_ts_code_lang(code: str) -> str:
     '''
     Detect whether code is JavaScript or TypeScript using Tree-sitter AST parsing.
     Handles Vue SFC, React, and regular JS/TS files.
-    
+
     Args:
         code (str): The code to analyze
-        
+
     Returns:
         str: 'typescript' if TypeScript patterns are found, 'javascript' otherwise
     '''
@@ -685,10 +698,10 @@ def detect_js_ts_code_lang(code: str) -> str:
     try:
         # Initialize TypeScript parser
         ts_parser = Parser(Language(tree_sitter_typescript.language_tsx()))
-        
+
         # Parse the code
         tree = ts_parser.parse(bytes(code, "utf8"))
-        
+
         def has_typescript_patterns(node: Node) -> bool:
             # Check for TypeScript-specific syntax
             if node.type in {
@@ -714,28 +727,28 @@ def detect_js_ts_code_lang(code: str) -> str:
                 'accessibility_modifier',   # private/protected/public
             }:
                 return True
-                
+
             # Check for type annotations in variable declarations
             if node.type == 'variable_declarator':
                 for child in node.children:
                     if child.type == 'type_annotation':
                         return True
-            
+
             # Check for return type annotations in functions
             if node.type in {'function_declaration', 'method_definition', 'arrow_function'}:
                 for child in node.children:
                     if child.type == 'type_annotation':
                         return True
-            
+
             return False
 
         # Walk the AST to find TypeScript patterns
         cursor = tree.walk()
-        
+
         def visit_node() -> bool:
             if has_typescript_patterns(cursor.node):
                 return True
-                
+
             # Check children
             if cursor.goto_first_child():
                 while True:
@@ -744,7 +757,7 @@ def detect_js_ts_code_lang(code: str) -> str:
                     if not cursor.goto_next_sibling():
                         break
                 cursor.goto_parent()
-            
+
             return False
 
         if visit_node():
@@ -774,7 +787,7 @@ def extract_inline_pip_install_commands(code: str) -> tuple[list[str], str]:
     '''
     python_packages = []
     cleaned_lines = []
-    
+
     # Regex patterns to match pip install commands in comments and Jupyter-style commands
     pip_patterns = [
         # Comments with pip install
@@ -784,7 +797,7 @@ def extract_inline_pip_install_commands(code: str) -> tuple[list[str], str]:
         # Requirements file style pip install
         r'(?:#|!)\s*(?:pip|pip3|python -m pip)\s+install\s+(?:-r\s+[\w\-\.\/]+\s+)*([^-\s][\w\-\[\]<>=~\.]+(?:\s+[^-\s][\w\-\[\]<>=~\.]+)*)'
     ]
-    
+
     # Process each line
     for line in code.splitlines():
         matched = False
@@ -797,19 +810,19 @@ def extract_inline_pip_install_commands(code: str) -> tuple[list[str], str]:
                 # Clean package names (remove version specifiers)
                 cleaned_pkgs = [pkg.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0] for pkg in pkgs]
                 python_packages.extend(cleaned_pkgs)
-                
+
                 # Remove the pip install command from the line
                 cleaned_line = line[:match.start()].rstrip()
                 if cleaned_line:  # Only add non-empty lines
                     cleaned_lines.append(cleaned_line)
                 break
-        
+
         if not matched:
             cleaned_lines.append(line)
-    
+
     # Remove duplicates while preserving order
     python_packages = list(dict.fromkeys(python_packages))
-    
+
     return python_packages, '\n'.join(cleaned_lines)
 
 
@@ -817,15 +830,15 @@ def extract_js_from_html_script_tags(code: str) -> list[str]:
     '''
     Extract JavaScript package names from HTML script tags.
     Handles both CDN script tags and inline scripts.
-    
+
     Args:
         code: HTML code containing script tags
-        
+
     Returns:
         list[str]: List of package names
     '''
     packages: Set[str] = set()
-    
+
     # Extract packages from CDN script tags
     script_patterns = [
         # unpkg.com pattern
@@ -835,7 +848,7 @@ def extract_js_from_html_script_tags(code: str) -> list[str]:
         # Generic CDN pattern for any domain - exclude common path components
         r'<script[^>]*src="https?://(?!(?:[^"]+/)?(?:npm|dist|lib|build|umd|esm|cjs|min)/)[^"]+?/(@?[\w-]+)(?:/[^"]*)?[^"]*"[^>]*>',
     ]
-    
+
     seen_packages = set()  # Track packages we've already added to avoid duplicates
     for pattern in script_patterns:
         matches = re.finditer(pattern, code, re.IGNORECASE)
@@ -849,12 +862,12 @@ def extract_js_from_html_script_tags(code: str) -> list[str]:
             else:
                 # Remove version and path components from package name
                 pkg_name = pkg_name.split('/')[0].split('@')[0]
-            
+
             # Skip common path components and duplicates
             if pkg_name and pkg_name not in seen_packages and not pkg_name.lower() in {'npm', 'dist', 'lib', 'build', 'umd', 'esm', 'cjs', 'min'}:
                 seen_packages.add(pkg_name)
                 packages.add(pkg_name)
-    
+
     # Extract packages from inline scripts
     script_tags = re.finditer(r'<script[^>]*>(.*?)</script>', code, re.DOTALL | re.IGNORECASE)
     for script in script_tags:
@@ -873,13 +886,13 @@ def extract_js_from_html_script_tags(code: str) -> list[str]:
                     seen_packages.add(pkg_name)
                     packages.add(pkg_name)
                     found_cdn_import = True
-        
+
         # Only check for regular imports if we didn't find a CDN import
         if not found_cdn_import:
             # Remove any URL imports before passing to extract_js_imports
             cleaned_content = re.sub(r'import\s+[\w\s{},*]+\s+from\s+[\'"]https?://[^"]+[\'"]', '', script_content)
             packages.update(extract_js_imports(cleaned_content))
-    
+
     return list(packages)
 
 def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tuple[str, str, tuple[list[str], list[str]], SandboxEnvironment | None] | None:
@@ -896,10 +909,10 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
     '''
     code_block_regex = r'```(?P<code_lang>[\w\+\#\-\.]*)?[ \t]*\r?\n?(?P<code>.*?)```'
     matches = list(re.finditer(code_block_regex, message, re.DOTALL))
-    
+
     if not matches:
         return None
-        
+
     # Define a low-priority list for certain languages
     low_priority_languages = ['bash', 'shell', 'sh', 'zsh', 'powershell', 'pwsh', '']
 
@@ -931,7 +944,7 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
     # Extract package dependencies from the main program
     python_packages: list[str] = []
     npm_packages: list[str] = []
-    
+
     # Helper function to check if any prefix matches
     def matches_prefix(lang: str, prefixes: list[str]) -> bool:
         return any(lang.lower().startswith(prefix) for prefix in prefixes)
@@ -985,11 +998,11 @@ def create_placeholder_svg_data_url(width: int, height: int) -> str:
     '''
     Create a data URL for a placeholder image with given dimensions.
     Uses SVG to create an elegant placeholder.
-    
+
     Args:
         width: Width of the placeholder image
         height: Height of the placeholder image
-    
+
     Returns:
         str: Data URL containing the SVG image
     '''
@@ -1002,22 +1015,22 @@ def create_placeholder_svg_data_url(width: int, height: int) -> str:
             </linearGradient>
         </defs>
         <rect width="100%" height="100%" fill="url(#bg)"/>
-        <text 
-            x="50%" 
-            y="50%" 
-            font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
-            font-size="{min(width, height) // 14}" 
+        <text
+            x="50%"
+            y="50%"
+            font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            font-size="{min(width, height) // 14}"
             fill="#94A3B8"
             font-weight="300"
             letter-spacing="0.05em"
-            text-anchor="middle" 
+            text-anchor="middle"
             dominant-baseline="middle">
             <tspan x="50%" dy="-1em">{width}</tspan>
             <tspan x="50%" dy="1.4em" font-size="{min(width, height) // 16}">×</tspan>
             <tspan x="50%" dy="1.4em">{height}</tspan>
         </text>
     </svg>'''
-    
+
     # Convert to base64 data URL
     encoded_svg = base64.b64encode(svg.encode()).decode()
     return f'data:image/svg+xml;base64,{encoded_svg}'
@@ -1026,25 +1039,25 @@ def replace_placeholder_urls(code: str) -> str:
     '''
     Replace placeholder image URLs with SVG data URLs.
     Only replaces exact matches of "/api/placeholder/{width}/{height}".
-    
+
     Args:
         code: The source code containing placeholder URLs
-        
+
     Returns:
         str: Code with placeholder URLs replaced with data URLs
     '''
-    
+
     def replacer(match: re.Match) -> str:
         # Extract width and height from the URL using capturing groups
         width = int(match.group(1))
         height = int(match.group(2))
         print(f'Replacing placeholder URL with SVG: {width}x{height}')
         data_url = create_placeholder_svg_data_url(width, height)
-        return data_url  
-    
+        return data_url
+
     # Regular expression pattern to match placeholder URLs
     pattern = r'/api/placeholder/(\d+)/(\d+)'
-    
+
     # Replace all occurrences
     return re.sub(pattern, replacer, code)
 
@@ -1090,12 +1103,12 @@ def install_pip_dependencies(sandbox: Sandbox, dependencies: list[str]):
     stderr = ""
     if not dependencies:
         return
-        
+
     def log_output(message):
         print(f"pip: {message}")
         nonlocal stderr
         stderr += message
-    
+
     for dependency in dependencies:
         try:
             sandbox.commands.run(
@@ -1113,7 +1126,7 @@ def install_npm_dependencies(sandbox: Sandbox, dependencies: list[str]):
     '''
     if not dependencies:
         return
-    
+
     for dependency in dependencies:
         try:
             sandbox.commands.run(
@@ -1133,12 +1146,12 @@ def run_background_command_with_timeout(
 ) -> tuple[bool, str]:
     """
     Run a command in the background and wait for a short time to check for startup errors.
-    
+
     Args:
         sandbox: The sandbox instance
         command: The command to run
         timeout: How long to wait for startup errors (in seconds)
-    
+
     Returns:
         tuple[bool, str]: (success, stderr)
         - success: True if the command started successfully
@@ -1149,7 +1162,7 @@ def run_background_command_with_timeout(
     def collect_stderr(message):
         nonlocal stderr
         stderr += message
-    
+
 
     cmd = sandbox.commands.run(
         command,
@@ -1171,7 +1184,7 @@ def run_background_command_with_timeout(
             result_queue.put(stderr)
         except TimeoutException as e:
             return
-    
+
     # Create a queue to store the result
     result_queue = queue.Queue()
 
@@ -1202,7 +1215,9 @@ def run_code_interpreter(code: str, code_language: str | None, code_dependencies
     sandbox.commands.run("pip install uv",
                          timeout=60 * 3,
                          on_stderr=lambda message: print(message),)
-    
+
+    print(f"code_dependencies: {code_dependencies}")
+
     python_dependencies, npm_dependencies = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
     install_npm_dependencies(sandbox, npm_dependencies)
@@ -1255,7 +1270,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     python_dependencies, npm_dependencies = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
     install_npm_dependencies(sandbox, npm_dependencies)
-    
+
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
 
@@ -1268,7 +1283,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
         "python -m http.server 3000",
         timeout=0,
     )
-    
+
     host = sandbox.get_host(3000)
     sandbox_url = f"https://{host}" + '/myhtml/main.html'
     return (sandbox_url, sandbox.sandbox_id, stderr)
@@ -1372,7 +1387,7 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     sandbox.files.make_dir('mygame')
     file_path = "~/mygame/main.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
-    
+
     python_dependencies, npm_dependencies = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
     install_npm_dependencies(sandbox, npm_dependencies)
@@ -1382,7 +1397,7 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
         "pygbag --build ~/mygame",
         timeout=60 * 5,
     )
-    
+
     stderr = run_background_command_with_timeout(
         sandbox,
         "python -m http.server 3000",
@@ -1486,24 +1501,86 @@ def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[st
     url = f"https://{host}"
     return (url, sandbox.sandbox_id, stderr)
 
+
 def on_edit_code(
     state,
     sandbox_state: ChatbotSandboxState,
     sandbox_output: gr.Markdown,
     sandbox_ui: SandboxComponent,
     sandbox_code: str,
-) -> Generator[tuple[Any, Any, Any], None, None]:
+    sandbox_dependency: gr.Dataframe,
+) -> Generator[tuple[Any, Any, Any, Any], None, None]:
     '''
     Gradio Handler when code is edited manually by users.
     '''
     if sandbox_state['enable_sandbox'] is False:
-        yield None, None, None
+        yield None, None, None, None
         return
     if len(sandbox_code.strip()) == 0 or sandbox_code == sandbox_state['code_to_execute']:
-        yield gr.skip(), gr.skip(), gr.skip()
+        yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
     sandbox_state['code_to_execute'] = sandbox_code
-    yield from on_run_code(state, sandbox_state, sandbox_output, sandbox_ui, sandbox_code)
+    python_deps, npm_deps = extract_installation_commands(sandbox_code)
+    # Convert to dataframe format
+    dependencies = []
+    for dep in python_deps:
+        dependencies.append(["python", dep, "latest"])
+    for dep in npm_deps:
+        dependencies.append(["npm", dep, "latest"])
+
+    # If no dependencies found, provide default empty rows
+    if not dependencies:
+        dependencies = [["python", "", ""], ["npm", "", ""]]
+
+    # Update dependencies in sandbox state
+    sandbox_state["code_dependencies"] = (python_deps, npm_deps)
+    yield (
+        gr.skip(),  # sandbox_output
+        gr.skip(),  # sandbox_ui
+        gr.skip(),  # sandbox_code
+        gr.update(value=dependencies),  # sandbox_dependency
+    )
+    yield from on_run_code(
+        state,
+        sandbox_state,
+        sandbox_output,
+        sandbox_ui,
+        sandbox_code,
+        sandbox_dependency,
+    )
+
+
+def on_edit_dependency(
+    state,
+    sandbox_state: ChatbotSandboxState,
+    sandbox_dependency: gr.Dataframe,
+) -> tuple[gr.Dataframe, gr.Markdown]:
+    '''
+    Gradio Handler when dependencies are edited manually by users.
+    '''
+    if not sandbox_state['enable_sandbox']:
+        return gr.skip(), gr.Markdown("Sandbox is not enabled")
+
+    # Validate dependencies format
+    dependencies = sandbox_dependency
+    is_valid, error_msg = validate_dependencies(dependencies)
+    if not is_valid:
+        return gr.skip(), gr.Markdown(f"Invalid dependencies: {error_msg}")
+
+    # Convert dataframe format to separate python and npm lists
+    python_deps = []
+    npm_deps = []
+    for dep in dependencies:
+        if dep[0].lower() == "python" and dep[1]:
+            python_deps.append(dep[1])
+        elif dep[0].lower() == "npm" and dep[1]:
+            npm_deps.append(dep[1])
+
+    # Update sandbox state
+    sandbox_state['code_dependencies'] = (python_deps, npm_deps)
+
+    return gr.update(), gr.Markdown("Dependencies updated successfully")
+
 
 def on_click_code_message_run(
     state,
@@ -1511,16 +1588,17 @@ def on_click_code_message_run(
     sandbox_output: gr.Markdown,
     sandbox_ui: SandboxComponent,
     sandbox_code: str,
+    sandbox_dependency: gr.Dataframe,
     evt: gr.SelectData
 ) -> Generator[SandboxGradioSandboxComponents, None, None]:
     '''
     Gradio Handler when run code button in message is clicked. Update Sandbox components.
     '''
     if sandbox_state['enable_sandbox'] is False:
-        yield None, None, None
+        yield None, None, None, None
         return
     if not evt.value.endswith(RUN_CODE_BUTTON_HTML):
-        yield gr.skip(), gr.skip(), gr.skip()
+        yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
 
     message = evt.value.replace(RUN_CODE_BUTTON_HTML, "").strip()
@@ -1529,13 +1607,13 @@ def on_click_code_message_run(
         enable_auto_env=sandbox_state['sandbox_environment'] == SandboxEnvironment.AUTO
     )
     if extract_result is None:
-        yield gr.skip(), gr.skip(), gr.skip()
+        yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
     code, code_language, code_dependencies, env_selection = extract_result
 
     if sandbox_state['code_to_execute'] == code and sandbox_state['code_language'] == code_language and sandbox_state['code_dependencies'] == code_dependencies:
         # skip if no changes
-        yield gr.skip(), gr.skip(), gr.skip()
+        yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
 
     if code_language == 'tsx':
@@ -1544,25 +1622,61 @@ def on_click_code_message_run(
         # ensure gradio supports the code language
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
+    # python_deps, npm_deps = extract_installation_commands(code)
+
+    # python_deps, npm_deps = code_dependencies
+    print(f"code: {code}")
+    python_deps, npm_deps = extract_installation_commands(code)
+    print(f"python_deps: {python_deps}")
+    print(f"npm_deps: {npm_deps}")
+    dependencies = []
+
+    for dep in python_deps:
+        dependencies.append(["python", dep, "latest"])
+    for dep in npm_deps:
+        dependencies.append(["npm", dep, "latest"])
+
+    # If no dependencies found, provide default empty rows
+    if not dependencies:
+        dependencies = [["python", "", ""], ["npm", "", ""]]
+
     sandbox_state['code_to_execute'] = code
     sandbox_state['code_language'] = code_language
-    sandbox_state['code_dependencies'] = code_dependencies
+    # sandbox_state['code_dependencies'] = code_dependencies
+    sandbox_state["code_dependencies"] = (python_deps, npm_deps)
     if sandbox_state['sandbox_environment'] == SandboxEnvironment.AUTO:
         sandbox_state['auto_selected_sandbox_environment'] = env_selection
-    yield from on_run_code(state, sandbox_state, sandbox_output, sandbox_ui, sandbox_code)
+
+    yield (
+        gr.skip(),  # sandbox_output
+        gr.skip(),  # sandbox_ui
+        gr.update(value=code, language=code_language),  # sandbox_code
+        gr.update(value=dependencies)  # sandbox_dependency
+    )
+
+    yield from on_run_code(
+        state,
+        sandbox_state,
+        sandbox_output,
+        sandbox_ui,
+        sandbox_code,
+        sandbox_dependency,
+    )
+
 
 def on_run_code(
     state,
     sandbox_state: ChatbotSandboxState,
     sandbox_output: gr.Markdown,
     sandbox_ui: SandboxComponent,
-    sandbox_code: str
-) -> Generator[tuple[Any, Any, Any], None, None]:
+    sandbox_code: str,
+    sandbox_dependency: gr.Dataframe,
+) -> Generator[tuple[Any, Any, Any, Any], None, None]:
     '''
     gradio fn when run code button is clicked. Update Sandbox components.
     '''
     if sandbox_state['enable_sandbox'] is False:
-        yield None, None, None
+        yield None, None, None, None
         return
 
     # validate e2b api key
@@ -1571,7 +1685,7 @@ def on_run_code(
 
     code, code_language = sandbox_state['code_to_execute'], sandbox_state['code_language']
     if code is None or code_language is None:
-        yield None, None, None
+        yield None, None, None, None
         return
 
     if code_language == 'tsx':
@@ -1580,12 +1694,30 @@ def on_run_code(
         # ensure gradio supports the code language
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
+    python_deps, npm_deps = extract_installation_commands(code)
+
+    # Convert to dataframe format for UI
+    dependencies = []
+    for dep in python_deps:
+        dependencies.append(["python", dep, "latest"])
+    for dep in npm_deps:
+        dependencies.append(["npm", dep, "latest"])
+
+    # If no dependencies found, provide default empty rows
+    if not dependencies:
+        dependencies = [["python", "", ""], ["npm", "", ""]]
+
+    sandbox_state["code_dependencies"] = (python_deps, npm_deps)
+
     # Initialize output with loading message
     output_text = "### Sandbox Execution Log\n\n"
     yield (
-        gr.Markdown(value=output_text + "🔄 Initializing sandbox environment...", visible=True),
+        gr.Markdown(
+            value=output_text + "🔄 Initializing sandbox environment...", visible=True
+        ),
         SandboxComponent(visible=False),
         gr.Code(value=code, language=code_language, visible=True),
+        gr.update(value=dependencies),  # Update dependency UI
     )
 
     sandbox_env = sandbox_state['auto_selected_sandbox_environment']
@@ -1600,13 +1732,16 @@ def on_run_code(
             gr.Markdown(value=output_text, visible=True, sanitize_html=False),
             gr.skip(),
             gr.skip(),
+            gr.update(value=dependencies),
         )
 
     sandbox_id = None
     match sandbox_env:
         case SandboxEnvironment.HTML:
             yield update_output("🔄 Setting up HTML sandbox...")
-            sandbox_url, sandbox_id, stderr = run_html_sandbox(code=code, code_dependencies=code_dependencies)
+            sandbox_url, sandbox_id, stderr = run_html_sandbox(
+                code=code, code_dependencies=code_dependencies
+            )
             if stderr:
                 yield update_output("❌ HTML sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
@@ -1621,6 +1756,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.REACT:
             yield update_output("🔄 Setting up React sandbox...")
@@ -1635,6 +1771,7 @@ def on_run_code(
                     key="newsandbox",
                 ),
                 gr.skip(),
+                gr.update(value=dependencies),
             )
         case SandboxEnvironment.VUE:
             yield update_output("🔄 Setting up Vue sandbox...")
@@ -1649,6 +1786,7 @@ def on_run_code(
                     key="newsandbox",
                 ),
                 gr.skip(),
+                gr.update(value=dependencies),
             )
         case SandboxEnvironment.PYGAME:
             yield update_output("🔄 Setting up PyGame sandbox...")
@@ -1667,6 +1805,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.GRADIO:
             yield update_output("🔄 Setting up Gradio sandbox...")
@@ -1685,6 +1824,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.STREAMLIT:
             yield update_output("🔄 Setting up Streamlit sandbox...")
@@ -1703,6 +1843,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
+                    gr.update(value=dependencies),
                 )
         # case SandboxEnvironment.NICEGUI:
         #     yield update_output("🔄 Setting up NiceGUI sandbox...")
@@ -1729,14 +1870,19 @@ def on_run_code(
             else:
                 yield update_output("✅ Code execution complete!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text + "\n\n" + output, sanitize_html=False, visible=True),
+                    gr.Markdown(
+                        value=output_text + "\n\n" + output,
+                        sanitize_html=False,
+                        visible=True,
+                    ),
                     SandboxComponent(
-                        value=('', False, []),
+                        value=("", False, []),
                         label="Example",
                         visible=False,
                         key="newsandbox",
                     ),
-                    gr.skip()
+                    gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER:
             yield update_output("🔄 Running JavaScript Code Interpreter...", clear_output=True)
@@ -1749,25 +1895,31 @@ def on_run_code(
             else:
                 yield update_output("✅ Code execution complete!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text + "\n\n" + output, sanitize_html=False, visible=True),
+                    gr.Markdown(
+                        value=output_text + "\n\n" + output,
+                        sanitize_html=False,
+                        visible=True,
+                    ),
                     SandboxComponent(
-                        value=('', False, []),
+                        value=("", False, []),
                         label="Example",
                         visible=False,
                         key="newsandbox",
                     ),
-                    gr.skip()
+                    gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case _:
             yield (
                 gr.Markdown(value=code, visible=True),
                 SandboxComponent(
-                    value=('', False, []),
+                    value=("", False, []),
                     label="Example",
                     visible=False,
                     key="newsandbox",
                 ),
-                gr.skip()
+                gr.skip(),
+                gr.update(value=dependencies),
             )
 
     if sandbox_id:
@@ -1795,7 +1947,7 @@ def extract_installation_commands(code: str) -> tuple[list[str], list[str]]:
         r'(?:pip|pip3|python -m pip)\s+install\s+(?:(?:--upgrade|--user|--no-cache-dir|-U)\s+)*([^-\s][\w\-\[\]<>=~\.]+(?:\s+[^-\s][\w\-\[\]<>=~\.]+)*)',
         r'(?:pip|pip3|python -m pip)\s+install\s+(?:-r\s+[\w\-\.\/]+\s+)*([^-\s][\w\-\[\]<>=~\.]+(?:\s+[^-\s][\w\-\[\]<>=~\.]+)*)',
     ]
-    
+
     # Match npm install with various flags
     npm_patterns = [
         r'npm\s+i(?:nstall)?\s+(?:(?:--save|--save-dev|-[SD]|--global|-g)\s+)*([^-\s][\w\-@/\.]+(?:\s+[^-\s][\w\-@/\.]+)*)',
@@ -1818,7 +1970,7 @@ def extract_installation_commands(code: str) -> tuple[list[str], list[str]]:
             pkgs = match.group(1).strip().split()
             npm_packages.extend(pkg.split('@')[0] for pkg in pkgs if not pkg.startswith('@'))
             # Handle scoped packages (e.g., @types/node)
-            npm_packages.extend(f"{pkg.split('/')[0]}/{pkg.split('/')[1].split('@')[0]}" 
+            npm_packages.extend(f"{pkg.split('/')[0]}/{pkg.split('/')[1].split('@')[0]}"
                               for pkg in pkgs if pkg.startswith('@') and '/' in pkg)
 
     # Remove duplicates while preserving order
@@ -1826,3 +1978,50 @@ def extract_installation_commands(code: str) -> tuple[list[str], list[str]]:
     npm_packages = list(dict.fromkeys(npm_packages))
 
     return python_packages, npm_packages
+
+
+def extract_dependencies_from_code(code: str) -> list:
+    """Extract Python and NPM dependencies from code."""
+    dependencies = []
+
+    # Extract Python imports
+    import_pattern = r"^(?:from|import)\s+([\w\d_]+)"
+    python_imports = set(re.findall(import_pattern, code, re.MULTILINE))
+    for pkg in python_imports:
+        if pkg not in ["os", "sys", "re", "math"]:  # Skip standard library
+            dependencies.append(["python", pkg, "latest"])
+
+    # Extract NPM requires/imports
+    npm_pattern = r'(?:require|import)\s+[\'"]([^\'\"]+)[\'"]'
+    npm_imports = set(re.findall(npm_pattern, code, re.MULTILINE))
+    for pkg in npm_imports:
+        if not pkg.startswith("."):  # Skip relative imports
+            dependencies.append(["npm", pkg, "latest"])
+
+    return dependencies
+
+
+def validate_dependencies(dependencies: list) -> tuple[bool, str]:
+    """Validate dependency list format and values."""
+    if not dependencies:
+        return True, ""
+
+    valid_types = ["python", "npm"]
+    for dep in dependencies:
+        if len(dep) != 3:
+            return False, "Each dependency must have type, package and version"
+        if dep[0].lower() not in valid_types:
+            return False, f"Invalid dependency type: {dep[0]}"
+        if not dep[1].strip():
+            return False, "Package name cannot be empty"
+    return True, ""
+
+
+# def update_sandbox_dependencies(state, sandbox_state, dependencies):
+#     """Update sandbox state with new dependencies."""
+#     is_valid, error_msg = validate_dependencies(dependencies)
+#     if not is_valid:
+#         return gr.update(), error_msg
+
+#     sandbox_state["dependencies"] = dependencies
+#     return gr.update(value=dependencies), ""

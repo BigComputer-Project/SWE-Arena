@@ -38,7 +38,7 @@ from fastchat.model.model_registry import get_model_info, model_info
 from fastchat.serve.api_provider import get_api_provider_stream_iter
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.remote_logger import get_remote_logger
-from fastchat.serve.sandbox.code_runner import SandboxGradioSandboxComponents, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, RUN_CODE_BUTTON_HTML, ChatbotSandboxState, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, update_sandbox_config, update_visibility_for_single_model
+from fastchat.serve.sandbox.code_runner import SandboxGradioSandboxComponents, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, RUN_CODE_BUTTON_HTML, ChatbotSandboxState, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, update_sandbox_config, update_visibility_for_single_model, on_edit_dependency
 from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 from fastchat.utils import (
     build_logger,
@@ -321,7 +321,7 @@ def clear_history(sandbox_state,request: gr.Request):
         print("Request headers dictionary:", request.headers)
         print("IP address:", request.client.host)
         print("Query parameters:", dict(request.query_params))
-    
+
     state = None
     sandbox_state['enabled_round'] = 0
     sandbox_state['code_to_execute'] = ""
@@ -471,7 +471,7 @@ def bot_response(
     if request:
         ip = get_ip(request)
         logger.info(f"bot_response. ip: {ip}")
-    
+
     start_tstamp = time.time()
     temperature = float(temperature)
     top_p = float(top_p)
@@ -900,7 +900,7 @@ def build_single_model_ui(models, add_promotion_links=False):
     )
 
     state = gr.State()
-    
+
     with gr.Group(elem_id="share-region-named"):
         with gr.Row(elem_id="model_selector_row"):
             model_selector = gr.Dropdown(
@@ -980,20 +980,77 @@ def build_single_model_ui(models, add_promotion_links=False):
                             with gr.Row():
                                 sandbox_code_submit_btn = gr.Button(value="Apply Changes", visible=True, interactive=True, variant='primary', size='sm')
                                 # run code when click apply changes
-                                sandbox_code_submit_btn.click(
-                                    fn=on_edit_code,
-                                    inputs=[state, sandbox_state, sandbox_output, sandbox_ui, sandbox_code],
-                                    outputs=[sandbox_output, sandbox_ui, sandbox_code]
+                                # sandbox_code_submit_btn.click(
+                                #     fn=on_edit_code,
+                                #     inputs=[state, sandbox_state, sandbox_output, sandbox_ui, sandbox_code],
+                                #     outputs=[sandbox_output, sandbox_ui, sandbox_code]
+                                # )
+
+                        with gr.Tab(
+                            label="Dependency", visible=False
+                        ) as sandbox_dependency_tab:
+                            sandbox_dependency = gr.Dataframe(
+                                headers=["Type", "Package", "Version"],
+                                datatype=["str", "str", "str"],
+                                col_count=(3, "fixed"),
+                                value=[["python", "", ""], ["npm", "", ""]],
+                                interactive=True,
+                                visible=False,
+                            )
+                            with gr.Row():
+                                dependency_submit_btn = gr.Button(
+                                    value="Apply Dependencies",
+                                    visible=True,
+                                    interactive=True,
+                                    variant="primary",
+                                    size="sm",
                                 )
+                            dependency_submit_btn.click(
+                                fn=on_edit_dependency,
+                                inputs=[
+                                    state,
+                                    sandbox_state,
+                                    sandbox_dependency,
+                                ],
+                                outputs=[sandbox_dependency, sandbox_output],
+                            )
+                        sandbox_code_submit_btn.click(
+                            fn=on_edit_code,
+                            inputs=[
+                                state,
+                                sandbox_state,
+                                sandbox_output,
+                                sandbox_ui,
+                                sandbox_code,
+                                sandbox_dependency,
+                            ],
+                            outputs=[
+                                sandbox_output,
+                                sandbox_ui,
+                                sandbox_code,
+                                sandbox_dependency,
+                            ],
+                        )
 
                         sandboxes_components.append((
                             sandbox_output,
                             sandbox_ui,
                             sandbox_code,
+                            sandbox_dependency,
                         ))
 
-        sandbox_hidden_components.extend([sandbox_group, sandbox_column, sandbox_title, sandbox_code_tab,
-                                 sandbox_output_tab, sandbox_env_choice, sandbox_instruction_accordion])
+        sandbox_hidden_components.extend(
+            [
+                sandbox_group,
+                sandbox_column,
+                sandbox_title,
+                sandbox_code_tab,
+                sandbox_output_tab,
+                sandbox_env_choice,
+                sandbox_instruction_accordion,
+                sandbox_dependency_tab,
+            ]
+        )
 
         sandbox_env_choice.change(
             fn=update_sandbox_config,
@@ -1007,7 +1064,7 @@ def build_single_model_ui(models, add_promotion_links=False):
         # update sandbox global config
         enable_sandbox_checkbox.change (
             fn=lambda visible: update_visibility_for_single_model(visible=visible, component_cnt=len(sandbox_hidden_components)),
-            inputs=[enable_sandbox_checkbox], 
+            inputs=[enable_sandbox_checkbox],
             outputs=sandbox_hidden_components
         ).then(
             fn=update_sandbox_config,
@@ -1098,8 +1155,8 @@ def build_single_model_ui(models, add_promotion_links=False):
         [state, chatbot] + btn_list,
     )
     clear_btn.click(
-        clear_history, 
-        [sandbox_state], 
+        clear_history,
+        [sandbox_state],
         [state, chatbot, textbox] + btn_list + [sandbox_state]
     ).then(
         lambda: gr.update(interactive=True),
@@ -1111,8 +1168,8 @@ def build_single_model_ui(models, add_promotion_links=False):
     )
 
     model_selector.change(
-        clear_history, 
-        [sandbox_state], 
+        clear_history,
+        [sandbox_state],
         [state, chatbot, textbox] + btn_list + [sandbox_state]
     ).then(
         lambda: gr.update(interactive=True),
