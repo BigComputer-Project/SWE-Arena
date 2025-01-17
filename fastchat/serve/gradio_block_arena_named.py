@@ -199,21 +199,23 @@ def update_sandbox_system_messages_multi(state0, state1, sandbox_state0, sandbox
     states = [state0, state1]
     model_selectors = [model_selector0, model_selector1]
     sandbox_states: list[ChatbotSandboxState] = [sandbox_state0, sandbox_state1]
+    new_system_messages = []
 
     # Init states if necessary
     for i in range(num_sides):
         if states[i] is None:
             states[i] = State(model_selectors[i])
         sandbox_state = sandbox_states[i]
-        if sandbox_state is None or sandbox_state['enable_sandbox'] is False or sandbox_state["enabled_round"] > 0:
-            continue
+        # if sandbox_state is None or sandbox_state['enable_sandbox'] is False or sandbox_state["enabled_round"] > 0:
+        #     continue
         sandbox_state['enabled_round'] += 1 # avoid dup
+        sandbox_state['sandbox_instruction'] = DEFAULT_SANDBOX_INSTRUCTIONS[sandbox_state['sandbox_environment']]
         environment_instruction = sandbox_state['sandbox_instruction']
         current_system_message = states[i].conv.get_system_message(states[i].is_vision)
         new_system_message = f"{current_system_message}\n\n{environment_instruction}"
-        states[i].conv.set_system_message(new_system_message)
+        states[i].conv.set_system_message(environment_instruction)
 
-    return states + [x.to_gradio_chatbot() for x in states]
+    return states + [x.to_gradio_chatbot() for x in states] + [environment_instruction]
 
 def add_text_multi(
     state0, state1,
@@ -486,16 +488,6 @@ def build_side_by_side_ui_named(models):
                                     sandbox_code,
                                 ))
 
-        sandbox_env_choice.change(
-            fn=update_sandbox_config_multi,
-            inputs=[
-                gr.State(value=True),  # Always enabled
-                sandbox_env_choice,
-                *sandbox_states
-            ],
-            outputs=[*sandbox_states]
-        )
-
     # First define all UI components
     with gr.Row():
         textbox = gr.Textbox(
@@ -606,7 +598,7 @@ def build_side_by_side_ui_named(models):
     ).then(
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,
-        states + chatbots
+        states + chatbots+ [system_prompt_textbox]
     ).then(
         bot_response_multi,
         states + [temperature, top_p, max_output_tokens] + sandbox_states,
@@ -626,13 +618,27 @@ def build_side_by_side_ui_named(models):
     ).then(
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,
-        states + chatbots
+        states + chatbots+ [system_prompt_textbox]
     ).then(
         bot_response_multi,
         states + [temperature, top_p, max_output_tokens] + sandbox_states,
         states + chatbots + btn_list,
     ).then(
         flash_buttons, [], btn_list
+    )
+
+    sandbox_env_choice.change(
+    fn=update_sandbox_config_multi,
+    inputs=[
+        gr.State(value=True),  # Always enabled
+        sandbox_env_choice,
+        *sandbox_states
+    ],
+    outputs=[*sandbox_states]
+    ).then(
+        update_sandbox_system_messages_multi,
+        states + sandbox_states + model_selectors,
+        states + chatbots + [system_prompt_textbox]
     )
 
     # Register handlers for one-sided sends
