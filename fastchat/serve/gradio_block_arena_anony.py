@@ -645,9 +645,8 @@ def build_side_by_side_ui_anony(models):
                                         interactive=True,
                                         visible=True,
                                         wrap=True,  # Enable text wrapping
-                                        overflow_row_behaviour="paginate",  # Enable pagination for many rows
-                                        height=200,  # Set fixed height to enable scrolling
-                                        max_rows=50,  # Maximum number of rows allowed
+                                        max_height=200,
+                                        type="array",  # Add this line to fix the error
                                     )
                                     with gr.Row():
                                         dependency_submit_btn = gr.Button(

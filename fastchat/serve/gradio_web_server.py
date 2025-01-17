@@ -980,9 +980,8 @@ def build_single_model_ui(models, add_promotion_links=False):
                                     interactive=True,
                                     visible=True,
                                     wrap=True,  # Enable text wrapping
-                                    overflow_row_behaviour="paginate",  # Enable pagination for many rows
-                                    height=200,  # Set fixed height to enable scrolling
-                                    max_rows=50,  # Maximum number of rows allowed
+                                    max_height=200,
+                                    type="array",  # Add this line to fix the error
                                 )
                                 with gr.Row():
                                     dependency_submit_btn = gr.Button(
