@@ -1664,6 +1664,8 @@ def on_run_code(
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
     python_deps, npm_deps = extract_installation_commands(code)
+    print(f"python_deps: {python_deps}")
+    print(f"npm_deps: {npm_deps}")
 
     # Convert to dataframe format for UI
     dependencies = []

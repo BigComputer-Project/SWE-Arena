@@ -542,27 +542,11 @@ def build_side_by_side_ui_named(models):
         sandbox_env_choice.change(
             fn=update_sandbox_config_multi,
             inputs=[
-                enable_sandbox_checkbox,
-                sandbox_env_choice,
-                *sandbox_states
-            ],
-            outputs=[*sandbox_states]
-        )
-
-        # update sandbox global config
-        enable_sandbox_checkbox.change(
-            fn=update_visibility,
-            inputs=[enable_sandbox_checkbox],
-            outputs=sandbox_hidden_components
-        ).then(
-            fn=update_sandbox_config_multi,
-            inputs=[
-                enable_sandbox_checkbox,
                 gr.State(value=True),  # Always enabled
                 sandbox_env_choice,
-                *sandbox_states
+                *sandbox_states,
             ],
-            outputs=[*sandbox_states]
+            outputs=[*sandbox_states],
         )
 
     # First define all UI components

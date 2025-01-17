@@ -1021,26 +1021,11 @@ def build_single_model_ui(models, add_promotion_links=False):
         sandbox_env_choice.change(
             fn=update_sandbox_config,
             inputs=[
-                enable_sandbox_checkbox,
-                sandbox_env_choice,
-                sandbox_state
-            ],
-            outputs= [sandbox_state]
-        )
-        # update sandbox global config
-        enable_sandbox_checkbox.change (
-            fn=lambda visible: update_visibility_for_single_model(visible=visible, component_cnt=len(sandbox_hidden_components)),
-            inputs=[enable_sandbox_checkbox],
-            outputs=sandbox_hidden_components
-        ).then(
-            fn=update_sandbox_config,
-            inputs=[
-                enable_sandbox_checkbox,
                 gr.State(value=True),  # Always enabled
                 sandbox_env_choice,
-                sandbox_state
+                sandbox_state,
             ],
-            outputs=[sandbox_state]
+            outputs=[sandbox_state],
         )
 
     with gr.Row():
