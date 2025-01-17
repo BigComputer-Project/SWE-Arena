@@ -980,8 +980,13 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
         code = match.group('code').strip()
         if code != main_code:
             install_python_packages, install_npm_packages = extract_installation_commands(code)
+            extracted_python_packages, extracted_npm_packages = (
+                extract_dependencies_from_code(code)
+            )
             all_python_packages.update(install_python_packages)
+            all_python_packages.update(extracted_python_packages)
             all_npm_packages.update(install_npm_packages)
+            all_npm_packages.update(extracted_npm_packages)
 
     return main_code, main_code_lang, (list(all_python_packages), list(all_npm_packages)), sandbox_env_name
 
@@ -1490,11 +1495,18 @@ def on_edit_code(
         return
     sandbox_state['code_to_execute'] = sandbox_code
     python_deps, npm_deps = extract_installation_commands(sandbox_code)
+    extracted_python_deps, extracted_npm_deps = extract_dependencies_from_code(
+        sandbox_code
+    )
     # Convert to dataframe format
     dependencies = []
     for dep in python_deps:
         dependencies.append(["python", dep, "latest"])
+    for dep in extracted_python_deps:
+        dependencies.append(["python", dep, "latest"])
     for dep in npm_deps:
+        dependencies.append(["npm", dep, "latest"])
+    for dep in extracted_npm_deps:
         dependencies.append(["npm", dep, "latest"])
 
     # If no dependencies found, provide default empty rows
@@ -1591,18 +1603,22 @@ def on_click_code_message_run(
         # ensure gradio supports the code language
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
-    # python_deps, npm_deps = extract_installation_commands(code)
 
     # python_deps, npm_deps = code_dependencies
     print(f"code: {code}")
     python_deps, npm_deps = extract_installation_commands(code)
-    print(f"python_deps: {python_deps}")
-    print(f"npm_deps: {npm_deps}")
+    extracted_python_deps, extracted_npm_deps = extract_dependencies_from_code(code)
+    print(f"python_deps: {extracted_python_deps}")
+    print(f"npm_deps: {extracted_npm_deps}")
     dependencies = []
 
     for dep in python_deps:
         dependencies.append(["python", dep, "latest"])
+    for dep in extracted_python_deps:
+        dependencies.append(["python", dep, "latest"])
     for dep in npm_deps:
+        dependencies.append(["npm", dep, "latest"])
+    for dep in extracted_npm_deps:
         dependencies.append(["npm", dep, "latest"])
 
     # If no dependencies found, provide default empty rows
@@ -1664,6 +1680,7 @@ def on_run_code(
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
     python_deps, npm_deps = extract_installation_commands(code)
+    extracted_python_deps, extracted_npm_deps = extract_dependencies_from_code(code)
     print(f"python_deps: {python_deps}")
     print(f"npm_deps: {npm_deps}")
 
@@ -1671,7 +1688,11 @@ def on_run_code(
     dependencies = []
     for dep in python_deps:
         dependencies.append(["python", dep, "latest"])
+    for dep in extracted_python_deps:
+        dependencies.append(["python", dep, "latest"])
     for dep in npm_deps:
+        dependencies.append(["npm", dep, "latest"])
+    for dep in extracted_npm_deps:
         dependencies.append(["npm", dep, "latest"])
 
     # If no dependencies found, provide default empty rows
@@ -2010,25 +2031,59 @@ def extract_installation_commands(code: str) -> tuple[list[str], list[str]]:
     return python_packages, npm_packages
 
 
-def extract_dependencies_from_code(code: str) -> list:
-    """Extract Python and NPM dependencies from code."""
-    dependencies = []
+def extract_dependencies_from_code(code: str) -> tuple[list[str], list[str]]:
+    """
+    Extract Python and NPM dependencies from code by analyzing imports and installation commands.
+    """
+    python_packages = set()
+    npm_packages = set()
 
-    # Extract Python imports
-    import_pattern = r"^(?:from|import)\s+([\w\d_]+)"
-    python_imports = set(re.findall(import_pattern, code, re.MULTILINE))
-    for pkg in python_imports:
-        if pkg not in ["os", "sys", "re", "math"]:  # Skip standard library
-            dependencies.append(["python", pkg, "latest"])
+    lines = code.split('\n')
+    for line in lines:
+        line = line.strip()
 
-    # Extract NPM requires/imports
-    npm_pattern = r'(?:require|import)\s+[\'"]([^\'\"]+)[\'"]'
-    npm_imports = set(re.findall(npm_pattern, code, re.MULTILINE))
-    for pkg in npm_imports:
-        if not pkg.startswith("."):  # Skip relative imports
-            dependencies.append(["npm", pkg, "latest"])
+        # Skip empty lines and comments
+        if not line or line.startswith(('#', '//', '/*')):
+            continue
 
-    return dependencies
+        # React/JS/TS imports
+        if "import" in line and "from" in line and ("'" in line or '"' in line):
+            # Extract package name between quotes
+            try:
+                pkg = line.split("from")[1].strip()
+                pkg = pkg.split("'")[1] if "'" in pkg else pkg.split('"')[1]
+                if not pkg.startswith('.'):  # Skip relative imports
+                    npm_packages.add(pkg)
+            except IndexError:
+                continue
+
+        # Handle require statements
+        elif 'require(' in line:
+            try:
+                pkg = line.split('require(')[1].split(')')[0].strip("'").strip('"')
+                if not pkg.startswith('.'):  # Skip relative imports
+                    npm_packages.add(pkg)
+            except IndexError:
+                continue
+
+        # Python imports
+        elif line.startswith(('import ', 'from ')):
+            if line.startswith('import '):
+                pkg = line.split('import')[1].split('as')[0].split(',')[0].strip()
+                pkg = pkg.split('.')[0]  # Get root package
+            else:
+                pkg = line.split('from')[1].split('import')[0].strip()
+                pkg = pkg.split('.')[0]  # Get root package
+
+            if not pkg.startswith('.') and pkg not in {
+                'os', 'sys', 're', 'math', 'time', 'datetime', 'json',
+                'random', 'collections', 'itertools', 'functools', 'typing',
+                'pathlib', 'shutil', 'tempfile', 'io', 'csv', 'unittest',
+                'logging', 'argparse', 'configparser', 'abc', 'copy', 'enum'
+            }:
+                python_packages.add(pkg)
+
+    return list(python_packages), list(npm_packages)
 
 
 def validate_dependencies(dependencies: list) -> tuple[bool, str]:

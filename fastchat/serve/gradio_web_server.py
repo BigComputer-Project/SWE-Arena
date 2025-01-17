@@ -965,25 +965,34 @@ def build_single_model_ui(models, add_promotion_links=False):
                                 #     outputs=[sandbox_output, sandbox_ui, sandbox_code]
                                 # )
 
-                        with gr.Tab(
-                            label="Dependency", visible=False
-                        ) as sandbox_dependency_tab:
-                            sandbox_dependency = gr.Dataframe(
-                                headers=["Type", "Package", "Version"],
-                                datatype=["str", "str", "str"],
-                                col_count=(3, "fixed"),
-                                value=[["python", "", ""], ["npm", "", ""]],
-                                interactive=True,
-                                visible=False,
-                            )
-                            with gr.Row():
-                                dependency_submit_btn = gr.Button(
-                                    value="Apply Dependencies",
-                                    visible=True,
+                            with gr.Tab(
+                                label="Dependency", visible=True
+                            ) as sandbox_dependency_tab:
+                                sandbox_dependency = gr.Dataframe(
+                                    headers=["Type", "Package", "Version"],
+                                    datatype=["str", "str", "str"],
+                                    col_count=(3, "fixed"),
+                                    row_count=(
+                                        10,
+                                        "dynamic",
+                                    ),  # Allow up to 10 rows initially, can add more
+                                    value=[["python", "", ""], ["npm", "", ""]],
                                     interactive=True,
-                                    variant="primary",
-                                    size="sm",
+                                    visible=True,
+                                    wrap=True,  # Enable text wrapping
+                                    overflow_row_behaviour="paginate",  # Enable pagination for many rows
+                                    height=200,  # Set fixed height to enable scrolling
+                                    max_rows=50,  # Maximum number of rows allowed
                                 )
+                                with gr.Row():
+                                    dependency_submit_btn = gr.Button(
+                                        value="Apply Dependencies",
+                                        visible=True,
+                                        interactive=True,
+                                        variant="primary",
+                                        size="sm",
+                                    )
+
                             dependency_submit_btn.click(
                                 fn=on_edit_dependency,
                                 inputs=[
@@ -993,6 +1002,7 @@ def build_single_model_ui(models, add_promotion_links=False):
                                 ],
                                 outputs=[sandbox_dependency, sandbox_output],
                             )
+
                         sandbox_code_submit_btn.click(
                             fn=on_edit_code,
                             inputs=[
