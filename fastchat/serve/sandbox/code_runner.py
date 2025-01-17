@@ -206,6 +206,14 @@ Generate Python code for a single-file Streamlit application using the Streamlit
 The app should automatically reload when changes are made. 
 """
 
+DEFAULT_MERMAID_SANDBOX_INSTRUCTION = """   
+- Write Mermaid diagrams directly using ```mermaid code blocks, e.g.:
+```mermaid
+graph TD;
+    A-->B;
+```
+"""
+
 AUTO_SANDBOX_INSTRUCTION = (
 """
 You are an expert Software Engineer. Generate code for a single file to be executed in a sandbox. Do not import external files. You can output information if needed. 
@@ -226,19 +234,21 @@ You can choose from the following sandbox environments:
 + 'Sandbox Environment Name: ' + SandboxEnvironment.STREAMLIT + '\n' + DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip() + '\n------\n'
 # + 'Sandbox Environment Name: ' + SandboxEnvironment.NICEGUI + '\n' + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip() + '\n------\n'
 + 'Sandbox Environment Name: ' + SandboxEnvironment.PYGAME + '\n' + DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip() + '\n------\n'
++ 'Sandbox Environment Name: ' + SandboxEnvironment.MERMAID + '\n' + DEFAULT_MERMAID_SANDBOX_INSTRUCTION.strip() + '\n------\n'
 )
 
 DEFAULT_SANDBOX_INSTRUCTIONS: dict[SandboxEnvironment, str] = {
     SandboxEnvironment.AUTO: GENERAL_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.PYTHON_CODE_INTERPRETER: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION.strip(),
-    SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION.strip(),
-    SandboxEnvironment.HTML: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_HTML_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.REACT: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_REACT_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.VUE: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_VUE_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.GRADIO: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.STREAMLIT: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip(),
-    # SandboxEnvironment.NICEGUI: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.PYGAME: GENERAL_SANDBOX_INSTRUCTION + DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.PYTHON_CODE_INTERPRETER: DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION.strip(),
+    SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER: DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION.strip(),
+    SandboxEnvironment.HTML: DEFAULT_HTML_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.REACT: DEFAULT_REACT_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.VUE: DEFAULT_VUE_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.GRADIO:  DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.STREAMLIT: DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip(),
+    # SandboxEnvironment.NICEGUI: DEFAULT_NICEGUI_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.PYGAME: DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip(),
+    SandboxEnvironment.MERMAID: DEFAULT_MERMAID_SANDBOX_INSTRUCTION.strip()
 }
 
 
