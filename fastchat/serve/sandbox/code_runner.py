@@ -6,28 +6,18 @@ from enum import StrEnum
 from typing import Any, Generator, TypeAlias, TypedDict, Set
 import gradio as gr
 import re
-import os
 import base64
 from e2b import Sandbox
 from e2b_code_interpreter import Sandbox as CodeSandbox
-from e2b.sandbox.commands.command_handle import CommandExitException
-from e2b.exceptions import TimeoutException
 from gradio_sandboxcomponent import SandboxComponent
 import ast
-import subprocess
-import json
-from tempfile import NamedTemporaryFile
 from tree_sitter import Language, Node, Parser
 import tree_sitter_javascript
 import tree_sitter_typescript
-from pathlib import Path
 import sys
-import threading
-from httpcore import ReadTimeout
-import queue
 
 from .constants import E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT
-from .sandbox_manager import get_sandbox_app_url, create_sandbox
+from .sandbox_manager import get_sandbox_app_url, create_sandbox, install_npm_dependencies, install_pip_dependencies, run_background_command_with_timeout
 
 class SandboxEnvironment(StrEnum):
     AUTO = 'Auto'
@@ -40,8 +30,8 @@ class SandboxEnvironment(StrEnum):
     VUE = 'Vue'
     GRADIO = 'Gradio'
     STREAMLIT = 'Streamlit'
-    # NICEGUI = 'NiceGUI'
     PYGAME = 'PyGame'
+    MERMAID = 'Mermaid'
 
 
 SUPPORTED_SANDBOX_ENVIRONMENTS: list[str] = [
@@ -56,6 +46,7 @@ WEB_UI_SANDBOX_ENVIRONMENTS = [
     SandboxEnvironment.STREAMLIT,
     # SandboxEnvironment.NICEGUI,
     SandboxEnvironment.PYGAME,
+    SandboxEnvironment.MERMAID
 ]
 
 VALID_GRADIO_CODE_LANGUAGES = [
@@ -83,6 +74,7 @@ Your code must be written using one of these supported development frameworks an
 - Gradio (Python)
 - Streamlit (Python)
 - PyGame (Python)
+- Mermaid (Markdown)
 - Python Code Interpreter
 - JavaScript Code Interpreter
 
@@ -145,6 +137,13 @@ For HTML development, ensure that:
 - Include any necessary CSS and JavaScript within the HTML file
 - Ensure the code is directly executable in a browser environment
 - Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
+
+For Mermaid development:
+- Write Mermaid diagrams directly using ```mermaid code blocks, e.g.:
+```mermaid
+graph TD;
+    A-->B;
+```
 """
 
 DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION = """
@@ -295,35 +294,21 @@ class ChatbotSandboxState(TypedDict):
     btn_list_length: int | None
 
 
-def create_chatbot_sandbox_state(btn_list_length: int) -> ChatbotSandboxState:
+def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxState:
     '''
-    Create a new chatbot sandbox state.
+    Create a new sandbox state for a chatbot.
     '''
     return {
-        "enable_sandbox": False,
-        "sandbox_environment": None,
-        "auto_selected_sandbox_environment": None,
-        "sandbox_instruction": None,
-        "code_to_execute": "",
-        "code_language": None,
-        "code_dependencies": ([], []),
-        "enabled_round": 0,
-        "sandbox_id": None,
-        "btn_list_length": btn_list_length
+        'enable_sandbox': True,  # Always enabled
+        'enabled_round': 0,
+        'sandbox_environment': SandboxEnvironment.AUTO,
+        'auto_selected_sandbox_environment': None,
+        'sandbox_instruction': DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
+        'code_to_execute': "",
+        'code_language': None,
+        'code_dependencies': ([], []),
+        'btn_list_length': btn_list_length,
     }
-
-
-# def create_chatbot_sandbox_state(btn_list_length=5):
-#     return {
-#         "enabled": False,
-#         "enabled_round": 0,
-#         "sandbox_instruction": DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
-#         "dependencies": [
-#             ["python", "", ""],
-#             ["npm", "", ""],
-#         ],  # Add default empty dependencies
-#         "btn_list_length": btn_list_length,
-#     }
 
 
 def update_sandbox_config_multi(
@@ -919,15 +904,17 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
     # Find the main code block by avoiding low-priority languages
     main_code = None
     main_code_lang = None
+    max_length = 0
+
     for match in matches:
         code = match.group('code').strip()
         code_lang = (match.group('code_lang') or '').lower()
-        if code_lang not in low_priority_languages:
+        if code_lang not in low_priority_languages and len(code) > max_length:
             main_code = code
             main_code_lang = code_lang
-            break
+            max_length = len(code)
 
-    # Fallback to the longest code block if all are low-priority
+    # Fallback to the longest code block if no main code was found
     if not main_code:
         longest_match = max(matches, key=lambda m: len(m.group('code')))
         main_code = longest_match.group('code').strip()
@@ -940,6 +927,7 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
     js_prefixes = ['js', 'javascript', 'jsx', 'coffee', 'ecma', 'node', 'es']
     html_prefixes = ['html', 'xhtml', 'htm']
     ts_prefixes = ['ts', 'typescript', 'tsx']
+    mermaid_prefixes = ['mermaid', 'mmd']
 
     # Extract package dependencies from the main program
     python_packages: list[str] = []
@@ -979,6 +967,9 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
         main_code_lang = detect_js_ts_code_lang(main_code)
         npm_packages = extract_js_imports(main_code)
         sandbox_env_name = determine_jsts_environment(main_code, npm_packages)
+    elif matches_prefix(main_code_lang, mermaid_prefixes):
+        main_code_lang = 'markdown'
+        sandbox_env_name = SandboxEnvironment.MERMAID
     else:
         sandbox_env_name = None
 
@@ -1060,6 +1051,39 @@ def replace_placeholder_urls(code: str) -> str:
 
     # Replace all occurrences
     return re.sub(pattern, replacer, code)
+
+
+def mermaid_to_html(mermaid_code: str, theme: str = 'default') -> str:
+    """
+    Convert Mermaid diagram code to a minimal HTML document.
+
+    Args:
+        mermaid_code: The Mermaid diagram syntax
+        theme: Theme name ('default', 'dark', 'forest', 'neutral', etc.)
+
+    Returns:
+        str: Complete HTML document with embedded Mermaid diagram
+    """
+    html_template = f'''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+        mermaid.initialize({{
+            startOnLoad: true,
+            theme: '{theme}'
+        }});
+    </script>
+</head>
+<body>
+    <pre class="mermaid">
+{mermaid_code}
+    </pre>
+</body>
+</html>'''
+    return html_template
 
 
 def render_result(result):
@@ -1267,9 +1291,8 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     """
     sandbox = create_sandbox()
 
-    python_dependencies, npm_dependencies = code_dependencies
-    install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
+    _, npm_dependencies = code_dependencies
+    install_npm_dependencies(sandbox, npm_dependencies, project_root='~/myhtml')
 
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
@@ -1281,7 +1304,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     stderr = run_background_command_with_timeout(
         sandbox,
         "python -m http.server 3000",
-        timeout=0,
+        timeout=5,
     )
 
     host = sandbox.get_host(3000)
@@ -1299,18 +1322,13 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     Returns:
         url for remote sandbox
     """
+    project_root = "~/react_app"
     sandbox = create_sandbox()
-
-    sandbox.commands.run(
-        "cd ~/react_app",
-        on_stdout=print,
-        on_stderr=print,
-    )
 
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies)
+        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
         print("NPM dependencies installed.")
 
     # replace placeholder URLs with SVG data URLs
@@ -1322,14 +1340,13 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
     print("Code files written successfully.")
 
-    # get the sandbox url
-    sandbox.commands.run(
+    stderr = run_background_command_with_timeout(
+        sandbox,
         "cd ~/react_app && npm run build",
-        on_stdout=print,
-        on_stderr=print,
+        timeout=8,
     )
     sandbox_url = get_sandbox_app_url(sandbox, 'react')
-    return (sandbox_url, sandbox.sandbox_id)
+    return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
 def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str]:
@@ -1344,11 +1361,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     """
     sandbox = create_sandbox()
 
-    sandbox.commands.run(
-        "cd ~/vue_app",
-        on_stdout=print,
-        on_stderr=print,
-    )
+    project_root = "~/vue_app"
 
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
@@ -1360,16 +1373,16 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies)
+        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
         print("NPM dependencies installed.")
 
-    sandbox.commands.run(
+    stderr = run_background_command_with_timeout(
+        sandbox,
         "cd ~/vue_app && npm run build",
-        on_stdout=print,
-        on_stderr=print,
+        timeout=8,
     )
     sandbox_url = get_sandbox_app_url(sandbox, 'vue')
-    return (sandbox_url, sandbox.sandbox_id)
+    return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
 def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
@@ -1388,9 +1401,8 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     file_path = "~/mygame/main.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
-    python_dependencies, npm_dependencies = code_dependencies
+    python_dependencies, _ = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
 
     # build the pygame code
     sandbox.commands.run(
@@ -1401,53 +1413,12 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     stderr = run_background_command_with_timeout(
         sandbox,
         "python -m http.server 3000",
-        timeout=5,
+        timeout=8,
     )
 
     host = sandbox.get_host(3000)
     sandbox_url =  f"https://{host}" + '/mygame/build/web/'
     return (sandbox_url, sandbox.sandbox_id, stderr)
-
-
-# def run_nicegui_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
-#     """
-#     Executes the provided code within a sandboxed environment and returns the output.
-
-#     Args:
-#         code (str): The code to be executed.
-
-#     Returns:
-#         url for remote sandbox
-#     """
-#     sandbox = Sandbox(api_key=E2B_API_KEY)
-
-#     setup_commands = [
-#         "uv pip install --system --upgrade nicegui",
-#     ]
-#     for command in setup_commands:
-#         sandbox.commands.run(
-#             command,
-#             timeout=60 * 3,
-#         )
-
-#     sandbox.files.make_dir('mynicegui')
-#     file_path = "~/mynicegui/main.py"
-#     sandbox.files.write(path=file_path, data=code, request_timeout=60)
-
-#     python_dependencies, npm_dependencies = code_dependencies
-#     install_pip_dependencies(sandbox, python_dependencies)
-#     install_npm_dependencies(sandbox, npm_dependencies)
-
-#     stderr = run_background_command_with_timeout(
-#         sandbox,
-#         "python ~/mynicegui/main.py",
-#         timeout=5,
-#     )
-
-#     host = sandbox.get_host(port=8080)
-
-#     sandbox_url = f"https://{host}"
-#     return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
 def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
@@ -1465,14 +1436,13 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     file_path = "~/app.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
-    python_dependencies, npm_dependencies = code_dependencies
+    python_dependencies, _ = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
 
     stderr = run_background_command_with_timeout(
         sandbox,
         "python ~/app.py",
-        timeout=8,
+        timeout=10,
     )
 
     sandbox_url = 'https://' + sandbox.get_host(7860)
@@ -1487,9 +1457,8 @@ def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[st
     file_path = "~/mystreamlit/app.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
-    python_dependencies, npm_dependencies = code_dependencies
+    python_dependencies, _ = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
 
     stderr = run_background_command_with_timeout(
         sandbox,
@@ -1760,34 +1729,41 @@ def on_run_code(
                 )
         case SandboxEnvironment.REACT:
             yield update_output("🔄 Setting up React sandbox...")
-            sandbox_url, sandbox_id = run_react_sandbox(code=code, code_dependencies=code_dependencies)
-            yield update_output("✅ React sandbox ready!", clear_output=True)
-            yield (
-                gr.Markdown(value=output_text, visible=True),
-                SandboxComponent(
-                    value=(sandbox_url, True, []),
-                    label="Example",
-                    visible=True,
-                    key="newsandbox",
-                ),
-                gr.skip(),
-                gr.update(value=dependencies),
-            )
+            sandbox_url, sandbox_id, stderr = run_react_sandbox(code=code, code_dependencies=code_dependencies)
+            if stderr:
+                yield update_output("❌ React sandbox failed to run!", clear_output=True)
+                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+            else:
+                yield update_output("✅ React sandbox ready!", clear_output=True)
+                yield (
+                    gr.Markdown(value=output_text, visible=True),
+                    SandboxComponent(
+                        value=(sandbox_url, True, []),
+                        label="Example",
+                        visible=True,
+                        key="newsandbox",
+                    ),
+                    gr.skip(),
+                )
         case SandboxEnvironment.VUE:
             yield update_output("🔄 Setting up Vue sandbox...")
-            sandbox_url, sandbox_id = run_vue_sandbox(code=code, code_dependencies=code_dependencies)
-            yield update_output("✅ Vue sandbox ready!", clear_output=True)
-            yield (
-                gr.Markdown(value=output_text, visible=True),
-                SandboxComponent(
-                    value=(sandbox_url, True, []),
-                    label="Example",
-                    visible=True,
-                    key="newsandbox",
-                ),
-                gr.skip(),
+            sandbox_url, sandbox_id, stderr = run_vue_sandbox(code=code, code_dependencies=code_dependencies)
+            if stderr:
+                yield update_output("❌ Vue sandbox failed to run!", clear_output=True)
+                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+            else:
+                yield update_output("✅ Vue sandbox ready!", clear_output=True)
+                yield (
+                    gr.Markdown(value=output_text, visible=True),
+                    SandboxComponent(
+                        value=(sandbox_url, True, []),
+                        label="Example",
+                        visible=True,
+                        key="newsandbox",
+                    ),
+                    gr.skip(),
                 gr.update(value=dependencies),
-            )
+                )
         case SandboxEnvironment.PYGAME:
             yield update_output("🔄 Setting up PyGame sandbox...")
             sandbox_url, sandbox_id, stderr = run_pygame_sandbox(code=code, code_dependencies=code_dependencies)
@@ -1843,22 +1819,27 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                    gr.update(value=dependencies),
                 )
-        # case SandboxEnvironment.NICEGUI:
-        #     yield update_output("🔄 Setting up NiceGUI sandbox...")
-        #     sandbox_url, sandbox_id, std_err = run_nicegui_sandbox(code=code, code_dependencies=code_dependencies)
-        #     yield update_output("✅ NiceGUI sandbox ready!", clear_output=True)
-        #     yield (
-        #         gr.Markdown(value=output_text, visible=True),
-        #         SandboxComponent(
-        #             value=(sandbox_url, True, []),
-        #             label="Example",
-        #             visible=True,
-        #             key="newsandbox",
-        #         ),
-        #         gr.skip(),
-        #     )
+        case SandboxEnvironment.MERMAID:
+            yield update_output("🔄 Setting up Mermaid visualization...")
+            # Convert Mermaid to HTML at execution time
+            html_code = mermaid_to_html(code, theme='light')
+            sandbox_url, sandbox_id, stderr = run_html_sandbox(code=html_code, code_dependencies=code_dependencies)
+            if stderr:
+                yield update_output("❌ Mermaid visualization failed to render!", clear_output=True)
+                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+            else:
+                yield update_output("✅ Mermaid visualization ready!", clear_output=True)
+                yield (
+                    gr.Markdown(value=output_text, visible=True),
+                    SandboxComponent(
+                        value=(sandbox_url, True, []),
+                        label="Mermaid Diagram",
+                        visible=True,
+                        key="newsandbox",
+                    ),
+                    gr.skip(),
+                )
         case SandboxEnvironment.PYTHON_CODE_INTERPRETER:
             yield update_output("🔄 Running Python Code Interpreter...", clear_output=True)
             output, stderr = run_code_interpreter(
@@ -1928,54 +1909,101 @@ def on_run_code(
 
 def extract_installation_commands(code: str) -> tuple[list[str], list[str]]:
     '''
-    Extracts package installation commands from the code block.
+    Extracts package installation commands from the code block, preserving version information.
 
     Args:
         code (str): The code block to analyze.
 
     Returns:
         tuple[list[str], list[str]]: A tuple containing two lists:
-            1. Python packages from pip install commands.
-            2. npm packages from npm install commands.
+            1. Python packages from pip install commands (with versions if specified).
+            2. npm packages from npm install commands (with versions if specified).
     '''
     python_packages = []
     npm_packages = []
 
-    # Regex patterns to find pip and npm install commands
-    # Match pip install with various forms (pip, pip3, python -m pip)
-    pip_patterns = [
-        r'(?:pip|pip3|python -m pip)\s+install\s+(?:(?:--upgrade|--user|--no-cache-dir|-U)\s+)*([^-\s][\w\-\[\]<>=~\.]+(?:\s+[^-\s][\w\-\[\]<>=~\.]+)*)',
-        r'(?:pip|pip3|python -m pip)\s+install\s+(?:-r\s+[\w\-\.\/]+\s+)*([^-\s][\w\-\[\]<>=~\.]+(?:\s+[^-\s][\w\-\[\]<>=~\.]+)*)',
-    ]
+    # Process the code line by line to handle both pip and npm commands
+    lines = code.split('\n')
+    for line in lines:
+        line = line.strip()
 
-    # Match npm install with various flags
-    npm_patterns = [
-        r'npm\s+i(?:nstall)?\s+(?:(?:--save|--save-dev|-[SD]|--global|-g)\s+)*([^-\s][\w\-@/\.]+(?:\s+[^-\s][\w\-@/\.]+)*)',
-        r'yarn\s+add\s+(?:(?:--dev|-D)\s+)*([^-\s][\w\-@/\.]+(?:\s+[^-\s][\w\-@/\.]+)*)',
-    ]
+        # Skip empty lines and comments
+        if not line or line.startswith('#'):
+            continue
 
-    # Find all pip install commands
-    for pattern in pip_patterns:
-        matches = re.finditer(pattern, code, re.MULTILINE)
-        for match in matches:
-            # Split packages and clean each one
-            pkgs = match.group(1).strip().split()
-            python_packages.extend(pkg.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0] for pkg in pkgs)
+        # Handle pip install commands
+        if any(x in line for x in ['pip install', 'pip3 install', 'python -m pip install']):
+            # Remove the command part and any flags
+            parts = line.split('install', 1)[1].strip()
+            # Handle flags at the start
+            while parts.startswith(('-', '--')):
+                parts = parts.split(None, 1)[1]
 
-    # Find all npm install commands
-    for pattern in npm_patterns:
-        matches = re.finditer(pattern, code, re.MULTILINE)
-        for match in matches:
-            # Split packages and clean each one
-            pkgs = match.group(1).strip().split()
-            npm_packages.extend(pkg.split('@')[0] for pkg in pkgs if not pkg.startswith('@'))
-            # Handle scoped packages (e.g., @types/node)
-            npm_packages.extend(f"{pkg.split('/')[0]}/{pkg.split('/')[1].split('@')[0]}"
-                              for pkg in pkgs if pkg.startswith('@') and '/' in pkg)
+            # Split by whitespace, respecting quotes
+            current = ''
+            in_quotes = False
+            quote_char = None
+            packages = []
+
+            for char in parts:
+                if char in '"\'':
+                    if not in_quotes:
+                        in_quotes = True
+                        quote_char = char
+                    elif char == quote_char:
+                        in_quotes = False
+                        quote_char = None
+                elif char.isspace() and not in_quotes:
+                    if current:
+                        packages.append(current)
+                        current = ''
+                else:
+                    current += char
+            if current:
+                packages.append(current)
+
+            # Add packages, stripping quotes and ignoring flags
+            for pkg in packages:
+                pkg = pkg.strip('"\'')
+                if pkg and not pkg.startswith(('-', '--')) and not pkg == '-r':
+                    python_packages.append(pkg)
+
+        # Handle npm/yarn install commands
+        elif any(x in line for x in ['npm install', 'npm i', 'yarn add']):
+            # Remove the command part and any flags
+            if 'yarn add' in line:
+                parts = line.split('add', 1)[1]
+            else:
+                parts = line.split('install', 1)[1] if 'install' in line else line.split('i', 1)[1]
+            parts = parts.strip()
+
+            # Handle flags at the start
+            while parts.startswith(('-', '--')):
+                parts = parts.split(None, 1)[1] if ' ' in parts else ''
+
+            # Process each package
+            for pkg in parts.split():
+                if pkg.startswith(('-', '--')) or pkg in ('install', 'i', 'add'):
+                    continue
+
+                if pkg.startswith('@'):
+                    # Handle scoped packages (e.g., @types/node@16.0.0)
+                    if '@' in pkg[1:]:  # Has version
+                        pkg_parts = pkg.rsplit('@', 1)
+                        base_pkg = pkg_parts[0]  # @scope/name
+                        version = pkg_parts[1]  # version
+                        npm_packages.append(f"{base_pkg}@{version}")
+                    else:
+                        npm_packages.append(pkg)
+                else:
+                    npm_packages.append(pkg)
 
     # Remove duplicates while preserving order
     python_packages = list(dict.fromkeys(python_packages))
     npm_packages = list(dict.fromkeys(npm_packages))
+
+    # Filter out npm command words
+    npm_packages = [p for p in npm_packages if p not in ('npm', 'install', 'i', 'add')]
 
     return python_packages, npm_packages
 

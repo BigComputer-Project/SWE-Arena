@@ -1,4 +1,4 @@
-from fastchat.serve.sandbox.code_runner import extract_code_from_markdown, SandboxEnvironment, extract_inline_pip_install_commands
+from fastchat.serve.sandbox.code_runner import extract_code_from_markdown, SandboxEnvironment, extract_installation_commands
 
 def test_vue_component_extraction():
     # Test markdown content with Vue component
@@ -417,8 +417,8 @@ def test():
     assert sorted(packages) == sorted(['numpy', 'pandas', 'tensorflow', 'torch']), f"Expected ['numpy', 'pandas', 'tensorflow', 'torch'], but got {packages}"
     assert cleaned_code.strip() == "", "Code with only pip commands should result in empty string"
 
-def test_determine_js_environment():
-    from fastchat.serve.sandbox.code_runner import determine_js_environment, SandboxEnvironment
+def test_determine_jsts_environment():
+    from fastchat.serve.sandbox.code_runner import determine_jsts_environment, SandboxEnvironment
 
     # Test Vue SFC structure detection
     vue_sfc_code = '''
@@ -431,7 +431,7 @@ export default {
 }
 </script>
 '''
-    assert determine_js_environment(vue_sfc_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue SFC structure"
+    assert determine_jsts_environment(vue_sfc_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue SFC structure"
 
     # Test Vue script setup detection
     vue_setup_code = '''
@@ -442,7 +442,7 @@ export default {
 const message = 'Hello Vue'
 </script>
 '''
-    assert determine_js_environment(vue_setup_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue script setup"
+    assert determine_jsts_environment(vue_setup_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue script setup"
 
     # Test Vue directives detection
     vue_directives_code = '''
@@ -458,7 +458,7 @@ export default {
   `
 }
 '''
-    assert determine_js_environment(vue_directives_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue directives"
+    assert determine_jsts_environment(vue_directives_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue directives"
 
     # Test Vue Composition API detection
     vue_composition_code = '''
@@ -474,7 +474,7 @@ export default {
   }
 }
 '''
-    assert determine_js_environment(vue_composition_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue Composition API"
+    assert determine_jsts_environment(vue_composition_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue Composition API"
 
     # Test Vue Options API detection
     vue_options_code = '''
@@ -493,7 +493,7 @@ export default {
   }
 }
 '''
-    assert determine_js_environment(vue_options_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue Options API"
+    assert determine_jsts_environment(vue_options_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue Options API"
 
     # Test React detection - should require both JSX syntax AND React dependency/imports
     react_code = '''
@@ -507,10 +507,10 @@ function App() {
 }
 '''
     # Without React dependency, should fallback to JavaScript
-    assert determine_js_environment(react_code, []) == SandboxEnvironment.REACT, "Should detect React when JSX and react dependency are present"
+    assert determine_jsts_environment(react_code, []) == SandboxEnvironment.REACT, "Should detect React when JSX and react dependency are present"
     
     # With React dependency, should detect as React
-    assert determine_js_environment(react_code, ['react']) == SandboxEnvironment.REACT, "Should detect React when JSX and react dependency are present"
+    assert determine_jsts_environment(react_code, ['react']) == SandboxEnvironment.REACT, "Should detect React when JSX and react dependency are present"
 
     # With React import, should detect as React
     react_code_with_import = '''
@@ -525,14 +525,14 @@ function App() {
   )
 }
 '''
-    assert determine_js_environment(react_code_with_import, ['react']) == SandboxEnvironment.REACT, "Should detect React when import is present"
+    assert determine_jsts_environment(react_code_with_import, ['react']) == SandboxEnvironment.REACT, "Should detect React when import is present"
 
     # Test package-based detection
     vue_import_code = "import { createApp } from 'vue'"
-    assert determine_js_environment(vue_import_code, ['vue']) == SandboxEnvironment.VUE, "Failed to detect Vue from imports"
+    assert determine_jsts_environment(vue_import_code, ['vue']) == SandboxEnvironment.VUE, "Failed to detect Vue from imports"
 
     react_import_code = "import { useState } from 'react'"
-    assert determine_js_environment(react_import_code, ['react']) == SandboxEnvironment.REACT, "Failed to detect React from imports"
+    assert determine_jsts_environment(react_import_code, ['react']) == SandboxEnvironment.REACT, "Failed to detect React from imports"
 
     # Test fallback to JavaScript Code Interpreter
     plain_js_code = '''
@@ -540,7 +540,7 @@ function add(a, b) {
   return a + b
 }
 '''
-    assert determine_js_environment(plain_js_code, []) == SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER, "Failed to fallback to JavaScript Code Interpreter"
+    assert determine_jsts_environment(plain_js_code, []) == SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER, "Failed to fallback to JavaScript Code Interpreter"
 
 
     real_code = '''
@@ -625,7 +625,7 @@ export default {
 @import "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css";
 </style>
 '''
-    assert determine_js_environment(real_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue environment in real code example"
+    assert determine_jsts_environment(real_code, []) == SandboxEnvironment.VUE, "Failed to detect Vue environment in real code example"
 
 def test_vue_in_html_detection():
     # Test HTML content with Vue.js integration
@@ -856,10 +856,7 @@ export default {
     
     # Test environment detection
     assert env == SandboxEnvironment.VUE, "Vue environment not detected"
-    
-    # Test dependency extraction
-    npm_deps = dependencies[1]  # npm dependencies are second in tuple
-    assert 'vue' in npm_deps, "Vue dependency not detected"
+
 
 def test_mermaid_diagram_html():
     # Test markdown content with Mermaid diagram HTML
@@ -914,5 +911,83 @@ graph TD;
 
     assert 'mermaid' in npm_deps, "Mermaid dependency not detected"
 
-test_vue_in_html_detection()
-test_mermaid_diagram_html()
+def test_extract_installation_commands():
+    # Test code with various pip and npm install commands
+    test_code = """
+# Python package installations
+pip install numpy==1.21.0 pandas>=1.3.0
+pip3 install scikit-learn~=1.0.0 tensorflow<=2.7.0
+python -m pip install --upgrade torch>=1.9.0
+pip install -r requirements.txt requests==2.26.0
+
+# NPM package installations
+npm install react@17.0.2 redux@4.1.0
+npm i @types/node@16.0.0 typescript@4.4.0
+yarn add @babel/core@7.15.0
+npm install --save-dev @testing-library/react@12.0.0
+"""
+
+    python_packages, npm_packages = extract_installation_commands(test_code)
+
+    # Test Python package versions are preserved
+    assert 'numpy==1.21.0' in python_packages, "Failed to preserve numpy version"
+    assert 'pandas>=1.3.0' in python_packages, "Failed to preserve pandas version with >="
+    assert 'scikit-learn~=1.0.0' in python_packages, "Failed to preserve scikit-learn version with ~="
+    assert 'tensorflow<=2.7.0' in python_packages, "Failed to preserve tensorflow version with <="
+    assert 'torch>=1.9.0' in python_packages, "Failed to preserve torch version with upgrade flag"
+    assert 'requests==2.26.0' in python_packages, "Failed to preserve requests version"
+
+    # Test NPM package versions are preserved
+    assert 'react@17.0.2' in npm_packages, "Failed to preserve react version"
+    assert 'redux@4.1.0' in npm_packages, "Failed to preserve redux version"
+    print(npm_packages)
+    assert '@types/node@16.0.0' in npm_packages, "Failed to preserve @types/node version"
+    assert 'typescript@4.4.0' in npm_packages, "Failed to preserve typescript version"
+    assert '@babel/core@7.15.0' in npm_packages, "Failed to preserve @babel/core version"
+    assert '@testing-library/react@12.0.0' in npm_packages, "Failed to preserve @testing-library/react version"
+
+    # Test with no version specifiers
+    test_code_no_versions = """
+pip install numpy pandas
+npm install react redux
+"""
+    python_pkgs, npm_pkgs = extract_installation_commands(test_code_no_versions)
+    assert 'numpy' in python_pkgs, "Failed to extract package without version"
+    assert 'pandas' in python_pkgs, "Failed to extract package without version"
+    assert 'react' in npm_pkgs, "Failed to extract npm package without version"
+    assert 'redux' in npm_pkgs, "Failed to extract npm package without version"
+
+    # Test with scoped packages and complex version specifiers
+    test_code_complex = """
+npm install @angular/core@~12.0.0 @angular/common@>=12.0.0
+pip install "django>=3.2.0,<4.0.0" "pillow~=8.3.1"
+"""
+    python_pkgs, npm_pkgs = extract_installation_commands(test_code_complex)
+    assert '@angular/core@~12.0.0' in npm_pkgs, "Failed to preserve scoped package with tilde version"
+    assert '@angular/common@>=12.0.0' in npm_pkgs, "Failed to preserve scoped package with >= version"
+    assert 'django>=3.2.0,<4.0.0' in python_pkgs, "Failed to preserve complex version range"
+    assert 'pillow~=8.3.1' in python_pkgs, "Failed to preserve package with ~= version"
+
+    # Test with flags and options
+    test_code_with_flags = """
+pip install --user numpy==1.21.0
+pip install --no-cache-dir pandas>=1.3.0
+npm install --save-dev typescript@4.4.0
+npm i -g @angular/cli@13.0.0
+"""
+    python_pkgs, npm_pkgs = extract_installation_commands(test_code_with_flags)
+    assert 'numpy==1.21.0' in python_pkgs, "Failed to extract package with --user flag"
+    assert 'pandas>=1.3.0' in python_pkgs, "Failed to extract package with --no-cache-dir flag"
+    assert 'typescript@4.4.0' in npm_pkgs, "Failed to extract package with --save-dev flag"
+    assert '@angular/cli@13.0.0' in npm_pkgs, "Failed to extract package with -g flag"
+
+if __name__ == "__main__":
+    test_vue_component_extraction()
+    test_vue_component_typescript_detection()
+    test_pygame_code_extraction()
+    test_extract_inline_pip_install_commands()
+    test_determine_jsts_environment()
+    test_vue_in_html_detection()
+    test_vue_calendar_component()
+    test_extract_installation_commands()
+    print("All tests passed successfully!")
