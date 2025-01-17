@@ -646,16 +646,6 @@ def build_side_by_side_ui_anony(models):
 
         sandbox_hidden_components.extend([sandbox_env_choice, sandbox_instruction_accordion])
 
-        sandbox_env_choice.change(
-            fn=update_sandbox_config_multi,
-            inputs=[
-                gr.State(value=True),  # Always enabled
-                sandbox_env_choice,
-                *sandbox_states
-            ],
-            outputs=[*sandbox_states]
-        )
-
     with gr.Row():
         textbox = gr.Textbox(
             show_label=False,
@@ -837,7 +827,7 @@ function (a, b, c, d) {
     ).then(
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,
-        states + chatbots
+        states + chatbots + [system_prompt_textbox]
     ).then(
         bot_response_multi,
         states + [temperature, top_p, max_output_tokens] + sandbox_states,
@@ -861,7 +851,7 @@ function (a, b, c, d) {
     ).then(
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,
-        states + chatbots
+        states + chatbots + [system_prompt_textbox]
     ).then(
         bot_response_multi,
         states + [temperature, top_p, max_output_tokens] + sandbox_states,
@@ -872,6 +862,24 @@ function (a, b, c, d) {
         lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
         inputs=[sandbox_states[0]],
         outputs=[sandbox_env_choice]
+    )
+
+    sandbox_env_choice.change(
+    fn=update_sandbox_config_multi,
+    inputs=[
+        gr.State(value=True),  # Always enabled
+        sandbox_env_choice,
+        *sandbox_states
+    ],
+    outputs=[*sandbox_states]
+    ).then(
+        add_text_multi,
+        states + model_selectors + sandbox_states + [textbox],
+        states + chatbots + sandbox_states + [textbox] + btn_list,
+    ).then(
+        update_sandbox_system_messages_multi,
+        states + sandbox_states + model_selectors,
+        states + chatbots + [system_prompt_textbox]
     )
 
     for chatbotIdx in range(num_sides):
