@@ -6,28 +6,18 @@ from enum import StrEnum
 from typing import Any, Generator, TypeAlias, TypedDict, Set
 import gradio as gr
 import re
-import os
 import base64
 from e2b import Sandbox
 from e2b_code_interpreter import Sandbox as CodeSandbox
-from e2b.sandbox.commands.command_handle import CommandExitException
-from e2b.exceptions import TimeoutException
 from gradio_sandboxcomponent import SandboxComponent
 import ast
-import subprocess
-import json
-from tempfile import NamedTemporaryFile
 from tree_sitter import Language, Node, Parser
 import tree_sitter_javascript
 import tree_sitter_typescript
-from pathlib import Path
 import sys
-import threading
-from httpcore import ReadTimeout
-import queue
 
 from .constants import E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT
-from .sandbox_manager import get_sandbox_app_url, create_sandbox
+from .sandbox_manager import get_sandbox_app_url, create_sandbox, install_npm_dependencies, install_pip_dependencies, run_background_command_with_timeout
 
 class SandboxEnvironment(StrEnum):
     AUTO = 'Auto'
@@ -1130,99 +1120,6 @@ def render_result(result):
     else:
         return str(result)
 
-def install_pip_dependencies(sandbox: Sandbox, dependencies: list[str]):
-    '''
-    Install pip dependencies in the sandbox.
-    '''
-
-    stderr = ""
-    if not dependencies:
-        return
-        
-    def log_output(message):
-        print(f"pip: {message}")
-        nonlocal stderr
-        stderr += message
-    
-    for dependency in dependencies:
-        try:
-            sandbox.commands.run(
-                f"uv pip install --system {dependency}",
-                timeout=60 * 3,
-                on_stdout=log_output,
-                on_stderr=log_output,
-            )
-        except Exception as e:
-            continue
-
-def install_npm_dependencies(sandbox: Sandbox, dependencies: list[str]):
-    '''
-    Install npm dependencies in the sandbox.
-    '''
-    if not dependencies:
-        return
-    
-    for dependency in dependencies:
-        try:
-            sandbox.commands.run(
-                f"npm install {dependency}",
-                timeout=60 * 3,
-                on_stdout=lambda message: print(message),
-                on_stderr=lambda message: print(message),
-            )
-        except Exception as e:
-            continue
-
-
-def run_background_command_with_timeout(
-    sandbox: Sandbox,
-    command: str,
-    timeout: int = 5,
-) -> str:
-    """
-    Run a command in the background and wait for a short time to check for startup errors.
-    
-    Args:
-        sandbox: The sandbox instance
-        command: The command to run
-        timeout: How long to wait for startup errors (in seconds)
-    
-    Returns:
-        str: Any error output collected during startup
-    """
-    stderr = ""
-
-    cmd = sandbox.commands.run(
-        command,
-        timeout=60 * 3,  # Overall timeout for the command
-        background=True,
-    )
-
-    def wait_for_command(result_queue):
-        nonlocal stderr
-        try:
-            result = cmd.wait()
-            if result.stderr:
-                stderr += result.stderr
-            result_queue.put(stderr)
-        except ReadTimeout:
-            result_queue.put(stderr)
-        except CommandExitException as e:
-            stderr += "".join(e.stderr)
-            result_queue.put(stderr)
-        except TimeoutException:
-            return
-
-    result_queue = queue.Queue()
-    wait_thread = threading.Thread(target=wait_for_command, args=(result_queue,))
-    wait_thread.daemon = True  # Make thread daemon so it won't prevent program exit
-    wait_thread.start()
-    
-    try:
-        return result_queue.get(timeout=timeout)
-    except queue.Empty:
-        return stderr
-
 
 def run_code_interpreter(code: str, code_language: str | None, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str]:
     """
@@ -1288,9 +1185,8 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     """
     sandbox = create_sandbox()
 
-    python_dependencies, npm_dependencies = code_dependencies
-    install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
+    _, npm_dependencies = code_dependencies
+    install_npm_dependencies(sandbox, npm_dependencies, project_root='~/myhtml')
     
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
@@ -1320,18 +1216,13 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     Returns:
         url for remote sandbox
     """
+    project_root = "~/react_app"
     sandbox = create_sandbox()
-
-    sandbox.commands.run(
-        "cd ~/react_app",
-        on_stdout=print,
-        on_stderr=print,
-    )
 
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies)
+        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
         print("NPM dependencies installed.")
 
     # replace placeholder URLs with SVG data URLs
@@ -1364,11 +1255,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     """
     sandbox = create_sandbox()
 
-    sandbox.commands.run(
-        "cd ~/vue_app",
-        on_stdout=print,
-        on_stderr=print,
-    )
+    project_root = "~/vue_app"
 
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
@@ -1380,7 +1267,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies)
+        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
         print("NPM dependencies installed.")
 
     stderr = run_background_command_with_timeout(
@@ -1408,9 +1295,8 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     file_path = "~/mygame/main.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
     
-    python_dependencies, npm_dependencies = code_dependencies
+    python_dependencies, _ = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
 
     # build the pygame code
     sandbox.commands.run(
@@ -1444,9 +1330,8 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     file_path = "~/app.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
-    python_dependencies, npm_dependencies = code_dependencies
+    python_dependencies, _ = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
 
     stderr = run_background_command_with_timeout(
         sandbox,
@@ -1466,9 +1351,8 @@ def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[st
     file_path = "~/mystreamlit/app.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
-    python_dependencies, npm_dependencies = code_dependencies
+    python_dependencies, _ = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
 
     stderr = run_background_command_with_timeout(
         sandbox,
