@@ -326,6 +326,10 @@ def add_text_multi(
     sandbox_states = [sandbox_state0, sandbox_state1]
     model_selectors = [model_selector0, model_selector1]
 
+    if sandbox_state0['enable_sandbox']:
+        sandbox_state0['enabled_round'] += 1
+        sandbox_state1['enabled_round'] += 1
+
     # Init states if necessary
     if states[0] is None or states[1] is None:
         # assert states[1] is None
@@ -435,6 +439,8 @@ def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
     text = text[:INPUT_CHAR_LEN_LIMIT]  # Hard cut-off
     state.conv.append_message(state.conv.roles[0], text)
     state.conv.append_message(state.conv.roles[1], None)
+    if sandbox_state['enable_sandbox']:
+         sandbox_state['enabled_round'] += 1 
     return (state, state.to_gradio_chatbot(), "") + (disable_btn,) * sandbox_state["btn_list_length"]
 
 def bot_response_multi(
@@ -808,6 +814,10 @@ function (a, b, c, d) {
         states + model_selectors + sandbox_states + [textbox],
         states + chatbots + sandbox_states + [textbox] + btn_list,
     ).then(
+        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+        inputs=[sandbox_states[0]],
+        outputs=[sandbox_env_choice]
+    ).then(
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,
         states + chatbots + [system_prompt_textbox]
@@ -817,10 +827,6 @@ function (a, b, c, d) {
         states + chatbots + btn_list,
     ).then(
         flash_buttons, [], btn_list
-    ).then(
-        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
-        inputs=[sandbox_states[0]],
-        outputs=[sandbox_env_choice]
     )
 
     send_btn.click(
@@ -832,6 +838,10 @@ function (a, b, c, d) {
         states + model_selectors + sandbox_states + [textbox],
         states + chatbots + sandbox_states + [textbox] + btn_list,
     ).then(
+        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+        inputs=[sandbox_states[0]],
+        outputs=[sandbox_env_choice]
+    ).then(
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,
         states + chatbots + [system_prompt_textbox]
@@ -841,10 +851,6 @@ function (a, b, c, d) {
         states + chatbots + btn_list,
     ).then(
         flash_buttons, [], btn_list
-    ).then(
-        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
-        inputs=[sandbox_states[0]],
-        outputs=[sandbox_env_choice]
     )
 
     sandbox_env_choice.change(
@@ -863,6 +869,10 @@ function (a, b, c, d) {
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,
         states + chatbots + [system_prompt_textbox]
+    ).then(
+        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+        inputs=[sandbox_states[0]],
+        outputs=[sandbox_env_choice]
     )
 
     for chatbotIdx in range(num_sides):
@@ -885,15 +895,17 @@ function (a, b, c, d) {
             [state, sandbox_state, model_selector],
             [state, chatbot]
         ).then(
+            lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+            inputs=[sandbox_state],
+            outputs=[sandbox_env_choice]
+        ).then(
             bot_response,
             [state, temperature, top_p, max_output_tokens, sandbox_state],
             [state, chatbot] + btn_list,
         ).then(
             flash_buttons, [], btn_list
-        ).then(
-            lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
-            inputs=[sandbox_state],
-            outputs=[sandbox_env_choice])
+        )
+
         
         regenerate_one_side_btns[chatbotIdx].click(regenerate, state, [state, chatbot, textbox] + btn_list
         ).then(

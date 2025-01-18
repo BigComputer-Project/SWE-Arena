@@ -208,7 +208,7 @@ def update_sandbox_system_messages_multi(state0, state1, sandbox_state0, sandbox
         sandbox_state = sandbox_states[i]
         # if sandbox_state is None or sandbox_state['enable_sandbox'] is False or sandbox_state["enabled_round"] > 0:
         #     continue
-        sandbox_state['enabled_round'] += 1 # avoid dup
+        # sandbox_state['enabled_round'] += 1 # avoid dup
         sandbox_state['sandbox_instruction'] = DEFAULT_SANDBOX_INSTRUCTIONS[sandbox_state['sandbox_environment']]
         environment_instruction = sandbox_state['sandbox_instruction']
         current_system_message = states[i].conv.get_system_message(states[i].is_vision)
@@ -228,6 +228,10 @@ def add_text_multi(
     states = [state0, state1]
     model_selectors = [model_selector0, model_selector1]
     sandbox_states = [sandbox_state0, sandbox_state1]
+
+    if sandbox_state0['enable_sandbox']:
+        sandbox_state0['enabled_round'] += 1
+        sandbox_state1['enabled_round'] += 1
 
     # Init states if necessary
     for i in range(num_sides):
@@ -600,6 +604,10 @@ def build_side_by_side_ui_named(models):
         states + sandbox_states + model_selectors,
         states + chatbots+ [system_prompt_textbox]
     ).then(
+        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+        inputs=[sandbox_states[0]],
+        outputs=[sandbox_env_choice]
+    ).then(
         bot_response_multi,
         states + [temperature, top_p, max_output_tokens] + sandbox_states,
         states + chatbots + btn_list,
@@ -620,6 +628,10 @@ def build_side_by_side_ui_named(models):
         states + sandbox_states + model_selectors,
         states + chatbots+ [system_prompt_textbox]
     ).then(
+        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+        inputs=[sandbox_states[0]],
+        outputs=[sandbox_env_choice]
+    ).then(
         bot_response_multi,
         states + [temperature, top_p, max_output_tokens] + sandbox_states,
         states + chatbots + btn_list,
@@ -639,6 +651,10 @@ def build_side_by_side_ui_named(models):
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,
         states + chatbots + [system_prompt_textbox]
+    ).then(
+        lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+        inputs=[sandbox_states[0]],
+        outputs=[sandbox_env_choice]
     )
 
     # Register handlers for one-sided sends
@@ -656,12 +672,16 @@ def build_side_by_side_ui_named(models):
             [states[chatbotIdx], sandbox_states[chatbotIdx], model_selectors[chatbotIdx]],
             [states[chatbotIdx], chatbots[chatbotIdx]]
         ).then(
+            lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
+            inputs=[sandbox_state],
+            outputs=[sandbox_env_choice]
+        ).then(
             bot_response,
             [states[chatbotIdx], temperature, top_p, max_output_tokens, sandbox_states[chatbotIdx]],
             [states[chatbotIdx], chatbots[chatbotIdx]] + btn_list,
         ).then(
-            flash_buttons, [], btn_list
-        )
+            flash_buttons, [], btn_list)
+
 
         # Register regenerate handlers
         regenerate_one_side_btns[chatbotIdx].click(
@@ -737,6 +757,9 @@ function (a, b, c, d) {
         clear_sandbox_components,
         inputs=[component for components in sandboxes_components for component in components],
         outputs=[component for components in sandboxes_components for component in components]
+    ).then(
+        lambda: gr.update(interactive=True),
+        outputs=[sandbox_env_choice]
     )
 
     # Register voting button handlers
