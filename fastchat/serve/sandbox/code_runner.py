@@ -1267,7 +1267,7 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
+        install_npm_dependencies(sandbox, npm_dependencies)
         print("NPM dependencies installed.")
 
     # replace placeholder URLs with SVG data URLs
@@ -1312,7 +1312,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
+        install_npm_dependencies(sandbox, npm_dependencies)
         print("NPM dependencies installed.")
 
     stderr = run_background_command_with_timeout(
