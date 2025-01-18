@@ -19,6 +19,11 @@ SANDBOX_NGINX_PORT: int = 8000
 Nginx port for the sandbox.
 '''
 
+SANDBOX_TIMEOUT_SECONDS: int = 5 * 60
+'''
+Timeout in seconds for created sandboxes.
+'''
+
 SANDBOX_RETRY_COUNT: int = 3
 '''
 Number of times to retry the sandbox creation.

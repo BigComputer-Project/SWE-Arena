@@ -15,7 +15,7 @@ from fastchat.serve.sandbox.code_analyzer import SandboxEnvironment, extract_cod
 
 
 from .constants import E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT
-from .sandbox_manager import get_sandbox_app_url, create_sandbox, install_npm_dependencies, install_pip_dependencies, run_background_command_with_timeout
+from .sandbox_manager import get_sandbox_app_url, create_sandbox, install_npm_dependencies, install_pip_dependencies, reuse_or_create_sandbox, run_background_command_with_timeout
 
 
 SUPPORTED_SANDBOX_ENVIRONMENTS: list[str] = [
@@ -369,6 +369,7 @@ SandboxGradioSandboxComponents: TypeAlias =  tuple[
     gr.Markdown | Any,  # sandbox_output
     SandboxComponent | Any,  # sandbox_ui
     gr.Code | Any,  # sandbox_code
+    Any
 ]
 '''
 Gradio components for the sandbox.
@@ -389,6 +390,10 @@ class ChatbotSandboxState(TypedDict):
     enabled_round: int
     '''
     The chat round after which the sandbox is enabled.
+    '''
+    sandbox_run_round: int
+    '''
+    How many rounds the sandbox has been run inside the session.
     '''
     sandbox_environment: SandboxEnvironment | None
     '''
@@ -424,6 +429,7 @@ def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxStat
     return {
         'enable_sandbox': True,  # Always enabled
         'enabled_round': 0,
+        'sandbox_run_round': 0,
         'sandbox_environment': SandboxEnvironment.AUTO,
         'auto_selected_sandbox_environment': None,
         'sandbox_instruction': DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
@@ -433,6 +439,23 @@ def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxStat
         'btn_list_length': btn_list_length,
         'sandbox_id': None,
     }
+
+
+def reset_sandbox_state(state: ChatbotSandboxState) -> ChatbotSandboxState:
+    '''
+    Reset the sandbox state.
+    Used when the chatbot session is reset.
+    '''
+    state['enabled_round'] = 0
+    state['sandbox_run_round'] = 0
+    # state['sandbox_environment'] = SandboxEnvironment.AUTO
+    state['auto_selected_sandbox_environment'] = None
+    state['sandbox_instruction'] = DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO]
+    state['code_to_execute'] = ""
+    state['code_language'] = None
+    state['code_dependencies'] = ([], [])
+    state['sandbox_id'] = None
+    return state
 
 
 def update_sandbox_config_multi(
@@ -588,7 +611,7 @@ def run_code_interpreter(code: str, code_language: str | None, code_dependencies
     return output, "" if output else stderr
 
 
-def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:
+def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
     """
     Executes the provided code within a sandboxed environment and returns the output.
     Supports both React and Vue.js rendering in HTML files.
@@ -600,12 +623,13 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     Returns:
         tuple: (sandbox_url, sandbox_id, stderr)
     """
-    sandbox = create_sandbox()
-    project_root = "~/html"
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
+    project_root = "~/html_app"
     sandbox.files.make_dir(project_root)
 
-    _, npm_dependencies = code_dependencies
-    install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
+    # HTML does not support dependencies for now
+    # _, npm_dependencies = code_dependencies
+    # install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
 
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
@@ -617,7 +641,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     return (sandbox_url, sandbox.sandbox_id, '')
 
 
-def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:
+def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
     """
     Executes the provided code within a sandboxed environment and returns the output.
 
@@ -628,7 +652,7 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
         url for remote sandbox
     """
     project_root = "~/react_app"
-    sandbox = create_sandbox()
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
 
     stderrs: list[str] = [] # to collect errors
 
@@ -664,7 +688,7 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
 
 
-def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:
+def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
     """
     Executes the provided Vue code within a sandboxed environment and returns the output.
 
@@ -674,7 +698,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     Returns:
         url for remote sandbox
     """
-    sandbox = create_sandbox()
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
     project_root = "~/vue_app"
 
     stderrs: list[str] = [] # to collect errors
@@ -709,7 +733,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
 
 
-def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:
+def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
     """
     Executes the provided code within a sandboxed environment and returns the output.
 
@@ -719,7 +743,7 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     Returns:
         url for remote sandbox
     """
-    sandbox = create_sandbox()
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
     project_root = "~/pygame_app"
     file_path = f"{project_root}/main.py"
 
@@ -747,7 +771,7 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
-def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:
+def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
     """
     Executes the provided code within a sandboxed environment and returns the output.
 
@@ -757,7 +781,7 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     Returns:
         url for remote sandbox and sandbox id
     """
-    sandbox = create_sandbox()
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
 
     file_path = "~/gradio_app/main.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
@@ -776,8 +800,8 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
-def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:
-    sandbox = create_sandbox()
+def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
 
     sandbox.files.make_dir('mystreamlit')
     file_path = "~/mystreamlit/app.py"
@@ -1171,7 +1195,9 @@ def on_run_code(
         case SandboxEnvironment.HTML:
             yield update_output("🔄 Setting up HTML sandbox...")
             sandbox_url, sandbox_id, stderr = run_html_sandbox(
-                code=code, code_dependencies=code_dependencies
+                code=code,
+                code_dependencies=code_dependencies,
+                existing_sandbox_id=sandbox_state['sandbox_id'],
             )
             if stderr:
                 yield update_output("❌ HTML sandbox failed to run!", clear_output=True)
@@ -1191,7 +1217,11 @@ def on_run_code(
                 )
         case SandboxEnvironment.REACT:
             yield update_output("🔄 Setting up React sandbox...")
-            sandbox_url, sandbox_id, stderr = run_react_sandbox(code=code, code_dependencies=code_dependencies)
+            sandbox_url, sandbox_id, stderr = run_react_sandbox(
+                code=code,
+                code_dependencies=code_dependencies,
+                existing_sandbox_id=sandbox_state['sandbox_id'],
+            )
             if stderr:
                 yield update_output("❌ React sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
@@ -1210,7 +1240,11 @@ def on_run_code(
                 )
         case SandboxEnvironment.VUE:
             yield update_output("🔄 Setting up Vue sandbox...")
-            sandbox_url, sandbox_id, stderr = run_vue_sandbox(code=code, code_dependencies=code_dependencies)
+            sandbox_url, sandbox_id, stderr = run_vue_sandbox(
+                code=code,
+                code_dependencies=code_dependencies,
+                existing_sandbox_id=sandbox_state['sandbox_id'],
+            )
             if stderr:
                 yield update_output("❌ Vue sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
@@ -1229,7 +1263,11 @@ def on_run_code(
                 )
         case SandboxEnvironment.PYGAME:
             yield update_output("🔄 Setting up PyGame sandbox...")
-            sandbox_url, sandbox_id, stderr = run_pygame_sandbox(code=code, code_dependencies=code_dependencies)
+            sandbox_url, sandbox_id, stderr = run_pygame_sandbox(
+                code=code,
+                code_dependencies=code_dependencies,
+                existing_sandbox_id=sandbox_state['sandbox_id'],
+            )
             if stderr:
                 yield update_output("❌ PyGame sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
@@ -1248,7 +1286,11 @@ def on_run_code(
                 )
         case SandboxEnvironment.GRADIO:
             yield update_output("🔄 Setting up Gradio sandbox...")
-            sandbox_url, sandbox_id, stderr = run_gradio_sandbox(code=code, code_dependencies=code_dependencies)
+            sandbox_url, sandbox_id, stderr = run_gradio_sandbox(
+                code=code,
+                code_dependencies=code_dependencies,
+                existing_sandbox_id=sandbox_state['sandbox_id'],
+            )
             if stderr:
                 yield update_output("❌ Gradio sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
@@ -1267,7 +1309,11 @@ def on_run_code(
                 )
         case SandboxEnvironment.STREAMLIT:
             yield update_output("🔄 Setting up Streamlit sandbox...")
-            sandbox_url, sandbox_id, stderr = run_streamlit_sandbox(code=code, code_dependencies=code_dependencies)
+            sandbox_url, sandbox_id, stderr = run_streamlit_sandbox(
+                code=code,
+                code_dependencies=code_dependencies,
+                existing_sandbox_id=sandbox_state['sandbox_id'],
+            )
             if stderr:
                 yield update_output("❌ Streamlit sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
@@ -1288,7 +1334,11 @@ def on_run_code(
             yield update_output("🔄 Setting up Mermaid visualization...")
             # Convert Mermaid to HTML at execution time
             html_code = mermaid_to_html(code, theme='light')
-            sandbox_url, sandbox_id, stderr = run_html_sandbox(code=html_code, code_dependencies=code_dependencies)
+            sandbox_url, sandbox_id, stderr = run_html_sandbox(
+                code=html_code,
+                code_dependencies=code_dependencies,
+                existing_sandbox_id=sandbox_state['sandbox_id'],
+            )
             if stderr:
                 yield update_output("❌ Mermaid visualization failed to render!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
@@ -1368,6 +1418,7 @@ def on_run_code(
                 gr.skip(),
             )
 
+    sandbox_state['sandbox_run_round'] += 1
     if sandbox_id:
         sandbox_state['sandbox_id'] = sandbox_id
 

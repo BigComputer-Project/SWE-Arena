@@ -42,7 +42,7 @@ from fastchat.serve.remote_logger import get_remote_logger
 from fastchat.serve.sandbox.code_runner import (SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, 
                                             DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, 
                                             create_chatbot_sandbox_state, on_click_code_message_run, 
-                                            on_edit_code, update_sandbox_config_multi,update_visibility, 
+                                            on_edit_code, reset_sandbox_state, update_sandbox_config_multi,update_visibility, 
                                             on_edit_dependency)
 from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 from fastchat.utils import (
@@ -193,9 +193,9 @@ def regenerate_multi(state0, state1, request: gr.Request):
 
 def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
     logger.info(f"clear_history (anony). ip: {get_ip(request)}")
-    sandbox_states = [sandbox_state0, sandbox_state1]
-    sandbox_state0["enabled_round"] = 0
-    sandbox_state1["enabled_round"] = 0
+    sandbox_states = [
+        reset_sandbox_state(sandbox_state) for sandbox_state in [sandbox_state0, sandbox_state1]
+    ]
     return (
         sandbox_states
         + [None] * num_sides  # states

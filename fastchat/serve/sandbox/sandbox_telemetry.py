@@ -3,7 +3,6 @@ Module for logging the sandbox interactions and state.
 
 TODO: Support Cloud Storage.
 '''
-from datetime import datetime
 import json
 import os
 from typing import Any
@@ -12,13 +11,22 @@ from fastchat.constants import LOGDIR
 from fastchat.serve.sandbox.code_runner import ChatbotSandboxState
 
 
-def get_sandbox_log_filename(sandbox_id: str) -> str:
-    t = datetime.now()
-    name = os.path.join(LOGDIR, f"sandbox-records-{sandbox_id}.json")
+def get_sandbox_log_filename(sandbox_state: ChatbotSandboxState) -> str:
+    name = os.path.join(
+        LOGDIR,
+        '-'.join(
+            [
+                "sandbox-records",
+                f"{sandbox_state['sandbox_id']}",
+                f"{sandbox_state['enabled_round']}",
+                f"{sandbox_state['sandbox_run_round']}",
+            ]
+        )
+    )
     return name
 
-def upsert_sandbox_log(sandbox_id: str, data: dict):
-    filename = get_sandbox_log_filename(sandbox_id)
+
+def upsert_sandbox_log(filename: str, data: dict, remote: bool = False) -> None:
     with open(filename, "w") as fout:
         json.dump(
             data,
@@ -28,11 +36,13 @@ def upsert_sandbox_log(sandbox_id: str, data: dict):
             ensure_ascii=False
         )
 
+
 def create_sandbox_log(sandbox_state: ChatbotSandboxState, user_interaction_records: list[Any]) -> dict:
     return {
         "sandbox_state": sandbox_state,
         "user_interaction_records": user_interaction_records,
     }
+
 
 def log_sandbox_telemetry_gradio_fn(
     sandbox_state: ChatbotSandboxState,
@@ -44,4 +54,5 @@ def log_sandbox_telemetry_gradio_fn(
     user_interaction_records = sandbox_ui_value[2]
     if sandbox_id and user_interaction_records and len(user_interaction_records) > 0:
         data = create_sandbox_log(sandbox_state, user_interaction_records)
-        upsert_sandbox_log(sandbox_id, data)
+        filename = get_sandbox_log_filename(sandbox_state)
+        upsert_sandbox_log(filename=filename, data=data)
