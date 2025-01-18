@@ -329,8 +329,11 @@ def clear_history(sandbox_state,request: gr.Request):
 
 def clear_sandbox_components(*components):
     updates = []
-    for component in components:
-        updates.append(gr.update(value="", visible=False))
+    for idx, component in enumerate(components):
+        if idx in [3, 7]:
+            updates.append(gr.update(value=[['', '', '']], visible=False))
+        else:
+            updates.append(gr.update(value="", visible=False))
     return updates
 
 def get_ip(request: gr.Request):
@@ -953,56 +956,51 @@ def build_single_model_ui(models, add_promotion_links=False):
                             sandbox_code = gr.Code(
                                 value="",
                                 interactive=True, # allow user edit
-                                visible=True,
+                                visible=False,
                                 label='Sandbox Code',
                             )
                             with gr.Row():
                                 sandbox_code_submit_btn = gr.Button(value="Apply Changes", visible=True, interactive=True, variant='primary', size='sm')
 
-                            with gr.Tab(
-                                label="Dependency", visible=True
-                            ) as sandbox_dependency_tab:
-                                sandbox_dependency = gr.Dataframe(
-                                    headers=["Type", "Package", "Version"],
-                                    datatype=["str", "str", "str"],
-                                    col_count=(3, "fixed"),
-                                    row_count=(
-                                        10,
-                                        "dynamic",
-                                    ),  # Allow up to 10 rows initially, can add more
-                                    value=[["python", "", ""], ["npm", "", ""]],
-                                    interactive=True,
-                                    visible=True,
-                                    wrap=True,  # Enable text wrapping
-                                    max_height=200,
-                                    type="array",  # Add this line to fix the error
-                                )
-                                with gr.Row():
-                                    dependency_submit_btn = gr.Button(
-                                        value="Apply Dependencies",
-                                        visible=True,
-                                        interactive=True,
-                                        variant="primary",
-                                        size="sm",
-                                    )
-
-                            dependency_submit_btn.click(
-                                fn=on_edit_dependency,
-                                inputs=[
-                                    state,
-                                    sandbox_state,
-                                    sandbox_dependency,
-                                    sandbox_output,
-                                    sandbox_ui,
-                                    sandbox_code,
-                                ],
-                                outputs=[
-                                    sandbox_output,
-                                    sandbox_ui,
-                                    sandbox_code,
-                                    sandbox_dependency,
-                                ],
+                        with gr.Tab(
+                            label="Dependency", visible=True
+                        ) as sandbox_dependency_tab:
+                            sandbox_dependency = gr.Dataframe(
+                                headers=["Type", "Package", "Version"],
+                                datatype=["str", "str", "str"],
+                                col_count=(3, "fixed"),
+                                interactive=True,
+                                visible=False,
+                                wrap=True,  # Enable text wrapping
+                                max_height=200,
+                                type="array",  # Add this line to fix the error
                             )
+                            with gr.Row():
+                                dependency_submit_btn = gr.Button(
+                                    value="Apply Dependencies",
+                                    visible=True,
+                                    interactive=True,
+                                    variant="primary",
+                                    size="sm",
+                                )
+
+                        dependency_submit_btn.click(
+                            fn=on_edit_dependency,
+                            inputs=[
+                                state,
+                                sandbox_state,
+                                sandbox_dependency,
+                                sandbox_output,
+                                sandbox_ui,
+                                sandbox_code,
+                            ],
+                            outputs=[
+                                sandbox_output,
+                                sandbox_ui,
+                                sandbox_code,
+                                sandbox_dependency,
+                            ],
+                        )
 
                         sandbox_code_submit_btn.click(
                             fn=on_edit_code,

@@ -39,7 +39,11 @@ from fastchat.serve.gradio_web_server import (
 )
 from fastchat.serve.remote_logger import get_remote_logger
 
-from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, update_sandbox_config_multi,update_visibility, on_edit_dependency
+from fastchat.serve.sandbox.code_runner import (SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, 
+                                            DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, 
+                                            create_chatbot_sandbox_state, on_click_code_message_run, 
+                                            on_edit_code, update_sandbox_config_multi,update_visibility, 
+                                            on_edit_dependency)
 from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 from fastchat.utils import (
     build_logger,
@@ -209,8 +213,11 @@ def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
 
 def clear_sandbox_components(*components):
     updates = []
-    for component in components:
-        updates.append(gr.update(value="", visible=False))
+    for idx, component in enumerate(components):
+        if idx in [3, 7]:
+            updates.append(gr.update(value=[['', '', '']], visible=False))
+        else:
+            updates.append(gr.update(value="", visible=False))
     return updates
 
 def share_click(state0, state1, model_selector0, model_selector1, request: gr.Request):
@@ -623,8 +630,7 @@ def build_side_by_side_ui_anony(models):
                                     sandbox_code = gr.Code(
                                         value="",
                                         interactive=True, # allow user edit
-                                        visible=True,
-                                        # wrap_lines=True,
+                                        visible=False,
                                         label='Sandbox Code',
                                     )
                                     with gr.Row():
@@ -637,13 +643,8 @@ def build_side_by_side_ui_anony(models):
                                         headers=["Type", "Package", "Version"],
                                         datatype=["str", "str", "str"],
                                         col_count=(3, "fixed"),
-                                        row_count=(
-                                            10,
-                                            "dynamic",
-                                        ),  # Allow up to 10 rows initially, can add more
-                                        value=[["python", "", ""], ["npm", "", ""]],
                                         interactive=True,
-                                        visible=True,
+                                        visible=False,
                                         wrap=True,  # Enable text wrapping
                                         max_height=200,
                                         type="array",  # Add this line to fix the error
