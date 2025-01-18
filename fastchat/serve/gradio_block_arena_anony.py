@@ -101,8 +101,7 @@ def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
                 "### Model A: " + states[0].model_name,
                 "### Model B: " + states[1].model_name,
             )
-            # yield names + ("",) + (disable_btn,) * 4
-            yield names + (disable_text,) + (disable_btn,) * 7
+            yield names + (disable_text,) + (disable_btn,) * 10
             time.sleep(0.1)
     else:
         names = (
@@ -110,7 +109,7 @@ def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
             "### Model B: " + states[1].model_name,
         )
         # yield names + ("",) + (disable_btn,) * 4
-        yield names + (disable_text,) + (disable_btn,) * 7
+        yield names + (disable_text,) + (disable_btn,) * 10
 
 
 def leftvote_last_response(
@@ -823,25 +822,37 @@ def build_side_by_side_ui_anony(models):
         leftvote_last_response,
         states + model_selectors,
         model_selectors
-        + [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn, send_btn, send_btn_left, send_btn_right],
+        + [textbox, leftvote_btn, rightvote_btn, 
+         tie_btn, bothbad_btn, send_btn, send_btn_left, 
+         send_btn_right, regenerate_btn, left_regenerate_btn, 
+         right_regenerate_btn]
     )
     rightvote_btn.click(
         rightvote_last_response,
         states + model_selectors,
         model_selectors
-        + [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn, send_btn, send_btn_left, send_btn_right],
+        + [textbox, leftvote_btn, rightvote_btn, 
+         tie_btn, bothbad_btn, send_btn, send_btn_left, 
+         send_btn_right, regenerate_btn, left_regenerate_btn, 
+         right_regenerate_btn]
     )
     tie_btn.click(
         tievote_last_response,
         states + model_selectors,
         model_selectors
-        + [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn, send_btn, send_btn_left, send_btn_right],
+        + [textbox, leftvote_btn, rightvote_btn, 
+         tie_btn, bothbad_btn, send_btn, send_btn_left, 
+         send_btn_right, regenerate_btn, left_regenerate_btn, 
+         right_regenerate_btn]
     )
     bothbad_btn.click(
         bothbad_vote_last_response,
         states + model_selectors,
         model_selectors
-        + [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn, send_btn, send_btn_left, send_btn_right],
+        + [textbox, leftvote_btn, rightvote_btn, 
+         tie_btn, bothbad_btn, send_btn, send_btn_left, 
+         send_btn_right, regenerate_btn, left_regenerate_btn, 
+         right_regenerate_btn]
     )
     regenerate_btn.click(
         regenerate_multi, states, states + chatbots + [textbox] + btn_list

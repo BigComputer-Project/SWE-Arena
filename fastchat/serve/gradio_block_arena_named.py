@@ -92,7 +92,7 @@ def leftvote_last_response(
     vote_last_response(
         [state0, state1], "leftvote", [model_selector0, model_selector1], request
     )
-    return ("",) + (disable_btn,) * 7
+    return ("",) + (disable_btn,) * 10
 
 
 def rightvote_last_response(
@@ -102,7 +102,7 @@ def rightvote_last_response(
     vote_last_response(
         [state0, state1], "rightvote", [model_selector0, model_selector1], request
     )
-    return ("",) + (disable_btn,) * 7
+    return ("",) + (disable_btn,) * 10
 
 
 def tievote_last_response(
@@ -112,7 +112,7 @@ def tievote_last_response(
     vote_last_response(
         [state0, state1], "tievote", [model_selector0, model_selector1], request
     )
-    return ("",) + (disable_btn,) * 7
+    return ("",) + (disable_btn,) * 10
 
 
 def bothbad_vote_last_response(
@@ -122,7 +122,7 @@ def bothbad_vote_last_response(
     vote_last_response(
         [state0, state1], "bothbad_vote", [model_selector0, model_selector1], request
     )
-    return ("",) + (disable_btn,) * 7
+    return ("",) + (disable_btn,) * 10
 
 def regenerate(state, request: gr.Request):
     ip = get_ip(request)
@@ -794,25 +794,37 @@ function (a, b, c, d) {
     leftvote_btn.click(
         leftvote_last_response,
         states + model_selectors,
-        [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn, send_btn, send_btn_left, send_btn_right]
+        [textbox, leftvote_btn, rightvote_btn, 
+         tie_btn, bothbad_btn, send_btn, send_btn_left, 
+         send_btn_right, regenerate_btn, left_regenerate_btn, 
+         right_regenerate_btn]
     )
 
     rightvote_btn.click(
         rightvote_last_response,
         states + model_selectors,
-        [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn, send_btn, send_btn_left, send_btn_right]
+        [textbox, leftvote_btn, rightvote_btn, 
+         tie_btn, bothbad_btn, send_btn, send_btn_left, 
+         send_btn_right, regenerate_btn, left_regenerate_btn, 
+         right_regenerate_btn]    
     )
 
     tie_btn.click(
         tievote_last_response,
         states + model_selectors,
-        [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn, send_btn, send_btn_left, send_btn_right]
+        [textbox, leftvote_btn, rightvote_btn, 
+         tie_btn, bothbad_btn, send_btn, send_btn_left, 
+         send_btn_right, regenerate_btn, left_regenerate_btn, 
+         right_regenerate_btn]    
     )
 
     bothbad_btn.click(
         bothbad_vote_last_response,
         states + model_selectors,
-        [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn, send_btn, send_btn_left, send_btn_right]
+        [textbox, leftvote_btn, rightvote_btn, 
+         tie_btn, bothbad_btn, send_btn, send_btn_left, 
+         send_btn_right, regenerate_btn, left_regenerate_btn, 
+         right_regenerate_btn]    
     )
 
     return states + model_selectors
