@@ -2051,61 +2051,6 @@ def extract_installation_commands(code: str) -> tuple[list[str], list[str]]:
     return python_packages, npm_packages
 
 
-def extract_dependencies_from_code(code: str) -> tuple[list[str], list[str]]:
-    """
-    Extract Python and NPM dependencies from code by analyzing imports and installation commands.
-    """
-    python_packages = set()
-    npm_packages = set()
-
-    lines = code.split('\n')
-    for line in lines:
-        line = line.strip()
-
-        # Skip empty lines and comments
-        if not line or line.startswith(('#', '//', '/*')):
-            continue
-
-        # React/JS/TS imports
-        if "import" in line and "from" in line and ("'" in line or '"' in line):
-            # Extract package name between quotes
-            try:
-                pkg = line.split("from")[1].strip()
-                pkg = pkg.split("'")[1] if "'" in pkg else pkg.split('"')[1]
-                if not pkg.startswith('.'):  # Skip relative imports
-                    npm_packages.add(pkg)
-            except IndexError:
-                continue
-
-        # Handle require statements
-        elif 'require(' in line:
-            try:
-                pkg = line.split('require(')[1].split(')')[0].strip("'").strip('"')
-                if not pkg.startswith('.'):  # Skip relative imports
-                    npm_packages.add(pkg)
-            except IndexError:
-                continue
-
-        # Python imports
-        elif line.startswith(('import ', 'from ')):
-            if line.startswith('import '):
-                pkg = line.split('import')[1].split('as')[0].split(',')[0].strip()
-                pkg = pkg.split('.')[0]  # Get root package
-            else:
-                pkg = line.split('from')[1].split('import')[0].strip()
-                pkg = pkg.split('.')[0]  # Get root package
-
-            if not pkg.startswith('.') and pkg not in {
-                'os', 'sys', 're', 'math', 'time', 'datetime', 'json',
-                'random', 'collections', 'itertools', 'functools', 'typing',
-                'pathlib', 'shutil', 'tempfile', 'io', 'csv', 'unittest',
-                'logging', 'argparse', 'configparser', 'abc', 'copy', 'enum'
-            }:
-                python_packages.add(pkg)
-
-    return list(python_packages), list(npm_packages)
-
-
 def validate_dependencies(dependencies: list) -> tuple[bool, str]:
     """
     Validate dependency list format and values.
