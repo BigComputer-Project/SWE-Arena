@@ -38,6 +38,8 @@ def log_sandbox_telemetry_gradio_fn(
     sandbox_state: ChatbotSandboxState,
     sandbox_ui_value: tuple[str, bool, list[Any]]
 ) -> None:
+    if sandbox_state is None or sandbox_ui_value is None:
+        return
     sandbox_id = sandbox_state['sandbox_id']
     user_interaction_records = sandbox_ui_value[2]
     if sandbox_id and user_interaction_records and len(user_interaction_records) > 0:
