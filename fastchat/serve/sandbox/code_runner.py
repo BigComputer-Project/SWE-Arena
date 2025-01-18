@@ -709,7 +709,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
 
 
-def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
+def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:
     """
     Executes the provided code within a sandboxed environment and returns the output.
 
@@ -720,9 +720,11 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
         url for remote sandbox
     """
     sandbox = create_sandbox()
+    project_root = "~/pygame_app"
+    file_path = f"{project_root}/main.py"
 
-    sandbox.files.make_dir('mygame')
-    file_path = "~/mygame/main.py"
+    stderrs = []
+
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
     python_dependencies, _ = code_dependencies
@@ -730,18 +732,18 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
 
     # build the pygame code
     sandbox.commands.run(
-        "pygbag --build ~/mygame",
-        timeout=60 * 5,
+        "pygbag --build ~/pygame_app",
+        timeout=60,
+        on_stdout=print,
+        on_stderr=lambda message: stderrs.append(message),
     )
 
-    stderr = run_background_command_with_timeout(
-        sandbox,
-        "python -m http.server 3000",
-        timeout=8,
-    )
+    stderr = '\n'.join(stderrs)
+    if 'error' not in stderr.lower():
+        # to ignore warnings
+        stderr = ""
 
-    host = sandbox.get_host(3000)
-    sandbox_url =  f"https://{host}" + '/mygame/build/web/'
+    sandbox_url = get_sandbox_app_url(sandbox, 'pygame')
     return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
@@ -757,7 +759,7 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     """
     sandbox = create_sandbox()
 
-    file_path = "~/app.py"
+    file_path = "~/gradio_app/main.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
     python_dependencies, _ = code_dependencies
@@ -765,7 +767,7 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
 
     stderr = run_background_command_with_timeout(
         sandbox,
-        "python ~/app.py",
+        f"python {file_path}",
         timeout=10,
     )
 
