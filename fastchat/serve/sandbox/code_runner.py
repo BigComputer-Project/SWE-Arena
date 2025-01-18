@@ -187,12 +187,6 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-
-For HTML development, ensure that:
-- All HTML code must be self-contained in a single file
-- Include any necessary CSS and JavaScript within the HTML file
-- Ensure the code is directly executable in a browser environment
-- Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
 """
 
 WEB_RELATED_INSTRUCTION = """\
