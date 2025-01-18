@@ -308,7 +308,25 @@ def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxStat
         'code_language': None,
         'code_dependencies': ([], []),
         'btn_list_length': btn_list_length,
+        'sandbox_id': None,
     }
+
+
+def clear_sandbox_history(state: ChatbotSandboxState) -> ChatbotSandboxState:
+    '''
+    Clear sandbox state.
+    Used when user clears the chat history.
+    '''
+    state['enable_sandbox'] = True
+    state['enabled_round'] = 0
+    state['sandbox_environment'] = SandboxEnvironment.AUTO
+    state['auto_selected_sandbox_environment'] = None
+    state['sandbox_instruction'] = DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO]
+    state['code_to_execute'] = ""
+    state['code_language'] = None
+    state['code_dependencies'] = ([], [])
+    state['sandbox_id'] = None
+    return state
 
 
 def update_sandbox_config_multi(
@@ -1208,7 +1226,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     return (sandbox_url, sandbox.sandbox_id, stderr)
 
 
-def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str]:
+def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:
     """
     Executes the provided code within a sandboxed environment and returns the output.
 
@@ -1218,15 +1236,17 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     Returns:
         url for remote sandbox
     """
-    stderr = ""
     project_root = "~/react_app"
     sandbox = create_sandbox()
+
+    stderrs: list[str] = [] # to collect errors
 
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
-        print("NPM dependencies installed.")
+        install_errs = install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
+        stderrs.extend(install_errs)
+        print("NPM dependencies installed. " + "Errors: " + str(install_errs))
 
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
@@ -1237,20 +1257,23 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
     print("Code files written successfully.")
 
-    def capture_stderr(message):
-        nonlocal stderr
-        stderr += message
-
-    sandbox.commands.run("cd ~/react_app && npm run build ", 
-                        cwd=project_root, 
-                        timeout=60*5,
-                        on_stderr=capture_stderr)
+    try:
+        sandbox.commands.run(
+            cmd="npm run build --loglevel=error -- --mode development --logLevel error",
+            cwd=project_root,
+            timeout=60,
+            on_stdout=print,
+            on_stderr=lambda message: stderrs.append(message),
+        )
+    except Exception as e:
+        print(f"Error running npm build command: {e}")
+        stderrs.append(str(e))
 
     sandbox_url = get_sandbox_app_url(sandbox, 'react')
-    return (sandbox_url, sandbox.sandbox_id, stderr)
+    return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
 
 
-def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str]:
+def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:
     """
     Executes the provided Vue code within a sandboxed environment and returns the output.
 
@@ -1260,10 +1283,10 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     Returns:
         url for remote sandbox
     """
-    stderr = ""
     sandbox = create_sandbox()
-
     project_root = "~/vue_app"
+
+    stderrs: list[str] = [] # to collect errors
 
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
@@ -1275,21 +1298,24 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
-        print("NPM dependencies installed.")
+        install_errs = install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
+        stderrs.extend(install_errs)
+        print("NPM dependencies installed. " + "Errors: " + str(install_errs))
 
-    def capture_stderr(message):
-        nonlocal stderr
-        stderr += message
+    try:
+        sandbox.commands.run(
+            cmd="npm run build --loglevel=error -- --mode development --logLevel error",
+            cwd=project_root,
+            timeout=60,
+            on_stdout=print,
+            on_stderr=lambda message: stderrs.append(message),
+        )
+    except Exception as e:
+        print(f"Error running npm build command: {e}")
+        stderrs.append(str(e))
 
-    sandbox.commands.run("cd ~/vue_app && npm run build",
-                        cwd=project_root, 
-                        timeout=60*5,
-                        on_stderr=capture_stderr
-                        )
-    
     sandbox_url = get_sandbox_app_url(sandbox, 'vue')
-    return (sandbox_url, sandbox.sandbox_id, stderr)
+    return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
 
 
 def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, tuple[bool, str]]:
