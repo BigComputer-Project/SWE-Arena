@@ -312,23 +312,6 @@ def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxStat
     }
 
 
-def clear_sandbox_history(state: ChatbotSandboxState) -> ChatbotSandboxState:
-    '''
-    Clear sandbox state.
-    Used when user clears the chat history.
-    '''
-    state['enable_sandbox'] = True
-    state['enabled_round'] = 0
-    state['sandbox_environment'] = SandboxEnvironment.AUTO
-    state['auto_selected_sandbox_environment'] = None
-    state['sandbox_instruction'] = DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO]
-    state['code_to_execute'] = ""
-    state['code_language'] = None
-    state['code_dependencies'] = ([], [])
-    state['sandbox_id'] = None
-    return state
-
-
 def update_sandbox_config_multi(
     enable_sandbox: bool,
     sandbox_environment: SandboxEnvironment,
@@ -1154,8 +1137,6 @@ def run_code_interpreter(code: str, code_language: str | None, code_dependencies
                          timeout=60 * 3,
                          on_stderr=lambda message: print(message),)
 
-    print(f"code_dependencies: {code_dependencies}")
-
     python_dependencies, npm_dependencies = code_dependencies
     install_pip_dependencies(sandbox, python_dependencies)
     install_npm_dependencies(sandbox, npm_dependencies)
@@ -1684,7 +1665,7 @@ def on_run_code(
     # Use dependencies from sandbox_state instead of re-extracting
     code_dependencies = sandbox_state['code_dependencies']
     python_deps, npm_deps = code_dependencies
-    
+
     # Helper function to extract package name without version
     def get_base_package_name(pkg: str) -> str:
         # For Python packages
@@ -1750,7 +1731,7 @@ def on_run_code(
         ),
         SandboxComponent(visible=False),
         gr.Code(value=code, language=code_language, visible=True),
-        gr.update(value=dependencies),  # Update with unified dependencies
+        gr.update(value=dependencies, visible=True),  # Update with unified dependencies
     )
 
     sandbox_env = sandbox_state['auto_selected_sandbox_environment']
@@ -1764,7 +1745,7 @@ def on_run_code(
             gr.Markdown(value=output_text, visible=True, sanitize_html=False),
             gr.skip(),
             gr.skip(),
-            gr.update(value=dependencies)  # Always include dependencies update
+            gr.skip()  # Always include dependencies update
         )
 
     sandbox_id = None
@@ -1788,7 +1769,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                    gr.update(value=dependencies),
+                    gr.skip(),
                 )
         case SandboxEnvironment.REACT:
             yield update_output("🔄 Setting up React sandbox...")
@@ -1807,7 +1788,7 @@ def on_run_code(
                     key="newsandbox",
                 ),
                 gr.skip(),
-                gr.update(value=dependencies),
+                gr.skip(),
             )
         case SandboxEnvironment.VUE:
             yield update_output("🔄 Setting up Vue sandbox...")
@@ -1826,7 +1807,7 @@ def on_run_code(
                     key="newsandbox",
                 ),
                 gr.skip(),
-                gr.update(value=dependencies),
+                gr.skip(),
             )
         case SandboxEnvironment.PYGAME:
             yield update_output("🔄 Setting up PyGame sandbox...")
@@ -1845,7 +1826,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                    gr.update(value=dependencies),
+                    gr.skip(),
                 )
         case SandboxEnvironment.GRADIO:
             yield update_output("🔄 Setting up Gradio sandbox...")
@@ -1864,7 +1845,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                    gr.update(value=dependencies),
+                    gr.skip(),
                 )
         case SandboxEnvironment.STREAMLIT:
             yield update_output("🔄 Setting up Streamlit sandbox...")
@@ -1883,7 +1864,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                    gr.update(value=dependencies),
+                    gr.skip(),
                 )
         case SandboxEnvironment.MERMAID:
             yield update_output("🔄 Setting up Mermaid visualization...")
@@ -1904,7 +1885,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                    gr.update(value=dependencies),
+                    gr.skip(),
                 )
         case SandboxEnvironment.PYTHON_CODE_INTERPRETER:
             yield update_output("🔄 Running Python Code Interpreter...", clear_output=True)
@@ -1929,7 +1910,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                    gr.update(value=dependencies),
+                    gr.skip(),
                 )
         case SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER:
             yield update_output("🔄 Running JavaScript Code Interpreter...", clear_output=True)
@@ -1954,7 +1935,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                    gr.update(value=dependencies),
+                    gr.skip(),
                 )
         case _:
             yield (
@@ -1966,7 +1947,7 @@ def on_run_code(
                     key="newsandbox",
                 ),
                 gr.skip(),
-                gr.update(value=dependencies),
+                gr.skip(),
             )
 
     if sandbox_id:
