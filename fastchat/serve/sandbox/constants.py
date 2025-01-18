@@ -9,6 +9,16 @@ E2B_API_KEY = os.environ.get("E2B_API_KEY")
 API key for the e2b API.
 '''
 
+AZURE_BLOB_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+'''
+API key for the Azure Blob Storage.
+'''
+
+AZURE_BLOB_STORAGE_CONTAINER_NAME = "softwarearenalogs"
+'''
+Contianer name for the Azure Blob Storage.
+'''
+
 SANDBOX_TEMPLATE_ID: str = "bxq9sha9l55ytsyfturr"
 '''
 Template ID for the sandbox.

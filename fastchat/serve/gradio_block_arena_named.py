@@ -11,6 +11,7 @@ from gradio_sandboxcomponent import SandboxComponent
 import numpy as np
 
 from fastchat.constants import (
+    LOGDIR,
     MODERATION_MSG,
     CONVERSATION_LIMIT_MSG,
     INPUT_CHAR_LEN_LIMIT,
@@ -34,7 +35,7 @@ from fastchat.serve.gradio_web_server import (
 )
 from fastchat.serve.remote_logger import get_remote_logger
 from fastchat.serve.sandbox.code_runner import SandboxGradioSandboxComponents, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SUPPORTED_SANDBOX_ENVIRONMENTS, ChatbotSandboxState, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, reset_sandbox_state, update_sandbox_config_multi, update_visibility, on_edit_dependency
-from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
+from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, upload_conv_log_to_azure_storage
 from fastchat.utils import (
     build_logger,
     moderation_filter,
@@ -73,7 +74,8 @@ def load_demo_side_by_side_named(models, url_params):
 def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
     if states[0] is None or states[1] is None:
         return
-    with open(get_conv_log_filename(), "a") as fout:
+    filename = get_conv_log_filename()
+    with open(filename, "a") as fout:
         data = {
             "tstamp": round(time.time(), 4),
             "type": vote_type,
@@ -83,6 +85,7 @@ def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
         }
         fout.write(json.dumps(data) + "\n")
     get_remote_logger().log(data)
+    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data))
 
 
 def leftvote_last_response(
