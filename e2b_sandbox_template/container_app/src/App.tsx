@@ -46,7 +46,11 @@ const App: React.FC = () => {
    * Keydown event inside iframe
    */
   const handleIframeKeyDown = useCallback((e: KeyboardEvent) => {
-    postInteractionMessage("keydown", { key: e.key });
+      // Log the keydown event only when the iframe document are focused
+      if (iframeDocRef.current !== document.activeElement) {
+        return;
+      }
+      postInteractionMessage("keydown", { key: e.key });
   }, []);
 
   /**
