@@ -549,15 +549,6 @@ def build_side_by_side_ui_named(models):
                                     sandbox_dependency,
                                 ))
 
-        sandbox_env_choice.change(
-            fn=update_sandbox_config_multi,
-            inputs=[
-                gr.State(value=True),  # Always enabled
-                sandbox_env_choice,
-                *sandbox_states,
-            ],
-            outputs=[*sandbox_states],
-        )
     # First define all UI components
     with gr.Row():
         textbox = gr.Textbox(
@@ -706,13 +697,13 @@ def build_side_by_side_ui_named(models):
     )
 
     sandbox_env_choice.change(
-    fn=update_sandbox_config_multi,
-    inputs=[
-        gr.State(value=True),  # Always enabled
-        sandbox_env_choice,
-        *sandbox_states
-    ],
-    outputs=[*sandbox_states]
+        fn=update_sandbox_config_multi,
+        inputs=[
+            gr.State(value=True),  # Always enabled
+            sandbox_env_choice,
+            *sandbox_states
+        ],
+        outputs=[*sandbox_states]
     ).then(
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,

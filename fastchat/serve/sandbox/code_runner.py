@@ -430,7 +430,6 @@ def update_visibility_for_single_model(visible: bool, component_cnt: int):
     return [gr.update(visible=visible)] * component_cnt
 
 
-
 def mermaid_to_html(mermaid_code: str, theme: str = 'default') -> str:
     """
     Convert Mermaid diagram code to a minimal HTML document.

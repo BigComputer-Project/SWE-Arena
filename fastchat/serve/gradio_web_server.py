@@ -325,7 +325,6 @@ def clear_history(sandbox_state,request: gr.Request):
     state = None
     sandbox_state['enabled_round'] = 0
     sandbox_state['code_to_execute'] = ""
-    sandbox_state['sandbox_instruction'] = GENERAL_SANDBOX_INSTRUCTION
     return ("Auto",) + (state, [], "") + (disable_btn,) * 5 + (sandbox_state,)
 
 def clear_sandbox_components(*components):
