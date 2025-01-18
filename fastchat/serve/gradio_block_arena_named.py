@@ -475,12 +475,6 @@ def build_side_by_side_ui_named(models):
                                     )
                                     with gr.Row():
                                         sandbox_code_submit_btn = gr.Button(value="Apply Changes", visible=True, interactive=True, variant='primary', size='sm')
-                                        # run code when click apply changes
-                                        # sandbox_code_submit_btn.click(
-                                        #     fn=on_edit_code,
-                                        #     inputs=[states[chatbotIdx], sandbox_state, sandbox_output, sandbox_ui, sandbox_code],
-                                        #     outputs=[sandbox_output, sandbox_ui, sandbox_code]
-                                        # )
 
                                 with gr.Tab(
                                     label="Dependency", visible=True

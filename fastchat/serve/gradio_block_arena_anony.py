@@ -656,18 +656,6 @@ def build_side_by_side_ui_anony(models):
                                             variant='primary',
                                             size='sm'
                                         )
-                                        # dependency_submit_btn.click(
-                                        #     fn=on_edit_dependency,
-                                        #     inputs=[
-                                        #         states[chatbotIdx],
-                                        #         sandbox_state,
-                                        #         sandbox_dependency,
-                                        #     ],
-                                        #     outputs=[
-                                        #         sandbox_dependency,
-                                        #         sandbox_output,
-                                        #     ],
-                                        # )
                                     dependency_submit_btn.click(
                                         fn=on_edit_dependency,
                                         inputs=[

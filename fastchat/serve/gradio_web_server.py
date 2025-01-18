@@ -958,12 +958,6 @@ def build_single_model_ui(models, add_promotion_links=False):
                             )
                             with gr.Row():
                                 sandbox_code_submit_btn = gr.Button(value="Apply Changes", visible=True, interactive=True, variant='primary', size='sm')
-                                # run code when click apply changes
-                                # sandbox_code_submit_btn.click(
-                                #     fn=on_edit_code,
-                                #     inputs=[state, sandbox_state, sandbox_output, sandbox_ui, sandbox_code],
-                                #     outputs=[sandbox_output, sandbox_ui, sandbox_code]
-                                # )
 
                             with gr.Tab(
                                 label="Dependency", visible=True

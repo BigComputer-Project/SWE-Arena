@@ -1701,7 +1701,7 @@ def on_run_code(
     # Use dependencies from sandbox_state instead of re-extracting
     code_dependencies = sandbox_state['code_dependencies']
     python_deps, npm_deps = code_dependencies
-
+    
     # Helper function to extract package name without version
     def get_base_package_name(pkg: str) -> str:
         # For Python packages
