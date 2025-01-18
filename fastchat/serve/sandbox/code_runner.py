@@ -1261,6 +1261,7 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     Returns:
         url for remote sandbox
     """
+    stderr = ""
     project_root = "~/react_app"
     sandbox = create_sandbox()
 
@@ -1279,11 +1280,15 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
     print("Code files written successfully.")
 
-    stderr = run_background_command_with_timeout(
-        sandbox,
-        "cd ~/react_app && npm run build",
-        timeout=8,
-    )
+    def capture_stderr(message):
+        nonlocal stderr
+        stderr += message
+
+    sandbox.commands.run("cd ~/react_app && npm run build ", 
+                        cwd=project_root, 
+                        timeout=60*5,
+                        on_stderr=capture_stderr)
+
     sandbox_url = get_sandbox_app_url(sandbox, 'react')
     return (sandbox_url, sandbox.sandbox_id, stderr)
 
@@ -1298,6 +1303,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     Returns:
         url for remote sandbox
     """
+    stderr = ""
     sandbox = create_sandbox()
 
     project_root = "~/vue_app"
@@ -1315,11 +1321,16 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
         install_npm_dependencies(sandbox, npm_dependencies)
         print("NPM dependencies installed.")
 
-    stderr = run_background_command_with_timeout(
-        sandbox,
-        "cd ~/vue_app && npm run build",
-        timeout=8,
-    )
+    def capture_stderr(message):
+        nonlocal stderr
+        stderr += message
+
+    sandbox.commands.run("cd ~/vue_app && npm run build",
+                        cwd=project_root, 
+                        timeout=60*5,
+                        on_stderr=capture_stderr
+                        )
+    
     sandbox_url = get_sandbox_app_url(sandbox, 'vue')
     return (sandbox_url, sandbox.sandbox_id, stderr)
 
@@ -1804,17 +1815,17 @@ def on_run_code(
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
                 yield update_output("✅ React sandbox ready!", clear_output=True)
-                yield (
-                    gr.Markdown(value=output_text, visible=True),
-                    SandboxComponent(
-                        value=(sandbox_url, True, []),
-                        label="Example",
-                        visible=True,
-                        key="newsandbox",
-                    ),
-                    gr.skip(),
-                    gr.update(value=dependencies),
-                )
+            yield (
+                gr.Markdown(value=output_text, visible=True),
+                SandboxComponent(
+                    value=(sandbox_url, True, []),
+                    label="Example",
+                    visible=True,
+                    key="newsandbox",
+                ),
+                gr.skip(),
+                gr.update(value=dependencies),
+            )
         case SandboxEnvironment.VUE:
             yield update_output("🔄 Setting up Vue sandbox...")
             sandbox_url, sandbox_id, stderr = run_vue_sandbox(code=code, code_dependencies=code_dependencies)
@@ -1823,17 +1834,17 @@ def on_run_code(
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
                 yield update_output("✅ Vue sandbox ready!", clear_output=True)
-                yield (
-                    gr.Markdown(value=output_text, visible=True),
-                    SandboxComponent(
-                        value=(sandbox_url, True, []),
-                        label="Example",
-                        visible=True,
-                        key="newsandbox",
-                    ),
-                    gr.skip(),
-                    gr.update(value=dependencies),
-                )
+            yield (
+                gr.Markdown(value=output_text, visible=True),
+                SandboxComponent(
+                    value=(sandbox_url, True, []),
+                    label="Example",
+                    visible=True,
+                    key="newsandbox",
+                ),
+                gr.skip(),
+                gr.update(value=dependencies),
+            )
         case SandboxEnvironment.PYGAME:
             yield update_output("🔄 Setting up PyGame sandbox...")
             sandbox_url, sandbox_id, stderr = run_pygame_sandbox(code=code, code_dependencies=code_dependencies)
