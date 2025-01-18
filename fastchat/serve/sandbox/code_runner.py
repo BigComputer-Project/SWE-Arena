@@ -980,14 +980,10 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool=False) -> tup
         code = match.group('code').strip()
         if code != main_code:
             install_python_packages, install_npm_packages = extract_installation_commands(code)
-            extracted_python_packages, extracted_npm_packages = (
-                extract_dependencies_from_code(code)
-            )
             all_python_packages.update(install_python_packages)
-            all_python_packages.update(extracted_python_packages)
             all_npm_packages.update(install_npm_packages)
-            all_npm_packages.update(extracted_npm_packages)
 
+    print(list(all_python_packages))
     return main_code, main_code_lang, (list(all_python_packages), list(all_npm_packages)), sandbox_env_name
 
 def create_placeholder_svg_data_url(width: int, height: int) -> str:
@@ -1166,68 +1162,6 @@ def install_npm_dependencies(sandbox: Sandbox, dependencies: list[str]):
             )
         except Exception as e:
             continue
-
-
-def run_background_command_with_timeout(
-    sandbox: Sandbox,
-    command: str,
-    timeout: int = 5,
-) -> tuple[bool, str]:
-    """
-    Run a command in the background and wait for a short time to check for startup errors.
-
-    Args:
-        sandbox: The sandbox instance
-        command: The command to run
-        timeout: How long to wait for startup errors (in seconds)
-
-    Returns:
-        tuple[bool, str]: (success, stderr)
-        - success: True if the command started successfully
-        - stderr: Any error output collected
-    """
-    stderr = ""
-
-    def collect_stderr(message):
-        nonlocal stderr
-        stderr += message
-
-
-    cmd = sandbox.commands.run(
-        command,
-        timeout=60 * 3,  # Overall timeout for the command
-        background=True,
-    )
-
-    def wait_for_command(result_queue):
-        nonlocal stderr
-        try:
-            result = cmd.wait()
-            if result.stderr:
-                stderr += result.stderr
-            result_queue.put(stderr)
-        except ReadTimeout:
-            result_queue.put(stderr)
-        except CommandExitException as e:
-            stderr += "".join(e.stderr)
-            result_queue.put(stderr)
-        except TimeoutException as e:
-            return
-
-    # Create a queue to store the result
-    result_queue = queue.Queue()
-
-    # Create a thread to wait for the command
-    wait_thread = threading.Thread(target=wait_for_command, args=(result_queue,))
-    wait_thread.start()
-    # Wait for the thread to complete or timeout
-    wait_thread.join(timeout)
-
-    if wait_thread.is_alive():
-        # Timeout occurred
-        return stderr
-    else:
-        return result_queue.get()
 
 
 def run_code_interpreter(code: str, code_language: str | None, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str]:
@@ -1494,27 +1428,41 @@ def on_edit_code(
         yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
     sandbox_state['code_to_execute'] = sandbox_code
-    python_deps, npm_deps = extract_installation_commands(sandbox_code)
-    extracted_python_deps, extracted_npm_deps = extract_dependencies_from_code(
-        sandbox_code
-    )
+    
+    # Extract packages from installation commands (with versions)
+    python_deps_with_version, npm_deps_with_version = extract_installation_commands(sandbox_code)
+    
+    # Extract packages from imports (without versions)
+    python_deps_from_imports = extract_python_imports(sandbox_code)
+    npm_deps_from_imports = extract_js_imports(sandbox_code)
+    
     # Convert to dataframe format
     dependencies = []
-    for dep in python_deps:
-        dependencies.append(["python", dep, "latest"])
-    for dep in extracted_python_deps:
-        dependencies.append(["python", dep, "latest"])
-    for dep in npm_deps:
-        dependencies.append(["npm", dep, "latest"])
-    for dep in extracted_npm_deps:
-        dependencies.append(["npm", dep, "latest"])
+    
+    # Add packages with versions from installation commands
+    for dep in python_deps_with_version:
+        dependencies.append(["python", dep, "specified"])
+    for dep in npm_deps_with_version:
+        dependencies.append(["npm", dep, "specified"])
+        
+    # Add packages from imports with "latest" version if not already added
+    existing_python_pkgs = {dep.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0] for dep in python_deps_with_version}
+    existing_npm_pkgs = {dep.split('@')[0] for dep in npm_deps_with_version}
+    
+    for dep in python_deps_from_imports:
+        if dep not in existing_python_pkgs:
+            dependencies.append(["python", dep, "latest"])
+            
+    for dep in npm_deps_from_imports:
+        if dep not in existing_npm_pkgs:
+            dependencies.append(["npm", dep, "latest"])
 
     # If no dependencies found, provide default empty rows
     if not dependencies:
         dependencies = [["python", "", ""], ["npm", "", ""]]
 
     # Update dependencies in sandbox state
-    sandbox_state["code_dependencies"] = (python_deps, npm_deps)
+    sandbox_state["code_dependencies"] = (python_deps_with_version, npm_deps_with_version)
     yield (
         gr.skip(),  # sandbox_output
         gr.skip(),  # sandbox_ui
@@ -1538,6 +1486,7 @@ def on_edit_dependency(
 ) -> tuple[gr.Dataframe, gr.Markdown]:
     '''
     Gradio Handler when dependencies are edited manually by users.
+    Handles version specifications and dependency removal.
     '''
     if not sandbox_state['enable_sandbox']:
         return gr.skip(), gr.Markdown("Sandbox is not enabled")
@@ -1552,10 +1501,33 @@ def on_edit_dependency(
     python_deps = []
     npm_deps = []
     for dep in dependencies:
-        if dep[0].lower() == "python" and dep[1]:
-            python_deps.append(dep[1])
-        elif dep[0].lower() == "npm" and dep[1]:
-            npm_deps.append(dep[1])
+        dep_type, pkg_name, version = dep
+        pkg_name = pkg_name.strip()
+        version = version.strip()
+        
+        # Skip empty rows
+        if not pkg_name:
+            continue
+            
+        if dep_type.lower() == "python":
+            # Handle Python package with version
+            if version and version.lower() != "latest":
+                if not any(op in version for op in ['==', '>=', '<=', '~=', '>', '<']):
+                    # Add equality operator if version specified without operator
+                    python_deps.append(f"{pkg_name}=={version}")
+                else:
+                    python_deps.append(f"{pkg_name}{version}")
+            else:
+                python_deps.append(pkg_name)
+                
+        elif dep_type.lower() == "npm":
+            # Handle NPM package with version
+            if version and version.lower() != "latest":
+                if not version.startswith('@'):
+                    version = '@' + version
+                npm_deps.append(f"{pkg_name}{version}")
+            else:
+                npm_deps.append(pkg_name)
 
     # Update sandbox state
     sandbox_state['code_dependencies'] = (python_deps, npm_deps)
@@ -1590,9 +1562,10 @@ def on_click_code_message_run(
     if extract_result is None:
         yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
+
     code, code_language, code_dependencies, env_selection = extract_result
 
-    if sandbox_state['code_to_execute'] == code and sandbox_state['code_language'] == code_language and sandbox_state['code_dependencies'] == code_dependencies:
+    if sandbox_state['code_to_execute'] == code and sandbox_state['code_language'] == code_language:
         # skip if no changes
         yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
@@ -1603,23 +1576,35 @@ def on_click_code_message_run(
         # ensure gradio supports the code language
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
-
-    # python_deps, npm_deps = code_dependencies
-    print(f"code: {code}")
-    python_deps, npm_deps = extract_installation_commands(code)
-    extracted_python_deps, extracted_npm_deps = extract_dependencies_from_code(code)
-    print(f"python_deps: {extracted_python_deps}")
-    print(f"npm_deps: {extracted_npm_deps}")
+    python_deps, npm_deps = code_dependencies
+    
+    # Convert to dataframe format
     dependencies = []
-
+    
+    # Add Python packages with versions
     for dep in python_deps:
-        dependencies.append(["python", dep, "latest"])
-    for dep in extracted_python_deps:
-        dependencies.append(["python", dep, "latest"])
+        # Check if package has version specifier
+        if any(op in dep for op in ['==', '>=', '<=', '~=']):
+            # Split on first occurrence of version operator
+            pkg_name = dep.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0]
+            version = dep[len(pkg_name):]  # Get everything after package name
+            dependencies.append(["python", pkg_name, version])
+        else:
+            dependencies.append(["python", dep, "latest"])
+            
+    # Add NPM packages with versions
     for dep in npm_deps:
-        dependencies.append(["npm", dep, "latest"])
-    for dep in extracted_npm_deps:
-        dependencies.append(["npm", dep, "latest"])
+        # Check if package has version specifier
+        if '@' in dep and not dep.startswith('@'):
+            # Handle non-scoped packages with version
+            pkg_name, version = dep.split('@', 1)
+            dependencies.append(["npm", pkg_name, '@' + version])
+        elif '@' in dep[1:]:  # Handle scoped packages with version
+            # Split on last @ for scoped packages
+            pkg_parts = dep.rsplit('@', 1)
+            dependencies.append(["npm", pkg_parts[0], '@' + pkg_parts[1]])
+        else:
+            dependencies.append(["npm", dep, "latest"])
 
     # If no dependencies found, provide default empty rows
     if not dependencies:
@@ -1627,8 +1612,7 @@ def on_click_code_message_run(
 
     sandbox_state['code_to_execute'] = code
     sandbox_state['code_language'] = code_language
-    # sandbox_state['code_dependencies'] = code_dependencies
-    sandbox_state["code_dependencies"] = (python_deps, npm_deps)
+    sandbox_state["code_dependencies"] = code_dependencies
     if sandbox_state['sandbox_environment'] == SandboxEnvironment.AUTO:
         sandbox_state['auto_selected_sandbox_environment'] = env_selection
 
@@ -1679,27 +1663,66 @@ def on_run_code(
         # ensure gradio supports the code language
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
-    python_deps, npm_deps = extract_installation_commands(code)
-    extracted_python_deps, extracted_npm_deps = extract_dependencies_from_code(code)
-    print(f"python_deps: {python_deps}")
-    print(f"npm_deps: {npm_deps}")
+    # Use dependencies from sandbox_state instead of re-extracting
+    code_dependencies = sandbox_state['code_dependencies']
+    python_deps, npm_deps = code_dependencies
 
-    # Convert to dataframe format for UI
-    dependencies = []
+    # Helper function to extract package name without version
+    def get_base_package_name(pkg: str) -> str:
+        # For Python packages
+        if any(op in pkg for op in ['==', '>=', '<=', '~=', '>', '<']):
+            return pkg.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0].split('>')[0].split('<')[0]
+        # For NPM packages
+        if '@' in pkg and not pkg.startswith('@'):
+            return pkg.split('@')[0]
+        elif '@' in pkg[1:]:  # Handle scoped packages
+            return pkg.rsplit('@', 1)[0]
+        return pkg
+
+    # Helper function to extract version from package string
+    def get_package_version(pkg: str) -> str:
+        # For Python packages
+        if any(op in pkg for op in ['==', '>=', '<=', '~=', '>', '<']):
+            base_name = get_base_package_name(pkg)
+            return pkg[len(base_name):]
+        # For NPM packages
+        if '@' in pkg and not pkg.startswith('@'):
+            return '@' + pkg.split('@', 1)[1]
+        elif '@' in pkg[1:]:  # Handle scoped packages
+            _, version = pkg.rsplit('@', 1)
+            return '@' + version
+        return "latest"
+
+    # Create unified dependency dictionaries to avoid duplicates
+    python_deps_dict = {}  # pkg_name -> version
+    npm_deps_dict = {}     # pkg_name -> version
+
+    # Process Python dependencies
     for dep in python_deps:
-        dependencies.append(["python", dep, "latest"])
-    for dep in extracted_python_deps:
-        dependencies.append(["python", dep, "latest"])
+        base_name = get_base_package_name(dep)
+        version = get_package_version(dep)
+        # Only update if we don't have a version yet or if we're replacing 'latest'
+        if base_name not in python_deps_dict or python_deps_dict[base_name] == "latest":
+            python_deps_dict[base_name] = version
+
+    # Process NPM dependencies
     for dep in npm_deps:
-        dependencies.append(["npm", dep, "latest"])
-    for dep in extracted_npm_deps:
-        dependencies.append(["npm", dep, "latest"])
+        base_name = get_base_package_name(dep)
+        version = get_package_version(dep)
+        # Only update if we don't have a version yet or if we're replacing 'latest'
+        if base_name not in npm_deps_dict or npm_deps_dict[base_name] == "latest":
+            npm_deps_dict[base_name] = version
+
+    # Convert unified dictionaries to dataframe format
+    dependencies = []
+    for pkg_name, version in python_deps_dict.items():
+        dependencies.append(["python", pkg_name, version])
+    for pkg_name, version in npm_deps_dict.items():
+        dependencies.append(["npm", pkg_name, version])
 
     # If no dependencies found, provide default empty rows
     if not dependencies:
         dependencies = [["python", "", ""], ["npm", "", ""]]
-
-    sandbox_state["code_dependencies"] = (python_deps, npm_deps)
 
     # Initialize output with loading message
     output_text = "### Sandbox Execution Log\n\n"
@@ -1709,11 +1732,10 @@ def on_run_code(
         ),
         SandboxComponent(visible=False),
         gr.Code(value=code, language=code_language, visible=True),
-        gr.update(value=dependencies),  # Update dependency UI
+        gr.update(value=dependencies),  # Update with unified dependencies
     )
 
     sandbox_env = sandbox_state['auto_selected_sandbox_environment']
-    code_dependencies = sandbox_state['code_dependencies']
 
     def update_output(message: str, clear_output: bool = False):
         nonlocal output_text
@@ -1724,7 +1746,7 @@ def on_run_code(
             gr.Markdown(value=output_text, visible=True, sanitize_html=False),
             gr.skip(),
             gr.skip(),
-            gr.update(value=dependencies),
+            gr.update(value=dependencies),  # Use unified dependencies
         )
 
     sandbox_id = None
@@ -1785,7 +1807,6 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                gr.update(value=dependencies),
                 )
         case SandboxEnvironment.PYGAME:
             yield update_output("🔄 Setting up PyGame sandbox...")
@@ -1823,7 +1844,6 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
-                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.STREAMLIT:
             yield update_output("🔄 Setting up Streamlit sandbox...")
@@ -2087,26 +2107,37 @@ def extract_dependencies_from_code(code: str) -> tuple[list[str], list[str]]:
 
 
 def validate_dependencies(dependencies: list) -> tuple[bool, str]:
-    """Validate dependency list format and values."""
+    """
+    Validate dependency list format and values.
+    Allows empty rows but validates format when package name is specified.
+    """
     if not dependencies:
         return True, ""
 
     valid_types = ["python", "npm"]
     for dep in dependencies:
+        # Skip validation for empty rows
         if len(dep) != 3:
-            return False, "Each dependency must have type, package and version"
-        if dep[0].lower() not in valid_types:
-            return False, f"Invalid dependency type: {dep[0]}"
-        if not dep[1].strip():
-            return False, "Package name cannot be empty"
+            return False, "Each dependency must have type, package and version fields"
+        
+        dep_type, pkg_name, version = dep
+        
+        # Skip empty rows
+        if not pkg_name.strip():
+            continue
+            
+        if dep_type.lower() not in valid_types:
+            return False, f"Invalid dependency type: {dep_type}"
+            
+        # Validate version format if specified
+        if version.strip():
+            if dep_type.lower() == "python":
+                # Check for valid pip version specifiers
+                if not any(op in version for op in ['==', '>=', '<=', '~=', '>', '<']) and version.lower() != "latest":
+                    return False, f"Invalid Python version format for {pkg_name}: {version}"
+            elif dep_type.lower() == "npm":
+                # Check for valid npm version format (starts with @ or valid semver-like)
+                if not (version.startswith('@') or version.lower() == "latest"):
+                    return False, f"Invalid NPM version format for {pkg_name}: {version}"
+    
     return True, ""
-
-
-# def update_sandbox_dependencies(state, sandbox_state, dependencies):
-#     """Update sandbox state with new dependencies."""
-#     is_valid, error_msg = validate_dependencies(dependencies)
-#     if not is_valid:
-#         return gr.update(), error_msg
-
-#     sandbox_state["dependencies"] = dependencies
-#     return gr.update(value=dependencies), ""
