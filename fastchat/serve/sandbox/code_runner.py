@@ -1188,7 +1188,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     sandbox = create_sandbox()
 
     _, npm_dependencies = code_dependencies
-    install_npm_dependencies(sandbox, npm_dependencies)
+    install_npm_dependencies(sandbox, npm_dependencies, project_root='~/myhtml')
 
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
@@ -1225,7 +1225,7 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]])
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies)
+        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
         print("NPM dependencies installed.")
 
     # replace placeholder URLs with SVG data URLs
@@ -1275,7 +1275,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
         print(f"Installing NPM dependencies...: {npm_dependencies}")
-        install_npm_dependencies(sandbox, npm_dependencies)
+        install_npm_dependencies(sandbox, npm_dependencies, project_root=project_root)
         print("NPM dependencies installed.")
 
     def capture_stderr(message):
