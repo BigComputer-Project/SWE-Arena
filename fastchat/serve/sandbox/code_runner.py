@@ -610,18 +610,11 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
 
-    file_path = f"{project_root}/main.html"
+    file_path = f"{project_root}/index.html"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
-    stderr = run_background_command_with_timeout(
-        sandbox,
-        "python -m http.server 3000",
-        timeout=5,
-    )
-
-    host = sandbox.get_host(3000)
-    sandbox_url = f"https://{host}/html/main.html"
-    return (sandbox_url, sandbox.sandbox_id, stderr)
+    sandbox_url = get_sandbox_app_url(sandbox, 'html')
+    return (sandbox_url, sandbox.sandbox_id, '')
 
 
 def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str, str]:

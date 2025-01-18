@@ -173,6 +173,6 @@ def run_background_command_with_timeout(
 
 def get_sandbox_app_url(
     sandbox: Sandbox,
-    app_type: Literal["react", "vue"]
+    app_type: Literal["react", "vue", "html"]
 ) -> str:
     return f"https://{sandbox.get_host(port=SANDBOX_NGINX_PORT)}/container/?app={app_type}"

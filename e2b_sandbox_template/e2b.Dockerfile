@@ -34,3 +34,7 @@ WORKDIR /home/user/vue_app
 COPY vue_app/ ./
 RUN npm install
 RUN npm run build
+
+# Prepare html app
+WORKDIR /home/user/html_app
+COPY html_app/ ./
