@@ -86,12 +86,15 @@ def get_installed_npm_packages(sandbox: Sandbox, project_root: str) -> dict[str,
     }
 
 
-def install_npm_dependencies(sandbox: Sandbox, dependencies: list[str], project_root: str = '~'):
+def install_npm_dependencies(sandbox: Sandbox, dependencies: list[str], project_root: str = '~') -> list[str]:
     '''
     Install npm dependencies in the sandbox.
+
+    Return errors if any.
     '''
+    install_errors = []
     if not dependencies:
-        return
+        return install_errors
 
     installed_packages: dict[str, str | None] = get_installed_npm_packages(
         sandbox, project_root)
@@ -102,15 +105,17 @@ def install_npm_dependencies(sandbox: Sandbox, dependencies: list[str], project_
     for dependency in dependencies_to_install:
         try:
             sandbox.commands.run(
-                f"npm install {dependency} --prefer-offline --no-audit --no-fund",
+                f"npm install {dependency} --prefer-offline --no-audit --no-fund --legacy-peer-deps",
                 cwd=project_root,
                 timeout=60 * 3,
                 on_stdout=lambda message: print(message),
                 on_stderr=lambda message: print(message),
             )
         except Exception as e:
+            install_errors.append(f"Error during installing npm package {dependency}:" + str(e))
             continue
 
+    return install_errors
 
 def run_background_command_with_timeout(
     sandbox: Sandbox,

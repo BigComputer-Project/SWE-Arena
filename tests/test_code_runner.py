@@ -1,4 +1,4 @@
-from fastchat.serve.sandbox.code_runner import extract_code_from_markdown, SandboxEnvironment, extract_installation_commands
+from fastchat.serve.sandbox.code_runner import extract_code_from_markdown, SandboxEnvironment, extract_installation_commands, extract_js_imports, extract_python_imports
 
 def test_vue_component_extraction():
     # Test markdown content with Vue component
@@ -981,6 +981,259 @@ npm i -g @angular/cli@13.0.0
     assert 'typescript@4.4.0' in npm_pkgs, "Failed to extract package with --save-dev flag"
     assert '@angular/cli@13.0.0' in npm_pkgs, "Failed to extract package with -g flag"
 
+def test_extract_code_from_markdown():
+    # Test markdown content with both imports and installation commands
+    markdown_content = '''
+Here's a Python script that uses numpy and pandas:
+
+```python
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+import torch
+import requests
+
+# Use the packages
+data = np.array([1, 2, 3])
+df = pd.DataFrame(data)
+model = tf.keras.Sequential()
+tensor = torch.tensor([1, 2, 3])
+response = requests.get('https://api.example.com')
+```
+dddd
+```bash
+pip install numpy==1.21.0 pandas>=1.3.0 tensorflow<=2.7.0 torch>=1.9.0
+npm install react@17.0.2 react-redux@7.2.0 d3@7.0.0
+```
+'''
+
+    # Extract code and verify results
+    result = extract_code_from_markdown(markdown_content)
+    assert result is not None, "Failed to extract code from markdown"
+    
+    code, code_lang, (python_packages, npm_packages), env = result
+    
+    print("Main code block:")
+    print(code)
+    print("\nCode language:", code_lang)
+    print("\nPython packages:", python_packages)
+    print("\nNPM packages:", npm_packages)
+    print("\nEnvironment:", env)
+    
+    # Test that imports are present in the code
+    assert 'import numpy as np' in code, "numpy import not found in extracted code"
+    assert 'import pandas as pd' in code, "pandas import not found in extracted code"
+    assert 'import tensorflow as tf' in code, "tensorflow import not found in extracted code"
+    assert 'import torch' in code, "torch import not found in extracted code"
+    assert 'import requests' in code, "requests import not found in extracted code"
+    
+    # Test language detection
+    assert code_lang == 'python', "Python not detected as language"
+    
+    # Test environment detection
+    assert env == SandboxEnvironment.PYTHON_CODE_INTERPRETER, "Python environment not detected"
+    
+    # Test that packages with versions from installation commands are preserved
+    assert 'numpy==1.21.0' in python_packages, "numpy version not preserved"
+    assert 'pandas>=1.3.0' in python_packages, "pandas version not preserved"
+    assert 'tensorflow<=2.7.0' in python_packages, "tensorflow version not preserved"
+    assert 'torch>=1.9.0' in python_packages, "torch version not preserved"
+    
+    # Test that packages from imports without installation commands get "latest"
+    assert 'requests' in python_packages, "requests package not found"
+
+    # Test that npm packages are extracted from bash block
+    assert 'react@17.0.2' in npm_packages, "react version not preserved"
+    assert 'react-redux@7.2.0' in npm_packages, "react-redux version not preserved"
+    assert 'd3@7.0.0' in npm_packages, "d3 version not preserved"
+
+def test_dependency_handling():
+    """Test that dependencies are correctly extracted and formatted"""
+    from fastchat.serve.sandbox.code_runner import extract_code_from_markdown
+
+    # Test case 1: Python dependencies with version specifiers
+    markdown1 = '''```python
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+import torch
+
+# Actually use the imports
+data = np.array([1, 2, 3])
+df = pd.DataFrame({'col': [1, 2, 3]})
+model = tf.keras.Sequential()
+tensor = torch.tensor([1, 2, 3])
+```
+
+```bash
+pip install numpy==1.21.0 pandas>=1.3.0 tensorflow<=2.7.0 torch>=1.9.0
+```
+'''
+    result1 = extract_code_from_markdown(markdown1)
+    assert result1 is not None
+    _, _, (python_deps1, npm_deps1), _ = result1
+    
+    # Verify Python dependencies with versions are preserved
+    assert 'numpy==1.21.0' in python_deps1
+    assert 'pandas>=1.3.0' in python_deps1
+    assert 'tensorflow<=2.7.0' in python_deps1
+    assert 'torch>=1.9.0' in python_deps1
+
+    # Test case 2: NPM dependencies with version specifiers
+    markdown2 = '''```javascript
+import React from 'react';
+import { Provider } from 'react-redux';
+import * as d3 from 'd3';
+
+// Use the imports
+function App() {
+    return (
+        <Provider store={store}>
+            <div>{d3.select('body')}</div>
+        </Provider>
+    );
+}
+```
+
+```bash
+npm install react@17.0.2 react-redux@7.2.0 d3@7.0.0
+```
+'''
+    result2 = extract_code_from_markdown(markdown2)
+    assert result2 is not None
+    _, _, (python_deps2, npm_deps2), _ = result2
+    
+    # Verify NPM dependencies with versions are preserved
+    assert 'react@17.0.2' in npm_deps2
+    assert 'react-redux@7.2.0' in npm_deps2
+    assert 'd3@7.0.0' in npm_deps2
+
+    # Test case 3: Mixed dependencies without version specifiers
+    markdown3 = '''```python
+import numpy as np
+import tensorflow as tf
+
+# Use the imports
+x = np.array([1, 2, 3])
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(10)
+])
+```
+
+```bash
+pip install numpy tensorflow
+```
+'''
+    result3 = extract_code_from_markdown(markdown3)
+    assert result3 is not None
+    _, _, (python_deps3, npm_deps3), _ = result3
+    
+    # Verify dependencies without versions are included
+    assert 'numpy' in python_deps3
+    assert 'tensorflow' in python_deps3
+
+    # Test case 4: Scoped NPM packages
+    markdown4 = '''```typescript
+import { css } from '@emotion/core';
+import { something } from '@scope/package';
+
+// Use the imports
+const styles = css`
+    color: red;
+`;
+something.doWork();
+```
+
+```bash
+npm install @scope/package @emotion/core@11.0.0
+```
+'''
+    result4 = extract_code_from_markdown(markdown4)
+    assert result4 is not None
+    _, _, (python_deps4, npm_deps4), _ = result4
+    
+    # Verify scoped packages are handled correctly
+    assert '@scope/package' in npm_deps4
+    assert '@emotion/core@11.0.0' in npm_deps4
+
+def test_dependency_formatting_for_ui():
+    """Test that dependencies are correctly formatted for UI dataframe"""
+    
+    def format_dependencies(python_deps, npm_deps):
+        # Copy of the formatting logic from code_runner.py
+        dependencies = []
+        
+        # Add Python packages with versions
+        for dep in python_deps:
+            # Check if package has version specifier
+            if any(op in dep for op in ['==', '>=', '<=', '~=']):
+                # Split on first occurrence of version operator
+                pkg_name = dep.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0]
+                version = dep[len(pkg_name):]  # Get everything after package name
+                dependencies.append(["python", pkg_name, version])
+            else:
+                dependencies.append(["python", dep, "latest"])
+                
+        # Add NPM packages with versions
+        for dep in npm_deps:
+            # Check if package has version specifier
+            if '@' in dep and not dep.startswith('@'):
+                # Handle non-scoped packages with version
+                pkg_name, version = dep.split('@', 1)
+                dependencies.append(["npm", pkg_name, '@' + version])
+            elif '@' in dep[1:]:  # Handle scoped packages with version
+                # Split on last @ for scoped packages
+                pkg_parts = dep.rsplit('@', 1)
+                dependencies.append(["npm", pkg_parts[0], '@' + pkg_parts[1]])
+            else:
+                dependencies.append(["npm", dep, "latest"])
+        
+        return dependencies
+
+    # Test case 1: Python packages with different version specifiers
+    python_deps1 = ['numpy==1.21.0', 'pandas>=1.3.0', 'tensorflow<=2.7.0', 'torch~=1.9.0', 'requests']
+    npm_deps1 = []
+    deps1 = format_dependencies(python_deps1, npm_deps1)
+    assert ["python", "numpy", "==1.21.0"] in deps1
+    assert ["python", "pandas", ">=1.3.0"] in deps1
+    assert ["python", "tensorflow", "<=2.7.0"] in deps1
+    assert ["python", "torch", "~=1.9.0"] in deps1
+    assert ["python", "requests", "latest"] in deps1
+
+    # Test case 2: NPM packages with different version formats
+    python_deps2 = []
+    npm_deps2 = ['react@17.0.2', '@scope/pkg@1.0.0', 'd3@7.0.0', 'vue', '@emotion/core']
+    deps2 = format_dependencies(python_deps2, npm_deps2)
+    assert ["npm", "react", "@17.0.2"] in deps2
+    assert ["npm", "@scope/pkg", "@1.0.0"] in deps2
+    assert ["npm", "d3", "@7.0.0"] in deps2
+    assert ["npm", "vue", "latest"] in deps2
+    assert ["npm", "@emotion/core", "latest"] in deps2
+
+    # Test case 3: Mixed dependencies
+    python_deps3 = ['numpy==1.21.0', 'pandas']
+    npm_deps3 = ['react@17.0.2', '@scope/pkg']
+    deps3 = format_dependencies(python_deps3, npm_deps3)
+    assert ["python", "numpy", "==1.21.0"] in deps3
+    assert ["python", "pandas", "latest"] in deps3
+    assert ["npm", "react", "@17.0.2"] in deps3
+    assert ["npm", "@scope/pkg", "latest"] in deps3
+
+    # Test case 4: Empty dependencies
+    python_deps4 = []
+    npm_deps4 = []
+    deps4 = format_dependencies(python_deps4, npm_deps4)
+    assert len(deps4) == 0  # Should be empty list, default rows added elsewhere
+
+    # Test case 5: Complex version specifiers
+    python_deps5 = ['numpy>=1.21.0,<2.0.0', 'pandas~=1.3.0']
+    npm_deps5 = ['@org/pkg@^1.0.0', '@scope/nested/pkg@2.0.0']
+    deps5 = format_dependencies(python_deps5, npm_deps5)
+    assert ["python", "numpy", ">=1.21.0,<2.0.0"] in deps5
+    assert ["python", "pandas", "~=1.3.0"] in deps5
+    assert ["npm", "@org/pkg", "@^1.0.0"] in deps5
+    assert ["npm", "@scope/nested/pkg", "@2.0.0"] in deps5
+
 if __name__ == "__main__":
     test_vue_component_extraction()
     test_vue_component_typescript_detection()
@@ -990,4 +1243,7 @@ if __name__ == "__main__":
     test_vue_in_html_detection()
     test_vue_calendar_component()
     test_extract_installation_commands()
+    test_extract_code_from_markdown()
+    test_dependency_handling()
+    test_dependency_formatting_for_ui()
     print("All tests passed successfully!")
