@@ -1120,49 +1120,6 @@ def render_result(result):
     else:
         return str(result)
 
-def install_pip_dependencies(sandbox: Sandbox, dependencies: list[str]):
-    '''
-    Install pip dependencies in the sandbox.
-    '''
-
-    stderr = ""
-    if not dependencies:
-        return
-
-    def log_output(message):
-        print(f"pip: {message}")
-        nonlocal stderr
-        stderr += message
-
-    for dependency in dependencies:
-        try:
-            sandbox.commands.run(
-                f"uv pip install --system {dependency}",
-                timeout=60 * 3,
-                on_stdout=log_output,
-                on_stderr=log_output,
-            )
-        except Exception as e:
-            continue
-
-def install_npm_dependencies(sandbox: Sandbox, dependencies: list[str]):
-    '''
-    Install npm dependencies in the sandbox.
-    '''
-    if not dependencies:
-        return
-
-    for dependency in dependencies:
-        try:
-            sandbox.commands.run(
-                f"npm install {dependency}",
-                timeout=60 * 3,
-                on_stdout=lambda message: print(message),
-                on_stderr=lambda message: print(message),
-            )
-        except Exception as e:
-            continue
-
 
 def run_code_interpreter(code: str, code_language: str | None, code_dependencies: tuple[list[str], list[str]]) -> tuple[str, str]:
     """
