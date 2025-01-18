@@ -39,7 +39,7 @@ from fastchat.serve.gradio_web_server import (
 )
 from fastchat.serve.remote_logger import get_remote_logger
 
-from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, update_sandbox_config_multi,update_visibility
+from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, update_sandbox_config_multi,update_visibility, on_edit_dependency
 from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 from fastchat.utils import (
     build_logger,
@@ -76,7 +76,7 @@ def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
     if states[0] is None or states[1] is None:
         yield (None, None) + (disable_text,) + (disable_btn,) * 7
         return
-    
+
     with open(get_conv_log_filename(), "a") as fout:
         data = {
             "tstamp": round(time.time(), 4),
@@ -166,17 +166,17 @@ def regenerate_multi(state0, state1, request: gr.Request):
     if state0 is None and state1 is not None:
         if not state1.regen_support:
             state1.skip_next = True
-            return states + [None, state1.to_gradio_chatbot()] + [""] + [no_change_btn] * 8  
+            return states + [None, state1.to_gradio_chatbot()] + [""] + [no_change_btn] * 8
         state1.conv.update_last_message(None)
         return states + [None, state1.to_gradio_chatbot()] + [""] + [disable_btn] * 8
 
     if state1 is None and state0 is not None:
         if not state0.regen_support:
             state0.skip_next = True
-            return states + [state0.to_gradio_chatbot(), None] + [""] + [no_change_btn] * 8    
+            return states + [state0.to_gradio_chatbot(), None] + [""] + [no_change_btn] * 8
         state0.conv.update_last_message(None)
         return states + [state0.to_gradio_chatbot(), None] + [""] + [disable_btn] * 8
-    
+
     if state0.regen_support and state1.regen_support:
         for i in range(num_sides):
             states[i].conv.update_last_message(None)
@@ -185,7 +185,7 @@ def regenerate_multi(state0, state1, request: gr.Request):
         )
     states[0].skip_next = True
     states[1].skip_next = True
-    return states + [x.to_gradio_chatbot() for x in states] + [""] + [no_change_btn] * 8    
+    return states + [x.to_gradio_chatbot() for x in states] + [""] + [no_change_btn] * 8
 
 
 def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
@@ -269,7 +269,7 @@ def get_battle_pair(
         )
         model_weights.append(weight)
     total_weight = np.sum(model_weights)
-    
+
     model_weights = model_weights / total_weight
     # print(models)
     # print(model_weights)
@@ -466,7 +466,7 @@ def bot_response_multi(
 ):
     logger.info(f"bot_response_multi (anony). ip: {get_ip(request)}")
 
-    if state0 is not None and state1 is not None: 
+    if state0 is not None and state1 is not None:
         if state0.skip_next or state1.skip_next:
             # This generate call is skipped due to invalid inputs
             yield (
@@ -551,7 +551,7 @@ def build_side_by_side_ui_anony(models):
     states = [gr.State() for _ in range(num_sides)]
     model_selectors = [None] * num_sides
     chatbots: list[gr.Chatbot | None] = [None] * num_sides
-    
+
     css = """#chatbot-section.chatbot-section {
         height: 65vh !important;
     }"""
@@ -629,20 +629,87 @@ def build_side_by_side_ui_anony(models):
                                     )
                                     with gr.Row():
                                         sandbox_code_submit_btn = gr.Button(value="Apply Changes", visible=True, interactive=True, variant='primary', size='sm')
-                                        # run code when click apply changes
-                                        sandbox_code_submit_btn.click(
-                                            fn=on_edit_code,
-                                            inputs=[states[chatbotIdx], sandbox_state, sandbox_output, sandbox_ui, sandbox_code],
-                                            outputs=[sandbox_output, sandbox_ui, sandbox_code]
+
+                                with gr.Tab(
+                                    label="Dependency", visible=True
+                                ) as sandbox_dependency_tab:
+                                    sandbox_dependency = gr.Dataframe(
+                                        headers=["Type", "Package", "Version"],
+                                        datatype=["str", "str", "str"],
+                                        col_count=(3, "fixed"),
+                                        row_count=(
+                                            10,
+                                            "dynamic",
+                                        ),  # Allow up to 10 rows initially, can add more
+                                        value=[["python", "", ""], ["npm", "", ""]],
+                                        interactive=True,
+                                        visible=True,
+                                        wrap=True,  # Enable text wrapping
+                                        max_height=200,
+                                        type="array",  # Add this line to fix the error
+                                    )
+                                    with gr.Row():
+                                        dependency_submit_btn = gr.Button(
+                                            value="Apply Dependencies",
+                                            visible=True,
+                                            interactive=True,
+                                            variant='primary',
+                                            size='sm'
                                         )
+                                    dependency_submit_btn.click(
+                                        fn=on_edit_dependency,
+                                        inputs=[
+                                            states[chatbotIdx],
+                                            sandbox_state,
+                                            sandbox_dependency,
+                                            sandbox_output,
+                                            sandbox_ui,
+                                            sandbox_code,
+                                        ],
+                                        outputs=[
+                                            sandbox_output,
+                                            sandbox_ui,
+                                            sandbox_code,
+                                            sandbox_dependency,
+                                        ],
+                                    )
+                                # run code when click apply changes
+                                sandbox_code_submit_btn.click(
+                                    fn=on_edit_code,
+                                    inputs=[
+                                        states[chatbotIdx],
+                                        sandbox_state,
+                                        sandbox_output,
+                                        sandbox_ui,
+                                        sandbox_code,
+                                        sandbox_dependency,
+                                    ],
+                                    outputs=[
+                                        sandbox_output,
+                                        sandbox_ui,
+                                        sandbox_code,
+                                        sandbox_dependency,
+                                    ],
+                                )
 
                                 sandbox_states.append(sandbox_state)
-                                sandboxes_components.append((
-                                    sandbox_output,
-                                    sandbox_ui,
-                                    sandbox_code,
-                                ))
-                                sandbox_hidden_components.extend([column, sandbox_title, sandbox_output_tab, sandbox_code_tab])
+                                sandboxes_components.append(
+                                    (
+                                        sandbox_output,
+                                        sandbox_ui,
+                                        sandbox_code,
+                                        sandbox_dependency,
+                                    )
+                                )
+                                sandbox_hidden_components.extend(
+                                    [
+                                        column,
+                                        sandbox_title,
+                                        sandbox_output_tab,
+                                        sandbox_code_tab,
+                                        sandbox_dependency_tab,
+                                    ]
+                                )
 
         sandbox_hidden_components.extend([sandbox_env_choice, sandbox_instruction_accordion])
 
@@ -785,8 +852,8 @@ def build_side_by_side_ui_anony(models):
         flash_buttons, [], btn_list
     )
     clear_btn.click(
-        clear_history, 
-        sandbox_states, 
+        clear_history,
+        sandbox_states,
         sandbox_states
         + states
         + chatbots
@@ -903,14 +970,14 @@ function (a, b, c, d) {
             lambda sandbox_state: gr.update(interactive=sandbox_state['enabled_round'] == 0),
             inputs=[sandbox_state],
             outputs=[sandbox_env_choice])
-        
+
         regenerate_one_side_btns[chatbotIdx].click(regenerate, state, [state, chatbot, textbox] + btn_list
         ).then(
             bot_response,
             [state, temperature, top_p, max_output_tokens, sandbox_state],
             [state, chatbot] + btn_list,
        )
-    
+
         # trigger sandbox run when click code message
         chatbot.select(
             fn=on_click_code_message_run,
