@@ -674,10 +674,15 @@ def build_side_by_side_ui_anony(models):
                                             states[chatbotIdx],
                                             sandbox_state,
                                             sandbox_dependency,
+                                            sandbox_output,
+                                            sandbox_ui,
+                                            sandbox_code,
                                         ],
                                         outputs=[
-                                            sandbox_dependency,
                                             sandbox_output,
+                                            sandbox_ui,
+                                            sandbox_code,
+                                            sandbox_dependency,
                                         ],
                                     )
                                 # run code when click apply changes

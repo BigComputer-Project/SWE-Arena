@@ -515,10 +515,15 @@ def build_side_by_side_ui_named(models):
                                             states[chatbotIdx],
                                             sandbox_state,
                                             sandbox_dependency,
+                                            sandbox_output,
+                                            sandbox_ui,
+                                            sandbox_code,
                                         ],
                                         outputs=[
-                                            sandbox_dependency,
                                             sandbox_output,
+                                            sandbox_ui,
+                                            sandbox_code,
+                                            sandbox_dependency,
                                         ],
                                     )
                                 sandbox_code_submit_btn.click(

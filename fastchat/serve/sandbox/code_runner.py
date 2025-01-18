@@ -1428,31 +1428,31 @@ def on_edit_code(
         yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return
     sandbox_state['code_to_execute'] = sandbox_code
-    
+
     # Extract packages from installation commands (with versions)
     python_deps_with_version, npm_deps_with_version = extract_installation_commands(sandbox_code)
-    
+
     # Extract packages from imports (without versions)
     python_deps_from_imports = extract_python_imports(sandbox_code)
     npm_deps_from_imports = extract_js_imports(sandbox_code)
-    
+
     # Convert to dataframe format
     dependencies = []
-    
+
     # Add packages with versions from installation commands
     for dep in python_deps_with_version:
         dependencies.append(["python", dep, "specified"])
     for dep in npm_deps_with_version:
         dependencies.append(["npm", dep, "specified"])
-        
+
     # Add packages from imports with "latest" version if not already added
     existing_python_pkgs = {dep.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0] for dep in python_deps_with_version}
     existing_npm_pkgs = {dep.split('@')[0] for dep in npm_deps_with_version}
-    
+
     for dep in python_deps_from_imports:
         if dep not in existing_python_pkgs:
             dependencies.append(["python", dep, "latest"])
-            
+
     for dep in npm_deps_from_imports:
         if dep not in existing_npm_pkgs:
             dependencies.append(["npm", dep, "latest"])
@@ -1483,56 +1483,80 @@ def on_edit_dependency(
     state,
     sandbox_state: ChatbotSandboxState,
     sandbox_dependency: gr.Dataframe,
-) -> tuple[gr.Dataframe, gr.Markdown]:
-    '''
+    sandbox_output: gr.Markdown,
+    sandbox_ui: SandboxComponent,
+    sandbox_code: str,
+) -> Generator[tuple[Any, Any, Any, Any], None, None]:
+    """
     Gradio Handler when dependencies are edited manually by users.
     Handles version specifications and dependency removal.
-    '''
-    if not sandbox_state['enable_sandbox']:
-        return gr.skip(), gr.Markdown("Sandbox is not enabled")
+    """
+    if sandbox_state["enable_sandbox"] is False:
+        yield None, None, None, None
+        return
 
     # Validate dependencies format
-    dependencies = sandbox_dependency
-    is_valid, error_msg = validate_dependencies(dependencies)
+    is_valid, error_msg = validate_dependencies(sandbox_dependency)
     if not is_valid:
-        return gr.skip(), gr.Markdown(f"Invalid dependencies: {error_msg}")
+        yield (
+            gr.Markdown(f"Invalid dependencies: {error_msg}"),
+            gr.skip(),
+            gr.skip(),
+            sandbox_dependency,  # Return original dataframe
+        )
+        return
 
     # Convert dataframe format to separate python and npm lists
     python_deps = []
     npm_deps = []
-    for dep in dependencies:
+    for dep in sandbox_dependency:
         dep_type, pkg_name, version = dep
         pkg_name = pkg_name.strip()
         version = version.strip()
-        
+
         # Skip empty rows
         if not pkg_name:
             continue
-            
+
         if dep_type.lower() == "python":
             # Handle Python package with version
             if version and version.lower() != "latest":
-                if not any(op in version for op in ['==', '>=', '<=', '~=', '>', '<']):
-                    # Add equality operator if version specified without operator
+                if not any(op in version for op in ["==", ">=", "<=", "~=", ">", "<"]):
                     python_deps.append(f"{pkg_name}=={version}")
                 else:
                     python_deps.append(f"{pkg_name}{version}")
             else:
                 python_deps.append(pkg_name)
-                
+
         elif dep_type.lower() == "npm":
             # Handle NPM package with version
             if version and version.lower() != "latest":
-                if not version.startswith('@'):
-                    version = '@' + version
+                if not version.startswith("@"):
+                    version = "@" + version
                 npm_deps.append(f"{pkg_name}{version}")
             else:
                 npm_deps.append(pkg_name)
 
-    # Update sandbox state
-    sandbox_state['code_dependencies'] = (python_deps, npm_deps)
+    # Update sandbox state with new dependencies
+    sandbox_state["code_dependencies"] = (python_deps, npm_deps)
 
-    return gr.update(), gr.Markdown("Dependencies updated successfully")
+    # First yield: Update UI with success message
+    yield (
+        gr.Markdown("Dependencies updated successfully"),
+        gr.skip(),  # sandbox_ui
+        gr.skip(),  # sandbox_code
+        sandbox_dependency,  # Return the same dataframe
+    )
+
+    # Second yield: Run code with new dependencies
+    yield from on_run_code(
+        state,
+        sandbox_state,
+        sandbox_output,
+        sandbox_ui,
+        sandbox_code,
+        sandbox_dependency,
+    )
 
 
 def on_click_code_message_run(
@@ -1577,10 +1601,10 @@ def on_click_code_message_run(
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
     python_deps, npm_deps = code_dependencies
-    
+
     # Convert to dataframe format
     dependencies = []
-    
+
     # Add Python packages with versions
     for dep in python_deps:
         # Check if package has version specifier
@@ -1591,7 +1615,7 @@ def on_click_code_message_run(
             dependencies.append(["python", pkg_name, version])
         else:
             dependencies.append(["python", dep, "latest"])
-            
+
     # Add NPM packages with versions
     for dep in npm_deps:
         # Check if package has version specifier
@@ -2064,16 +2088,16 @@ def validate_dependencies(dependencies: list) -> tuple[bool, str]:
         # Skip validation for empty rows
         if len(dep) != 3:
             return False, "Each dependency must have type, package and version fields"
-        
+
         dep_type, pkg_name, version = dep
-        
+
         # Skip empty rows
         if not pkg_name.strip():
             continue
-            
+
         if dep_type.lower() not in valid_types:
             return False, f"Invalid dependency type: {dep_type}"
-            
+
         # Validate version format if specified
         if version.strip():
             if dep_type.lower() == "python":
@@ -2084,5 +2108,5 @@ def validate_dependencies(dependencies: list) -> tuple[bool, str]:
                 # Check for valid npm version format (starts with @ or valid semver-like)
                 if not (version.startswith('@') or version.lower() == "latest"):
                     return False, f"Invalid NPM version format for {pkg_name}: {version}"
-    
+
     return True, ""

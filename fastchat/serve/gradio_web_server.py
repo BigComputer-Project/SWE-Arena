@@ -998,8 +998,16 @@ def build_single_model_ui(models, add_promotion_links=False):
                                     state,
                                     sandbox_state,
                                     sandbox_dependency,
+                                    sandbox_output,
+                                    sandbox_ui,
+                                    sandbox_code,
                                 ],
-                                outputs=[sandbox_dependency, sandbox_output],
+                                outputs=[
+                                    sandbox_output,
+                                    sandbox_ui,
+                                    sandbox_code,
+                                    sandbox_dependency,
+                                ],
                             )
 
                         sandbox_code_submit_btn.click(
