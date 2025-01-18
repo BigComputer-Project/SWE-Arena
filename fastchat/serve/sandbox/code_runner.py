@@ -1231,7 +1231,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]) 
     sandbox = create_sandbox()
 
     _, npm_dependencies = code_dependencies
-    install_npm_dependencies(sandbox, npm_dependencies, project_root='~/myhtml')
+    install_npm_dependencies(sandbox, npm_dependencies)
 
     # replace placeholder URLs with SVG data URLs
     code = replace_placeholder_urls(code)
@@ -1770,7 +1770,7 @@ def on_run_code(
             gr.Markdown(value=output_text, visible=True, sanitize_html=False),
             gr.skip(),
             gr.skip(),
-            gr.update(value=dependencies),  # Use unified dependencies
+            gr.update(value=dependencies)  # Always include dependencies update
         )
 
     sandbox_id = None
@@ -1813,6 +1813,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.VUE:
             yield update_output("🔄 Setting up Vue sandbox...")
@@ -1831,6 +1832,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.PYGAME:
             yield update_output("🔄 Setting up PyGame sandbox...")
@@ -1868,6 +1870,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.STREAMLIT:
             yield update_output("🔄 Setting up Streamlit sandbox...")
@@ -1886,6 +1889,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.MERMAID:
             yield update_output("🔄 Setting up Mermaid visualization...")
@@ -1906,6 +1910,7 @@ def on_run_code(
                         key="newsandbox",
                     ),
                     gr.skip(),
+                    gr.update(value=dependencies),
                 )
         case SandboxEnvironment.PYTHON_CODE_INTERPRETER:
             yield update_output("🔄 Running Python Code Interpreter...", clear_output=True)
