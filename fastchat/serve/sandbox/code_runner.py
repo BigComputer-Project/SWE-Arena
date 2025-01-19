@@ -1110,7 +1110,12 @@ def on_run_code(
         gr.update(value=dependencies, visible=True),  # Update with unified dependencies
     )
 
-    sandbox_env = sandbox_state['auto_selected_sandbox_environment']
+    # Use auto_selected_sandbox_environment only when in AUTO mode, otherwise use sandbox_environment
+    sandbox_env = (
+        sandbox_state['auto_selected_sandbox_environment'] 
+        if sandbox_state['sandbox_environment'] == SandboxEnvironment.AUTO
+        else sandbox_state['sandbox_environment']
+    )
 
     def update_output(message: str, clear_output: bool = False):
         nonlocal output_text
@@ -1125,6 +1130,7 @@ def on_run_code(
         )
 
     sandbox_id = None
+    print(f"sandbox_env: {sandbox_env}")
     match sandbox_env:
         case SandboxEnvironment.HTML:
             yield update_output("🔄 Setting up HTML sandbox...")
