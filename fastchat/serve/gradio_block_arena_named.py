@@ -461,7 +461,7 @@ def build_side_by_side_ui_named(models):
                                 sandbox_state = gr.State(create_chatbot_sandbox_state(btn_list_length=8))
                                 # Add containers for the sandbox output
                                 sandbox_title = gr.Markdown(
-                                    value=f"### Model {chatbotIdx + 1} Sandbox",
+                                    value=f"### Model {chr(ord('A') + chatbotIdx)} Sandbox",
                                     visible=True,
                                 )
 
