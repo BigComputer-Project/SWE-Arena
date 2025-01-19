@@ -171,14 +171,16 @@ def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
     sandbox_state1["enabled_round"] = 0
     return (
         sandbox_states
-        + [None] * num_sides
-        + [None] * num_sides
-        + [""]
-        + [invisible_btn] * 4
-        + [disable_btn] * 1
-        + [invisible_btn] * 2
-        + [disable_btn] * 1
-        )
+        + [None] * num_sides  # states
+        + [None] * num_sides  # chatbots
+        + [""]  # textbox
+        + [invisible_btn] * 4  # vote buttons
+        + [disable_btn] * 1  # regenerate
+        + [invisible_btn] * 2  # regenerate left/right
+        + [disable_btn] * 1  # clear
+        + [enable_btn] * 3  # send_btn, send_btn_left, send_btn_right
+    )
+
 def clear_sandbox_components(*components):
     updates = []
     for idx, component in enumerate(components):
@@ -783,7 +785,12 @@ function (a, b, c, d) {
     clear_btn.click(
         clear_history,
         sandbox_states,
-        sandbox_states + states + chatbots + [textbox] + btn_list
+        sandbox_states
+        + states
+        + chatbots
+        + [textbox]
+        + btn_list
+        + [send_btn, send_btn_left, send_btn_right]
     ).then(
         clear_sandbox_components,
         inputs=[component for components in sandboxes_components for component in components],
