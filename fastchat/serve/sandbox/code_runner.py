@@ -4,7 +4,7 @@ Run generated code in a sandbox environment.
 Gradio will interact with this module.
 '''
 
-from typing import Any, Generator, TypeAlias, TypedDict, Set
+from typing import Any, Generator, Literal, TypeAlias, TypedDict, Set
 import gradio as gr
 
 import base64
@@ -12,10 +12,11 @@ from e2b_code_interpreter import Sandbox as CodeSandbox
 from gradio_sandboxcomponent import SandboxComponent
 
 from fastchat.serve.sandbox.code_analyzer import SandboxEnvironment, extract_code_from_markdown, extract_installation_commands, extract_js_imports, extract_python_imports, replace_placeholder_urls, validate_dependencies
+from fastchat.serve.sandbox.prompts import DEFAULT_GRADIO_SANDBOX_INSTRUCTION, DEFAULT_HTML_SANDBOX_INSTRUCTION, DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION, DEFAULT_MERMAID_SANDBOX_INSTRUCTION, DEFAULT_PYGAME_SANDBOX_INSTRUCTION, DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION, DEFAULT_REACT_SANDBOX_INSTRUCTION, DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION, DEFAULT_VUE_SANDBOX_INSTRUCTION, GENERAL_SANDBOX_INSTRUCTION
 
 
 from .constants import E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT
-from .sandbox_manager import get_sandbox_app_url, create_sandbox, install_npm_dependencies, install_pip_dependencies, reuse_or_create_sandbox, run_background_command_with_timeout
+from .sandbox_manager import get_sandbox_app_url, create_sandbox, install_npm_dependencies, install_pip_dependencies, reuse_or_create_sandbox, run_background_command_with_timeout, run_command_in_sandbox
 
 
 SUPPORTED_SANDBOX_ENVIRONMENTS: list[str] = [
@@ -46,309 +47,6 @@ RUN_CODE_BUTTON_HTML = "<button style='background-color: #4CAF50; border: none; 
 '''
 Button in the chat to run the code in the sandbox.
 '''
-
-GENERAL_SANDBOX_INSTRUCTION = """\
-You are an expert Software Engineer, UI/UX designer, and product manager. Your task is to generate self-contained, executable code for a single file or block that can run directly in a sandbox environment. Feel free to ask questions or explain your reasoning.
-If you do a great job based on the instructions, you will be rewarded with a high salary and a promotion.
-
-Your code must be written using one of these supported development frameworks and environments:
-- React (JavaScript/TypeScript)
-- Vue (JavaScript/TypeScript)
-- HTML (Vanilla HTML)
-- Gradio (Python)
-- Streamlit (Python)
-- PyGame (Python)
-- Mermaid (Markdown)
-- Python Code Interpreter
-- JavaScript Code Interpreter
-
-All web framework code (React, Vue, HTML) must be directly rendered in a browser and immediately executable without additional setup. DO NOT create separate CSS files
-Python-based frameworks should be directly executable in a browser environment.
-The code to be executed in Code Interpreters must be plain Python or JavaScript programs that do not require web UI frameworks or standard user input.
-
-The code must be in the markdown format:
-```<language>
-<code>
-```
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-- You CAN NOT split your program into multiple files or multiple code blocks
-- If you use any external libraries, make sure to specify them for the installation command in either `pip install` or `npm install`
-- You prefer JavaScript over HTML
-- Each code block must be completely independent. If modifications are needed, the entire code block must be rewritten
-- When fetching data, you MUST use external libraries and packages, and avoid using placeholder URLs or URLs that require API keys
-- Make sure the program is functional by creating a state when needed and having no required props
-- Make sure to include all necessary code in one file
-- There are no additional files in the local file system, unless you create them inside the same program
-- Do not touch project dependencies files like package.json, package-lock.json, requirements.txt, etc
-
-When developing with React or Vue components, follow these specific requirements:
-- Use TypeScript or JavaScript as the language
-- DO NOT use gray text color on a white background
-- Make sure it can run by itself by using a default export at the end of the file
-- DO NOT CALL `ReactDOM.render()` AT THE END OF THE FILE
-- Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. 'h-[600px]'). Make sure to use a consistent color palette
-- If you use any imports from React like `useState` or `useEffect`, make sure to import them directly
-- Use Tailwind margin and padding classes to style the components and ensure proper spacing
-- Various npm packages are available to be imported, e.g. `import { LineChart, XAxis, ... } from "recharts"` & `<LineChart ...><XAxis dataKey="name"> ...`
-- Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
-
-For Python development, you must follow these constraints:
-- For any programs that require user inputs, you MUST USE `gradio` or `streamlit`
-- Choose suitable PyPI packages to be imported, e.g., `import pandas`
-- Avoid using libraries that require desktop GUI interfaces, with the exceptions of `pygame`, `gradio`, and `streamlit` which are explicitly supported
-- For PyGame applications, you have to write the main function as an async function like:
-```python
-import asyncio
-import pygame
-
-async def main():
-    global game_state
-    while game_state:
-        game_state(pygame.event.get())
-        pygame.display.update()
-        await asyncio.sleep(0) # it must be called on every frame
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-For HTML development, ensure that:
-- All HTML code must be self-contained in a single file
-- Include any necessary CSS and JavaScript within the HTML file
-- Ensure the code is directly executable in a browser environment
-- Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
-
-For Mermaid development:
-- Write Mermaid diagrams directly using ```mermaid code blocks, e.g.:
-```mermaid
-graph TD;
-    A-->B;
-```
-"""
-
-DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION = """
-You are an expert Software Engineer. Your task is to generate self-contained, executable Python code that can run directly in a code interpreter environment.
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-- If you use any external libraries, make sure to specify them for installation with `pip install`
-- Make sure to include all necessary code in one file
-- Make sure it does not require any user inputs
-- Choose suitable PyPI packages to be imported, e.g., `import pandas`
-
-The code must be in the markdown format:
-```python
-<code>
-```
-
-You can output in stdout, stderr, or render images, plots, and tables.
-"""
-
-DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION = """
-You are an expert Software Engineer. Your task is to generate self-contained JavaScript code that can run directly in a code interpreter environment.
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-- If you use any external libraries, make sure to specify them for installation with `npm install`
-- Make sure to include all necessary code in one file
-- Ensure the code is self-contained and does not rely on browser-specific APIs
-
-The code must be in the markdown format:
-```javascript
-<code>
-```
-
-You can output in stdout, stderr, or render images, plots, and tables.
-"""
-
-DEFAULT_HTML_SANDBOX_INSTRUCTION = """
-You are an expert Software Engineer and UI/UX designer. Your task is to generate self-contained HTML code that can run directly in a browser environment.
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-- Include any necessary CSS and JavaScript within the HTML file
-- If you use any external libraries, make sure to specify them
-- Make sure the program is functional by creating a state when needed
-- Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
-
-The code must be in the markdown format:
-```html
-<code>
-```
-
-For HTML development, ensure that:
-- All HTML code must be self-contained in a single file
-- Include any necessary CSS and JavaScript within the HTML file
-- Ensure the code is directly executable in a browser environment
-- Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
-"""
-
-DEFAULT_REACT_SANDBOX_INSTRUCTION = """
-You are an expert Software Engineer and UI/UX designer. Your task is to generate a self-contained React component using TypeScript that can run directly in a browser environment.
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-- If you use any external libraries, make sure to specify them for installation with `npm install`
-- Make sure the program is functional by creating a state when needed and having no required props
-- Make sure it can run by itself by using a default export at the end of the file
-- DO NOT CALL `ReactDOM.render()` AT THE END OF THE FILE
-- Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. 'h-[600px]'). Make sure to use a consistent color palette
-- If you use any imports from React like `useState` or `useEffect`, make sure to import them directly
-- Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
-
-The code must be in the markdown format:
-```typescript
-<code>
-```
-
-When developing with React components, follow these specific requirements:
-- Use TypeScript or JavaScript as the language
-- DO NOT use gray text color on a white background
-- Make sure it can run by itself by using a default export at the end of the file
-- DO NOT CALL `ReactDOM.render()` AT THE END OF THE FILE
-- Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. 'h-[600px]'). Make sure to use a consistent color palette
-- If you use any imports from React like `useState` or `useEffect`, make sure to import them directly
-- Use Tailwind margin and padding classes to style the components and ensure proper spacing
-- Various npm packages are available to be imported, e.g. `import { LineChart, XAxis, ... } from "recharts"` & `<LineChart ...><XAxis dataKey="name"> ...`
-- Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
-"""
-
-DEFAULT_VUE_SANDBOX_INSTRUCTION = """
-You are an expert Software Engineer and UI/UX designer. Your task is to generate a self-contained Vue.js component using TypeScript that can run directly in a browser environment.
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-- If you use any external libraries, make sure to specify them for installation with `npm install`
-- Make sure the program is functional by creating a state when needed and having no required props
-- The component should be a simple custom page in a styled `<div>` element
-- Do not include <NuxtWelcome /> or reference any external components
-- Use Tailwind classes for styling. DO NOT USE ARBITRARY VALUES (e.g. 'h-[600px]'). Make sure to use a consistent color palette
-- Images from the web are not allowed, but you can use placeholder images by specifying the width and height like so `<img src="/api/placeholder/400/320" alt="placeholder" />`
-
-The code must be in the markdown format:
-```vue
-<code>
-```
-
-When developing with Vue components, follow these specific requirements:
-- Use Vue 3's Composition API with <script setup> syntax for better TypeScript integration
-- Use TypeScript for type safety and better developer experience
-- Properly type all props, emits, and refs using Vue 3's type system
-- Use defineProps, defineEmits, and other Vue 3 macros correctly
-- Implement reactive state management using ref() or reactive() from Vue
-- Follow Vue 3's best practices for component organization and lifecycle management
-- Use computed properties for derived state
-- Handle component events using proper Vue 3 event handling syntax
-- Use Tailwind classes for styling with a consistent design system
-- Ensure components are responsive using Tailwind's responsive classes
-- Use Vue's built-in transition and animation systems when needed
-- Follow proper Vue 3 security practices (e.g., v-html only when necessary)
-- Implement proper error handling and loading states
-- Add comments explaining complex logic or component structure
-- Use async/await for asynchronous operations
-- Ensure the component is accessible following ARIA best practices
-"""
-
-DEFAULT_PYGAME_SANDBOX_INSTRUCTION = """
-You are an expert Software Engineer and UI/UX designer. Your task is to generate self-contained PyGame code that can run directly in a browser environment.
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-- If you use any external libraries, make sure to specify them for installation with `pip install`
-- Make sure it does not require any user inputs
-- Write the main function as an async function like:
-
-```python
-import asyncio
-import pygame
-
-async def main():
-    global game_state
-    while game_state:
-        game_state(pygame.event.get())
-        pygame.display.update()
-        await asyncio.sleep(0) # it must be called on every frame
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-The code must be in the markdown format:
-```python
-<code>
-```
-"""
-
-DEFAULT_GRADIO_SANDBOX_INSTRUCTION = """
-You are an expert Software Engineer and UI/UX designer. Your task is to generate self-contained Gradio application code that can run directly in a browser environment.
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-- If you use any external libraries, make sure to specify them for installation with `pip install`
-- Make sure it does not require any user inputs
-- Choose suitable PyPI packages to be imported, e.g., `import pandas`
-
-The code must be in the markdown format:
-```python
-<code>
-```
-"""
-
-DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION = """
-You are an expert Software Engineer and UI/UX designer. Your task is to generate self-contained Streamlit application code that can run directly in a browser environment.
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-- If you use any external libraries, make sure to specify them for installation with `pip install`
-- Make sure it does not require any user inputs
-- Choose suitable PyPI packages to be imported, e.g., `import pandas`
-- The app should automatically reload when changes are made
-
-The code must be in the markdown format:
-```python
-<code>
-```
-"""
-
-DEFAULT_MERMAID_SANDBOX_INSTRUCTION = """
-You are an expert Software Engineer. Your task is to generate self-contained Mermaid diagram code that can be rendered directly.
-
-Before you begin writing any code, you must follow these fundamental rules:
-- You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
-- Your response must contain a clear explanation of the solution you are providing
-- ALWAYS generate complete, self-contained code in a single file
-
-The code must be in the markdown format:
-```mermaid
-<code>
-```
-
-Example:
-```mermaid
-graph TD;
-    A-->B;
-```
-"""
 
 
 DEFAULT_SANDBOX_INSTRUCTIONS: dict[SandboxEnvironment, str] = {
@@ -420,6 +118,28 @@ class ChatbotSandboxState(TypedDict):
     The sandbox id. None if no running.
     '''
     btn_list_length: int | None
+
+
+class CodeRunResult(TypedDict):
+    '''
+    The result of running the code in the sandbox.
+    '''
+    sandbox_id: str
+    '''
+    The sandbox id to run the code.
+    '''
+    sandbox_url: str
+    '''
+    The sandbox url to access the rendered results.
+    '''
+    is_run_success: bool
+    '''
+    Whether the code run is successful.
+    '''
+    stderr: str
+    '''
+    The stderr output from the sandbox.
+    '''
 
 
 def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxState:
@@ -641,7 +361,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], 
     return (sandbox_url, sandbox.sandbox_id, '')
 
 
-def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
+def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> CodeRunResult:
     """
     Executes the provided code within a sandboxed environment and returns the output.
 
@@ -672,23 +392,23 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]],
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
     print("Code files written successfully.")
 
-    try:
-        sandbox.commands.run(
-            cmd="npm run build --loglevel=error -- --mode development --logLevel error",
-            cwd=project_root,
-            timeout=60,
-            on_stdout=print,
-            on_stderr=lambda message: stderrs.append(message),
-        )
-    except Exception as e:
-        print(f"Error running npm build command: {e}")
-        stderrs.append(str(e))
+    is_run_success, _, build_stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command="npm run build --loglevel=error -- --mode development --logLevel error",
+        working_directory=project_root,
+    )
+    stderrs.extend(build_stderrs)
 
     sandbox_url = get_sandbox_app_url(sandbox, 'react')
-    return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
+    return {
+        'sandbox_id': sandbox.sandbox_id,
+        'sandbox_url': sandbox_url,
+        'is_run_success': is_run_success,
+        'stderr': '\n'.join(stderrs),
+    }
 
 
-def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
+def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> CodeRunResult:
     """
     Executes the provided Vue code within a sandboxed environment and returns the output.
 
@@ -717,23 +437,23 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], e
         stderrs.extend(install_errs)
         print("NPM dependencies installed. " + "Errors: " + str(install_errs))
 
-    try:
-        sandbox.commands.run(
-            cmd="npm run build --loglevel=error -- --mode development --logLevel error",
-            cwd=project_root,
-            timeout=60,
-            on_stdout=print,
-            on_stderr=lambda message: stderrs.append(message),
-        )
-    except Exception as e:
-        print(f"Error running npm build command: {e}")
-        stderrs.append(str(e))
+    is_run_success, _, build_stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command="npm run build --loglevel=error -- --mode development --logLevel error",
+        working_directory=project_root,
+    )
+    stderrs.extend(build_stderrs)
 
     sandbox_url = get_sandbox_app_url(sandbox, 'vue')
-    return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
+    return {
+        'sandbox_id': sandbox.sandbox_id,
+        'sandbox_url': sandbox_url,
+        'is_run_success': is_run_success,
+        'stderr': '\n'.join(stderrs),
+    }
 
 
-def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
+def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> CodeRunResult:
     """
     Executes the provided code within a sandboxed environment and returns the output.
 
@@ -755,20 +475,19 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     install_pip_dependencies(sandbox, python_dependencies)
 
     # build the pygame code
-    sandbox.commands.run(
-        "pygbag --build ~/pygame_app",
-        timeout=60,
-        on_stdout=print,
-        on_stderr=lambda message: stderrs.append(message),
+    is_run_success, _, build_stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command="pygbag --build ~/pygame_app",
     )
-
-    stderr = '\n'.join(stderrs)
-    if 'error' not in stderr.lower():
-        # to ignore warnings
-        stderr = ""
+    stderrs.extend(build_stderrs)
 
     sandbox_url = get_sandbox_app_url(sandbox, 'pygame')
-    return (sandbox_url, sandbox.sandbox_id, stderr)
+    return {
+        'sandbox_id': sandbox.sandbox_id,
+        'sandbox_url': sandbox_url,
+        'is_run_success': is_run_success,
+        'stderr': '\n'.join(stderrs),
+    }
 
 
 def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
@@ -1231,20 +950,20 @@ def on_run_code(
                 )
         case SandboxEnvironment.REACT:
             yield update_output("🔄 Setting up React sandbox...")
-            sandbox_url, sandbox_id, stderr = run_react_sandbox(
+            code_run_result = run_react_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_output("❌ React sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
                 yield update_output("✅ React sandbox ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
-                        value=(sandbox_url, True, []),
+                        value=(code_run_result['sandbox_url'], True, []),
                         label="Example",
                         visible=True,
                         key="newsandbox",
@@ -1254,20 +973,20 @@ def on_run_code(
                 )
         case SandboxEnvironment.VUE:
             yield update_output("🔄 Setting up Vue sandbox...")
-            sandbox_url, sandbox_id, stderr = run_vue_sandbox(
+            code_run_result = run_vue_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_output("❌ Vue sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
                 yield update_output("✅ Vue sandbox ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
-                        value=(sandbox_url, True, []),
+                        value=(code_run_result['sandbox_url'], True, []),
                         label="Example",
                         visible=True,
                         key="newsandbox",
@@ -1277,20 +996,20 @@ def on_run_code(
                 )
         case SandboxEnvironment.PYGAME:
             yield update_output("🔄 Setting up PyGame sandbox...")
-            sandbox_url, sandbox_id, stderr = run_pygame_sandbox(
+            code_run_result = run_pygame_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_output("❌ PyGame sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
                 yield update_output("✅ PyGame sandbox ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
-                        value=(sandbox_url, True, []),
+                        value=(code_run_result['sandbox_url'], True, []),
                         label="Example",
                         visible=True,
                         key="newsandbox",

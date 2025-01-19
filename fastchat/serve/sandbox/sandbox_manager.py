@@ -60,6 +60,39 @@ def reuse_or_create_sandbox(sandbox_id: str | None, template: str = SANDBOX_TEMP
     return sandbox
 
 
+def run_command_in_sandbox(
+        sandbox: Sandbox,
+        command: str,
+        working_directory: str | None = None,
+        timeout: int = 60,
+        print_output: bool = True,
+    ) -> tuple[bool, list[str], list[str]]:
+    '''
+    Run a command in the sandbox.
+    Return whether the command was successful and the stdout and stderr output.
+    '''
+    is_run_success = False
+    stdouts: list[str] = []
+    stderrs: list[str] = []
+
+    try:
+        command_result = sandbox.commands.run(
+            cmd=command,
+            cwd=working_directory,
+            timeout=timeout,
+            request_timeout=timeout + 5,
+            on_stdout=lambda message: print(message) if print_output else None and stdouts.append(message),
+            on_stderr=lambda message: print(message) if print_output else None and stderrs.append(message),
+        )
+        if command_result and command_result.exit_code == 0:
+            is_run_success = True
+    except Exception as e:
+        stderrs.append(str(e))
+        is_run_success = False
+
+    return is_run_success, stdouts, stderrs
+
+
 def install_pip_dependencies(sandbox: Sandbox, dependencies: list[str]):
     '''
     Install pip dependencies in the sandbox.
