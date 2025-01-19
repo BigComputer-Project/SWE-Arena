@@ -138,13 +138,13 @@ window.__gradio_mode__ = "app";
         """
     text_size = gr.themes.sizes.text_lg
     with gr.Blocks(
-        title="Software Arena: Compare & Test Best AI Chatbots for Code",
+        title="SWE Arena: Compare & Test Best AI Chatbots for Code",
         theme=gr.themes.Default(text_size=text_size),
         css=block_css,
         head=head_js,
     ) as demo:
         gr.Markdown("""
-<h2 style="text-align:center">⚔️ Software Arena: Compare & Test Best AI Chatbots for Code &nbsp;&nbsp;&nbsp;<a href="https://bigcomputer-project.github.io/blog/software-arena.html" target="_blank">Website</a> | <a href="https://x.com/BigComProject" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/X_logo_2023.svg/18px-X_logo_2023.svg.png" style="display:inline; height: 18px;"/>&nbsp;X</a>
+<h2 style="text-align:center">⚔️ SWE Arena: Compare & Test Best AI Chatbots for Code &nbsp;&nbsp;&nbsp;<a href="https://bigcomputer-project.github.io/blog/software-arena.html" target="_blank">Website</a> | <a href="https://x.com/BigComProject" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/X_logo_2023.svg/18px-X_logo_2023.svg.png" style="display:inline; height: 18px;"/>&nbsp;X</a>
 </h2>
                     """)
         with gr.Tabs() as inner_tabs:

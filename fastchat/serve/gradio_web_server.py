@@ -86,7 +86,7 @@ The service collects user data, including dialogue (text and images), editing hi
 
 ## Acknowledgments
 
-Software Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful code execution capabilities, enabling direct evaluation of LLM-generated programs across a wide range of outputs - from simple computations to complex visual interfaces.
+SWE Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful code execution capabilities, enabling direct evaluation of LLM-generated programs across a wide range of outputs - from simple computations to complex visual interfaces.
 
 We thank [E2B](https://e2b.dev/), [Hugging Face](https://huggingface.co/), [Alibaba Qwen](https://qwenlm.ai/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:
 
@@ -845,7 +845,7 @@ def build_about():
     about_markdown = """
 # About Us
 
-**Software Arena** is an open-source platform that extends Chatbot Arena with powerful code execution capabilities, enabling direct evaluation of LLM-generated programs across a wide range of outputs - from simple computations to complex visual interfaces. Building upon the [FastChat project](https://github.com/lm-sys/FastChat), it provides a secure sandbox environment for running and evaluating AI-generated visual interfaces. We aim to establish transparent comparisons across different models while creating valuable datasets to advance research in code generation and UI development.
+**SWE Arena** is an open-source platform that extends Chatbot Arena with powerful code execution capabilities, enabling direct evaluation of LLM-generated programs across a wide range of outputs - from simple computations to complex visual interfaces. Building upon the [FastChat project](https://github.com/lm-sys/FastChat), it provides a secure sandbox environment for running and evaluating AI-generated visual interfaces. We aim to establish transparent comparisons across different models while creating valuable datasets to advance research in code generation and UI development.
 
 We welcome contributors to enhance the platform and encourage feedback to improve its functionality and usability.
 
@@ -862,7 +862,7 @@ We welcome contributors to enhance the platform and encourage feedback to improv
 - And more coming soon!
 
 ## Technical Implementation
-Software Arena provides:
+SWE Arena provides:
 - **Code Execution**: Secure, sandboxed environment using E2B for executing code in supported languages
 - **Dependency Management**: Automatic installation of dependencies via NPM and PIP
 - **Code Editing**: On-the-fly code modification, testing, and re-execution
@@ -1226,7 +1226,7 @@ def build_single_model_ui(models, add_promotion_links=False):
 
 def build_demo(models) -> gr.Blocks:
     with gr.Blocks(
-        title="Software Arena: Compare & Test Best AI Chatbots for Code",
+        title="SWE Arena: Compare & Test Best AI Chatbots for Code",
         theme=gr.themes.Default(),
         css=block_css,
     ) as demo:

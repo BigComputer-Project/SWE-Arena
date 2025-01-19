@@ -315,7 +315,7 @@ Note: You can only chat with <span style='color: #DE3163; font-weight: bold'>one
     )
 
     notice_markdown = f"""
-# 🏔️ Software Arena: Compare & Test Best AI Chatbots for Code
+# 🏔️ SWE Arena: Compare & Test Best AI Chatbots for Code
 {promotion}
 """
 
