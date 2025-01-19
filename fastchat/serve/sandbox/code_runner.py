@@ -1000,10 +1000,11 @@ def on_click_code_message_run(
 
     code, code_language, code_dependencies, env_selection = extract_result
 
-    if sandbox_state['code_to_execute'] == code and sandbox_state['code_language'] == code_language:
-        # skip if no changes
-        yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
-        return
+    # As sandbox is reused, no need to skip
+    # if sandbox_state['code_to_execute'] == code and sandbox_state['code_language'] == code_language:
+    #     # skip if no changes
+    #     yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
+    #     return
 
     if code_language == 'tsx':
         code_language = 'typescript'
@@ -1086,6 +1087,19 @@ def on_run_code(
     # validate e2b api key
     if not E2B_API_KEY:
         raise ValueError("E2B_API_KEY is not set in env vars.")
+
+    # hide and change value of the current sandbox UI to force refresh the sandbox
+    # otherwise the sandbox might not change if the url is same
+    yield (
+        gr.skip(),
+        SandboxComponent(
+            value=('', False, []),
+            label="Example",
+            visible=False,
+        ),
+        gr.skip(),
+        gr.skip(),
+    )
 
     code, code_language = sandbox_state['code_to_execute'], sandbox_state['code_language']
     if code is None or code_language is None:
@@ -1421,6 +1435,3 @@ def on_run_code(
     sandbox_state['sandbox_run_round'] += 1
     if sandbox_id:
         sandbox_state['sandbox_id'] = sandbox_id
-
-
-
