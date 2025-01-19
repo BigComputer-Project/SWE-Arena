@@ -1088,6 +1088,19 @@ def on_run_code(
     if not E2B_API_KEY:
         raise ValueError("E2B_API_KEY is not set in env vars.")
 
+    # hide and change value of the current sandbox UI to force refresh the sandbox
+    # otherwise the sandbox might not change if the url is same
+    yield (
+        gr.skip(),
+        SandboxComponent(
+            value=('', False, []),
+            label="Example",
+            visible=False,
+        ),
+        gr.skip(),
+        gr.skip(),
+    )
+
     code, code_language = sandbox_state['code_to_execute'], sandbox_state['code_language']
     if code is None or code_language is None:
         yield None, None, None, None
@@ -1422,6 +1435,3 @@ def on_run_code(
     sandbox_state['sandbox_run_round'] += 1
     if sandbox_id:
         sandbox_state['sandbox_id'] = sandbox_id
-
-
-
