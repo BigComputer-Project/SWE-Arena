@@ -11,6 +11,9 @@ RUN uv pip install --system pandas numpy matplotlib requests seaborn plotly
 RUN uv pip install --system pygame pygbag black
 RUN uv pip install --system --upgrade streamlit gradio nicegui
 
+# install ffmpeg for pygame
+RUN apt-get install -y ffmpeg
+
 # Install nginx
 RUN apt-get update && apt-get install -y nginx
 # Add Nginx configuration and serve with Nginx
@@ -23,14 +26,26 @@ COPY container_app/ ./
 RUN npm install
 RUN npm run build
 
-# Build react app
+# Prepare html app
+WORKDIR /home/user/html_app
+COPY html_app/ ./
+
+# Prepare & Build react app
 WORKDIR /home/user/react_app
 COPY react_app/ ./
 RUN npm install
 RUN npm run build
 
-# Build vue app
+# Prepare & Build vue app
 WORKDIR /home/user/vue_app
 COPY vue_app/ ./
 RUN npm install
 RUN npm run build
+
+# Prepare pygame app
+WORKDIR /home/user/pygame_app
+COPY pygame_app/ ./
+
+# Prepare gradio app
+WORKDIR /home/user/gradio_app
+COPY gradio_app/ ./

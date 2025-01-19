@@ -17,6 +17,7 @@ from gradio.data_classes import FileData
 import numpy as np
 
 from fastchat.constants import (
+    LOGDIR,
     TEXT_MODERATION_MSG,
     IMAGE_MODERATION_MSG,
     MODERATION_MSG,
@@ -39,6 +40,7 @@ from fastchat.serve.gradio_web_server import (
     get_conv_log_filename,
     get_remote_logger,
 )
+from fastchat.serve.sandbox.sandbox_telemetry import upload_conv_log_to_azure_storage
 from fastchat.serve.vision.image import ImageFormat, Image
 from fastchat.utils import (
     build_logger,
@@ -110,6 +112,7 @@ def vote_last_response(state, vote_type, model_selector, request: gr.Request):
         }
         fout.write(json.dumps(data) + "\n")
     get_remote_logger().log(data)
+    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data))
 
 
 def upvote_last_response(state, model_selector, request: gr.Request):
