@@ -264,7 +264,7 @@ When developing with Vue components, follow these specific requirements:
 """
 
 DEFAULT_PYGAME_SANDBOX_INSTRUCTION = """
-You are an expert Software Engineer. Your task is to generate self-contained PyGame code that can run directly in a browser environment.
+You are an expert Software Engineer and UI/UX designer. Your task is to generate self-contained PyGame code that can run directly in a browser environment.
 
 Before you begin writing any code, you must follow these fundamental rules:
 - You are NOT allowed to start directly with a code block. Before writing code, ALWAYS think carefully step-by-step
