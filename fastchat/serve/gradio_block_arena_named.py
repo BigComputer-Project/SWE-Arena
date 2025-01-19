@@ -764,7 +764,7 @@ def build_side_by_side_ui_named(models):
         model_selectors[i].change(
             clear_history,
             sandbox_states,
-            sandbox_states + states + chatbots + [textbox] + btn_list
+            sandbox_states + states + chatbots + [textbox] + btn_list + [send_btn, send_btn_left, send_btn_right]
         ).then(
             clear_sandbox_components,
             inputs=[component for components in sandboxes_components for component in components],
