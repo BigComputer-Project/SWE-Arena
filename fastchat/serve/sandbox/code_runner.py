@@ -1000,10 +1000,11 @@ def on_click_code_message_run(
 
     code, code_language, code_dependencies, env_selection = extract_result
 
-    if sandbox_state['code_to_execute'] == code and sandbox_state['code_language'] == code_language:
-        # skip if no changes
-        yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
-        return
+    # As sandbox is reused, no need to skip
+    # if sandbox_state['code_to_execute'] == code and sandbox_state['code_language'] == code_language:
+    #     # skip if no changes
+    #     yield gr.skip(), gr.skip(), gr.skip(), gr.skip()
+    #     return
 
     if code_language == 'tsx':
         code_language = 'typescript'
