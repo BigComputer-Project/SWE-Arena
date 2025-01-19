@@ -876,11 +876,12 @@ Software Arena provides:
 [Email](mailto:computer.intelligence.project@gmail.com) | [GitHub](https://github.com/BigComputer-Project) | [X](https://x.com/BigComProject)
 
 ## Acknowledgments
-We thank [E2B](https://e2b.dev/), [Hugging Face](https://huggingface.co/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:
+We thank [E2B](https://e2b.dev/), [Hugging Face](https://huggingface.co/), [Alibaba Qwen](hhttps://qwenlm.ai/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:
 
 <div class="sponsor-image-about">
     <img src="https://github.com/e2b-dev/E2B/blob/main/readme-assets/logo-circle.png?raw=true" alt="E2B">
     <img src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo.png" alt="HuggingFace">
+    <img src="https://qwenlm.ai/static/favicon.png" alt="Qwen">
     <img src="https://style.csiro.au/WP_Partners/assets/img/data61-logo.png" alt="Data61">
 </div>
 """
