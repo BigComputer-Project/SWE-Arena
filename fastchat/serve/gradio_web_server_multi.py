@@ -144,7 +144,7 @@ window.__gradio_mode__ = "app";
         head=head_js,
     ) as demo:
         gr.Markdown("""
-<h2 style="text-align:center">⚔️ SWE Arena: Compare & Test Best AI Chatbots for Code &nbsp;&nbsp;&nbsp;<a href="https://bigcomputer-project.github.io/blog/software-arena.html" target="_blank">Website</a> | <a href="https://x.com/BigComProject" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/X_logo_2023.svg/18px-X_logo_2023.svg.png" style="display:inline; height: 18px;"/>&nbsp;X</a>
+<h2 style="text-align:center">⚔️ SWE Arena: Compare & Test Best AI Chatbots for Code &nbsp;&nbsp;&nbsp;<a href="https://bigcomputer-project.github.io/blog/software-arena.html" target="_blank">Website</a> | <a href="https://x.com/BigComProject" target="_blank">X</a>
 </h2>
                     """)
         with gr.Tabs() as inner_tabs:
