@@ -4,7 +4,7 @@ Run generated code in a sandbox environment.
 Gradio will interact with this module.
 '''
 
-from typing import Any, Generator, TypeAlias, TypedDict, Set
+from typing import Any, Generator, Literal, TypeAlias, TypedDict, Set
 import gradio as gr
 
 import base64
@@ -16,7 +16,7 @@ from fastchat.serve.sandbox.prompts import DEFAULT_GRADIO_SANDBOX_INSTRUCTION, D
 
 
 from .constants import E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT
-from .sandbox_manager import get_sandbox_app_url, create_sandbox, install_npm_dependencies, install_pip_dependencies, reuse_or_create_sandbox, run_background_command_with_timeout
+from .sandbox_manager import get_sandbox_app_url, create_sandbox, install_npm_dependencies, install_pip_dependencies, reuse_or_create_sandbox, run_background_command_with_timeout, run_command_in_sandbox
 
 
 SUPPORTED_SANDBOX_ENVIRONMENTS: list[str] = [
@@ -118,6 +118,28 @@ class ChatbotSandboxState(TypedDict):
     The sandbox id. None if no running.
     '''
     btn_list_length: int | None
+
+
+class CodeRunResult(TypedDict):
+    '''
+    The result of running the code in the sandbox.
+    '''
+    sandbox_id: str
+    '''
+    The sandbox id to run the code.
+    '''
+    sandbox_url: str
+    '''
+    The sandbox url to access the rendered results.
+    '''
+    is_run_success: bool
+    '''
+    Whether the code run is successful.
+    '''
+    stderr: str
+    '''
+    The stderr output from the sandbox.
+    '''
 
 
 def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxState:
@@ -339,7 +361,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], 
     return (sandbox_url, sandbox.sandbox_id, '')
 
 
-def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
+def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> CodeRunResult:
     """
     Executes the provided code within a sandboxed environment and returns the output.
 
@@ -370,23 +392,23 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]],
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
     print("Code files written successfully.")
 
-    try:
-        sandbox.commands.run(
-            cmd="npm run build --loglevel=error -- --mode development --logLevel error",
-            cwd=project_root,
-            timeout=60,
-            on_stdout=print,
-            on_stderr=lambda message: stderrs.append(message),
-        )
-    except Exception as e:
-        print(f"Error running npm build command: {e}")
-        stderrs.append(str(e))
+    is_run_success, _, build_stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command="npm run build --loglevel=error -- --mode development --logLevel error",
+        working_directory=project_root,
+    )
+    stderrs.extend(build_stderrs)
 
     sandbox_url = get_sandbox_app_url(sandbox, 'react')
-    return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
+    return {
+        'sandbox_id': sandbox.sandbox_id,
+        'sandbox_url': sandbox_url,
+        'is_run_success': is_run_success,
+        'stderr': '\n'.join(stderrs),
+    }
 
 
-def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
+def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> CodeRunResult:
     """
     Executes the provided Vue code within a sandboxed environment and returns the output.
 
@@ -415,23 +437,23 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], e
         stderrs.extend(install_errs)
         print("NPM dependencies installed. " + "Errors: " + str(install_errs))
 
-    try:
-        sandbox.commands.run(
-            cmd="npm run build --loglevel=error -- --mode development --logLevel error",
-            cwd=project_root,
-            timeout=60,
-            on_stdout=print,
-            on_stderr=lambda message: stderrs.append(message),
-        )
-    except Exception as e:
-        print(f"Error running npm build command: {e}")
-        stderrs.append(str(e))
+    is_run_success, _, build_stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command="npm run build --loglevel=error -- --mode development --logLevel error",
+        working_directory=project_root,
+    )
+    stderrs.extend(build_stderrs)
 
     sandbox_url = get_sandbox_app_url(sandbox, 'vue')
-    return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
+    return {
+        'sandbox_id': sandbox.sandbox_id,
+        'sandbox_url': sandbox_url,
+        'is_run_success': is_run_success,
+        'stderr': '\n'.join(stderrs),
+    }
 
 
-def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
+def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> CodeRunResult:
     """
     Executes the provided code within a sandboxed environment and returns the output.
 
@@ -453,20 +475,19 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     install_pip_dependencies(sandbox, python_dependencies)
 
     # build the pygame code
-    sandbox.commands.run(
-        "pygbag --build ~/pygame_app",
-        timeout=60,
-        on_stdout=print,
-        on_stderr=lambda message: stderrs.append(message),
+    is_run_success, _, build_stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command="pygbag --build ~/pygame_app",
     )
-
-    stderr = '\n'.join(stderrs)
-    if 'error' not in stderr.lower():
-        # to ignore warnings
-        stderr = ""
+    stderrs.extend(build_stderrs)
 
     sandbox_url = get_sandbox_app_url(sandbox, 'pygame')
-    return (sandbox_url, sandbox.sandbox_id, stderr)
+    return {
+        'sandbox_id': sandbox.sandbox_id,
+        'sandbox_url': sandbox_url,
+        'is_run_success': is_run_success,
+        'stderr': '\n'.join(stderrs),
+    }
 
 
 def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
@@ -929,20 +950,20 @@ def on_run_code(
                 )
         case SandboxEnvironment.REACT:
             yield update_output("🔄 Setting up React sandbox...")
-            sandbox_url, sandbox_id, stderr = run_react_sandbox(
+            code_run_result = run_react_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_output("❌ React sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
                 yield update_output("✅ React sandbox ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
-                        value=(sandbox_url, True, []),
+                        value=(code_run_result['sandbox_url'], True, []),
                         label="Example",
                         visible=True,
                         key="newsandbox",
@@ -952,20 +973,20 @@ def on_run_code(
                 )
         case SandboxEnvironment.VUE:
             yield update_output("🔄 Setting up Vue sandbox...")
-            sandbox_url, sandbox_id, stderr = run_vue_sandbox(
+            code_run_result = run_vue_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_output("❌ Vue sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
                 yield update_output("✅ Vue sandbox ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
-                        value=(sandbox_url, True, []),
+                        value=(code_run_result['sandbox_url'], True, []),
                         label="Example",
                         visible=True,
                         key="newsandbox",
@@ -975,20 +996,20 @@ def on_run_code(
                 )
         case SandboxEnvironment.PYGAME:
             yield update_output("🔄 Setting up PyGame sandbox...")
-            sandbox_url, sandbox_id, stderr = run_pygame_sandbox(
+            code_run_result = run_pygame_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_output("❌ PyGame sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
                 yield update_output("✅ PyGame sandbox ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
-                        value=(sandbox_url, True, []),
+                        value=(code_run_result['sandbox_url'], True, []),
                         label="Example",
                         visible=True,
                         key="newsandbox",
