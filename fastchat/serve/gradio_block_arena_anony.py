@@ -939,10 +939,6 @@ function (a, b, c, d) {
         ],
         outputs=[*sandbox_states]
     ).then(
-        add_text_multi,
-        states + model_selectors + sandbox_states + [textbox],
-        states + chatbots + sandbox_states + [textbox] + btn_list,
-    ).then(
         update_sandbox_system_messages_multi,
         states + sandbox_states + model_selectors,
         states + chatbots + [system_prompt_textbox]
