@@ -683,7 +683,9 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool = False) -> t
             all_python_packages.update(install_python_packages)
             all_npm_packages.update(install_npm_packages)
 
-    print(list(all_python_packages))
+    if not main_code_lang:
+        main_code_lang = 'markdown'
+    
     return main_code, main_code_lang, (list(all_python_packages), list(all_npm_packages)), sandbox_env_name
 
 
