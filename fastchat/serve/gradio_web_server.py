@@ -985,7 +985,7 @@ def build_single_model_ui(models, add_promotion_links=False):
                             )
                             with gr.Row():
                                 dependency_submit_btn = gr.Button(
-                                    value="Apply Dependencies",
+                                    value="Apply Changes",
                                     visible=True,
                                     interactive=True,
                                     variant="primary",

@@ -504,7 +504,7 @@ def build_side_by_side_ui_named(models):
                                     )
                                     with gr.Row():
                                         dependency_submit_btn = gr.Button(
-                                            value="Apply Dependencies",
+                                            value="Apply Changes",
                                             visible=True,
                                             interactive=True,
                                             variant="primary",
