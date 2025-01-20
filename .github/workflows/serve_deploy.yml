@@ -1,5 +1,8 @@
 name: Deploy to Azure Web Service
 
+on:
+  workflow_dispatch
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -30,5 +33,5 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ secrets.AZURE_APP_NAME }}
-          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           images: '${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/swearenaapp:${{ github.sha }}'
