@@ -381,6 +381,8 @@ def add_text(
 def build_side_by_side_vision_ui_anony(context: Context, random_questions=None):
     notice_markdown = f"""
 # ⚔️ SWE Arena: Compare & Test Best AI Chatbots for Code
+
+
 [Website](https://bigcomputer-project.github.io) | [Blog](https://bigcomputer-project.github.io/blog/swe-arena.html) | [X](https://x.com/BigComProject){SURVEY_LINK}
 
 ## 📜 How It Works

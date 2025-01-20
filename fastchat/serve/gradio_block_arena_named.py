@@ -562,9 +562,9 @@ def build_side_by_side_ui_named(models):
         )
     
     with gr.Row():
-        send_btn = gr.Button(value="Send", variant="primary", scale=0)
-        send_btn_left = gr.Button(value="Send to Left", variant="primary", scale=0)
-        send_btn_right = gr.Button(value="Send to Right", variant="primary", scale=0)
+        send_btn = gr.Button(value="Send", variant="primary")
+        send_btn_left = gr.Button(value="Send to Left", variant="primary")
+        send_btn_right = gr.Button(value="Send to Right", variant="primary")
         send_btns_one_side = [send_btn_left, send_btn_right]
 
     with gr.Row():
