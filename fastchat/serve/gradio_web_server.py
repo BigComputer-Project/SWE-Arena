@@ -864,8 +864,11 @@ We welcome contributors to enhance the platform and encourage feedback to improv
 ## Technical Implementation
 SWE Arena provides:
 - **Code Execution**: Secure, sandboxed environment using E2B for executing code in supported languages
+- **Programming Expert**: Choose from a variety of programming experts to help you with your code
+- **System Prompt Customization**: Customize the system prompt to fit your needs
 - **Dependency Management**: Automatic installation of dependencies via NPM and PIP
 - **Code Editing**: On-the-fly code modification, testing, and re-execution
+- **Dependency Editing**: On-the-fly dependency modification, testing, and re-execution
 - **Interaction Tracking**: Comprehensive logging of user interactions with rendered UIs
 
 ## Open-source Contributors
@@ -937,7 +940,7 @@ def build_single_model_ui(models, add_promotion_links=False):
 
     with gr.Group():
         with gr.Row():
-            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert", interactive=True, visible=True)
+            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (You can also edit the system prompt at the bottom!)", interactive=True, visible=True)
         with gr.Group():
             with gr.Accordion("Sandbox & Output", open=True, visible=True) as sandbox_instruction_accordion:
                 with gr.Group(visible=True) as sandbox_group:
