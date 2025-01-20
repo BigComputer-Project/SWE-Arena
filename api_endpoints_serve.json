@@ -1,0 +1,183 @@
+{
+  "gpt-4o-mini": {
+    "model_name": "gpt-4o-mini",
+    "api_type": "openai",
+    "api_base": "https://api.openai.com/v1",
+    "api_key": "ENV:OPENAI_API_KEY",
+    "anony_only": false,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "text-arena": true,
+    "vision-arena": true
+  },
+  "gpt-4o": {
+    "model_name": "chatgpt-4o-latest",
+    "api_type": "openai",
+    "api_base": "https://api.openai.com/v1",
+    "api_key": "ENV:OPENAI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "gpt-4-turbo": {
+    "model_name": "gpt-4-turbo-preview",
+    "api_type": "openai",
+    "api_base": "https://api.openai.com/v1",
+    "api_key": "ENV:OPENAI_API_KEY",
+    "anony_only": false,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "gpt-3.5-turbo": {
+    "model_name": "gpt-3.5-turbo",
+    "api_type": "openai",
+    "api_base": "https://api.openai.com/v1",
+    "api_key": "ENV:OPENAI_API_KEY",
+    "anony_only": false,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "qwen2.5-coder-32b-instruct": {
+    "model_name": "qwen2.5-coder-32b-instruct",
+    "api_type": "openai",
+    "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "api_key": "ENV:QWEN_API_KEY",
+    "anony_only": false,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "qwen2.5-72b-instruct": {
+    "model_name": "qwen2.5-72b-instruct",
+    "api_type": "openai",
+    "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "api_key": "ENV:QWEN_API_KEY",
+    "anony_only": false,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "gemini-2.0-flash-exp": {
+    "model_name": "gemini-2.0-flash-exp",
+    "api_type": "gemini",
+    "api_base": "",
+    "api_key": "ENV:GEMINI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "gemini-1.5-pro": {
+    "model_name": "gemini-1.5-pro",
+    "api_type": "gemini",
+    "api_base": "",
+    "api_key": "ENV:GEMINI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "gemini-1.5-flash": {
+    "model_name": "gemini-1.5-flash",
+    "api_type": "gemini",
+    "api_base": "",
+    "api_key": "ENV:GEMINI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "gemini-1.5-pro-exp-0801": {
+    "model_name": "gemini-1.5-pro-exp-0801",
+    "api_type": "gemini",
+    "api_base": "",
+    "api_key": "ENV:GEMINI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "gemini-1.5-pro-exp-0827": {
+    "model_name": "gemini-1.5-pro-exp-0827",
+    "api_type": "gemini",
+    "api_base": "",
+    "api_key": "ENV:GEMINI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "gemini-1.5-flash-exp-0827": {
+    "model_name": "gemini-1.5-flash-exp-0827",
+    "api_type": "gemini",
+    "api_base": "",
+    "api_key": "ENV:GEMINI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "gemini-1.5-pro-002": {
+    "model_name": "gemini-1.5-pro-002",
+    "api_type": "gemini",
+    "api_base": "",
+    "api_key": "ENV:GEMINI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "gemini-exp-1121": {
+    "model_name": "gemini-exp-1121",
+    "api_type": "gemini",
+    "api_base": "",
+    "api_key": "ENV:GEMINI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "gemini-exp-1206": {
+    "model_name": "gemini-exp-1206",
+    "api_type": "gemini",
+    "api_base": "",
+    "api_key": "ENV:GEMINI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  }
+}
