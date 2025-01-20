@@ -192,6 +192,13 @@ def update_sandbox_config_multi(
         in states
     ]
 
+
+def update_sandbox_state_system_prompt(sandbox_state: ChatbotSandboxState, system_prompt: str):
+    if sandbox_state['enabled_round'] == 0:
+        sandbox_state['sandbox_instruction'] = system_prompt
+    return sandbox_state
+
+
 def update_sandbox_config(
     enable_sandbox: bool,
     sandbox_environment: SandboxEnvironment,
