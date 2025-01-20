@@ -24,7 +24,7 @@ jobs:
           password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
 
       - name: Build Docker image
-        run: docker build -t ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/swearenaapp:${{ github.sha }} .
+        run: docker build -f swe_arena_serve.Dockerfile -t ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/swearenaapp:${{ github.sha }} .
 
       - name: Push Docker image to Azure Registry
         run: docker push ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/swearenaapp:${{ github.sha }}
