@@ -874,7 +874,7 @@ SWE Arena provides:
 - **Advisors**: [Banghua Zhu](https://people.eecs.berkeley.edu/~banghua/), [Torsten Scholak](https://www.servicenow.com/research/author/torsten-scholak.html), [Atin Sood](https://atinsood.com/about/), [Julian McAuley](https://cseweb.ucsd.edu/~jmcauley/), [Zhenchang Xing](https://people.csiro.au/X/Z/Zhenchang-Xing/), [Xiaoning Du](https://xiaoningdu.github.io/)
 
 ## Contact
-[Email](mailto:computer.intelligence.project@gmail.com) | [GitHub](https://github.com/BigComputer-Project) | [X](https://x.com/BigComProject)
+[Email](mailto:computer.intelligence.project@gmail.com) | [X](https://x.com/BigComProject)
 
 ## Acknowledgments
 We thank [E2B](https://e2b.dev/), [Hugging Face](https://huggingface.co/), [Alibaba Qwen](hhttps://qwenlm.ai/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:
