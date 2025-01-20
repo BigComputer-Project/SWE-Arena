@@ -20,6 +20,7 @@ def create_sandbox(template: str = SANDBOX_TEMPLATE_ID) -> Sandbox:
     Create a new sandbox.
     Will retry if the sandbox creation fails.
     '''
+    print("Creating new sandbox...")
     for attempt in range(1, SANDBOX_RETRY_COUNT + 1):
         try:
             return Sandbox(

@@ -955,6 +955,7 @@ def on_run_code(
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
+            sandbox_id = code_run_result['sandbox_id']
             if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_output("❌ React sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
@@ -978,6 +979,7 @@ def on_run_code(
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
+            sandbox_id = code_run_result['sandbox_id']
             if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_output("❌ Vue sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
@@ -1001,6 +1003,7 @@ def on_run_code(
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
+            sandbox_id = code_run_result['sandbox_id']
             if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_output("❌ PyGame sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")

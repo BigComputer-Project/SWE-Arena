@@ -73,7 +73,7 @@ use_remote_storage = False
 acknowledgment_md = """
 
 ## Found an Issue?
-Please report any bugs or issues to the [GitHub repository](https://github.com/BigComputer-Project/FastChat-Software-Arena).
+Please report any bugs or issues to the [feedback form](https://forms.gle/md4jQ7VGPMNQUExp9).
 
 ## Terms of Service
 
