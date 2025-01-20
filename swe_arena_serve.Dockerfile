@@ -18,4 +18,4 @@ EXPOSE 7860
 CMD [ "python", "-m", \
         "fastchat.serve.gradio_web_server_multi", \
         "--controller-url", "", \
-        "--register", "api_endpoints.json" ]
+        "--register", "api_endpoints_serve.json" ]
