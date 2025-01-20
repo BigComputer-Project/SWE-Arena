@@ -560,6 +560,8 @@ def build_side_by_side_ui_named(models):
             placeholder="👉 Enter your prompt and press ENTER",
             elem_id="input_box",
         )
+    
+    with gr.Row():
         send_btn = gr.Button(value="Send", variant="primary", scale=0)
         send_btn_left = gr.Button(value="Send to Left", variant="primary", scale=0)
         send_btn_right = gr.Button(value="Send to Right", variant="primary", scale=0)
