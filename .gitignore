@@ -11,6 +11,7 @@ dist
 *-conv.json
 sandbox-records-*.json
 *api_endpoints*.json
+!api_endpoints_serve.json
 !playground/deepspeed_config_s2.json
 !playground/deepspeed_config_s3.json
 

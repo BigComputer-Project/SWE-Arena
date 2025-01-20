@@ -4,7 +4,7 @@ import json
 import os
 import random
 import re
-from typing import Optional
+from typing import Optional, Any
 import time
 
 import requests
@@ -13,6 +13,13 @@ from fastchat.utils import build_logger
 
 
 logger = build_logger("gradio_web_server", "gradio_web_server.log")
+
+
+def preprocess_model_api_dict(model_api_dict: dict[str, Any]) -> dict[str, Any]:
+    """Preprocess model API dictionary to fetch API key from environment."""
+    if model_api_dict['api_key'] and model_api_dict['api_key'].startswith('ENV:'):
+        model_api_dict['api_key'] = os.environ[model_api_dict['api_key'].lstrip('ENV:')]
+    return model_api_dict
 
 
 def get_api_provider_stream_iter(
@@ -24,6 +31,8 @@ def get_api_provider_stream_iter(
     max_new_tokens,
     state,
 ):
+    model_api_dict = preprocess_model_api_dict(model_api_dict)
+
     if model_api_dict["api_type"] == "openai":
         if model_api_dict.get("vision-arena", False):
             prompt = conv.to_openai_vision_api_messages()
