@@ -94,30 +94,29 @@ def run_command_in_sandbox(
     return is_run_success, stdouts, stderrs
 
 
-def install_pip_dependencies(sandbox: Sandbox, dependencies: list[str]):
+def install_pip_dependencies(sandbox: Sandbox, dependencies: list[str]) -> list[str]:
     '''
     Install pip dependencies in the sandbox.
+
+    Return errors if any.
     '''
-
-    stderr = ""
+    install_errors = []
     if not dependencies:
-        return
-
-    def log_output(message):
-        print(f"pip: {message}")
-        nonlocal stderr
-        stderr += message
+        return install_errors
 
     for dependency in dependencies:
         try:
             sandbox.commands.run(
                 f"uv pip install --system {dependency}",
                 timeout=60 * 3,
-                on_stdout=log_output,
-                on_stderr=log_output,
+                on_stdout=lambda message: print(message),
+                on_stderr=lambda message: print(message),
             )
         except Exception as e:
+            install_errors.append(f"Error during installing pip package {dependency}: {str(e)}")
             continue
+
+    return install_errors
 
 
 def parse_npm_package_name(package) -> tuple[str, str | None]:

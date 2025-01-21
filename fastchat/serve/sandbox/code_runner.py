@@ -302,10 +302,15 @@ def run_code_interpreter(code: str, code_language: str | None, code_dependencies
     sandbox.commands.run("pip install uv",
                          timeout=60 * 3,
                          on_stderr=lambda message: print(message),)
+    
+    stderrs = []
 
     python_dependencies, npm_dependencies = code_dependencies
-    install_pip_dependencies(sandbox, python_dependencies)
-    install_npm_dependencies(sandbox, npm_dependencies)
+    pip_install_errs = install_pip_dependencies(sandbox, python_dependencies)
+    npm_install_errs = install_npm_dependencies(sandbox, npm_dependencies)
+
+    stderrs.extend(pip_install_errs)
+    stderrs.extend(npm_install_errs)
 
     execution = sandbox.run_code(
         code=code,
@@ -321,6 +326,8 @@ def run_code_interpreter(code: str, code_language: str | None, code_dependencies
     if stdout:
         output += f"### Stdout:\n```\n{stdout}\n```\n\n"
 
+    stderrs.append(stderr)
+
     results = []
     for result in execution.results:
         if result.html or result.javascript:
@@ -335,7 +342,8 @@ def run_code_interpreter(code: str, code_language: str | None, code_dependencies
     if results:
         output += "\n### Results:\n" + "\n".join(results)
 
-    return output, "" if output else stderr
+    stderrs = '\n'.join(stderrs)
+    return output, "" if output else stderrs
 
 
 def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
@@ -479,7 +487,8 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
     python_dependencies, _ = code_dependencies
-    install_pip_dependencies(sandbox, python_dependencies)
+    install_errs = install_pip_dependencies(sandbox, python_dependencies)
+    stderrs.extend(install_errs)
 
     # build the pygame code
     is_run_success, _, build_stderrs = run_command_in_sandbox(
@@ -512,39 +521,47 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     file_path = "~/gradio_app/main.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
-    python_dependencies, _ = code_dependencies
-    install_pip_dependencies(sandbox, python_dependencies)
+    stderrs = []
 
+    python_dependencies, _ = code_dependencies
+    install_stderr = install_pip_dependencies(sandbox, python_dependencies)
+    stderrs.extend(install_stderr)
+    
     stderr = run_background_command_with_timeout(
         sandbox,
         f"python {file_path}",
         timeout=10,
     )
+    stderrs.append(stderr)
 
     sandbox_url = 'https://' + sandbox.get_host(7860)
 
-    return (sandbox_url, sandbox.sandbox_id, stderr)
+    return (sandbox_url, sandbox.sandbox_id, '\n'.join(stderrs))
 
 
 def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], existing_sandbox_id: str | None = None) -> tuple[str, str, str]:
     sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
+
+    stderrs = []
 
     sandbox.files.make_dir('mystreamlit')
     file_path = "~/mystreamlit/app.py"
     sandbox.files.write(path=file_path, data=code, request_timeout=60)
 
     python_dependencies, _ = code_dependencies
-    install_pip_dependencies(sandbox, python_dependencies)
+    install_stderr = install_pip_dependencies(sandbox, python_dependencies)
+    stderrs.extend(install_stderr)
 
     stderr = run_background_command_with_timeout(
         sandbox,
         "sudo kill -9 $(ss -lptn 'sport = :8501' | grep -oP '(?<=pid=)\d+'); streamlit run ~/mystreamlit/app.py --server.port 8501 --server.headless true",
         timeout=8,
     )
+    stderrs.append(stderr)
 
     host = sandbox.get_host(port=8501)
     url = f"https://{host}"
-    return (url, sandbox.sandbox_id, stderr)
+    return (url, sandbox.sandbox_id, '\n'.join(stderrs))
 
 
 def on_edit_code(
