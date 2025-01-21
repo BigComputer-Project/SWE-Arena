@@ -230,8 +230,23 @@ def share_click(state0, state1, model_selector0, model_selector1, request: gr.Re
         )
 
 
-SAMPLING_WEIGHTS = {'gpt-3.5-turbo':0.5,'gpt-4o-mini':0.5, 'gpt-4o':0.5, 'gpt-4-turbo':0.5,
-                    'qwen2.5-coder-32b-instruct': 0.5, 'qwen2.5-72b-instruct': 0.5}
+SAMPLING_WEIGHTS = {
+    'gpt-3.5-turbo-0125': 0.5,
+    'gpt-4o-mini-2024-07-18': 0.5,
+    'gpt-4o-2024-08-06': 0.5,
+    'gpt-4-turbo-preview': 0.5,
+    'qwen2.5-coder-32b-instruct': 0.5,
+    'qwen2.5-72b-instruct': 0.5,
+    'gemini-2.0-flash-exp': 0.5,
+    'gemini-1.5-pro': 0.5,
+    'gemini-1.5-flash': 0.5,
+    'gemini-1.5-pro-exp-0801': 0.5,
+    'gemini-1.5-pro-exp-0827': 0.5,
+    'gemini-1.5-flash-exp-0827': 0.5,
+    'gemini-1.5-pro-002': 0.5,
+    'gemini-exp-1121': 0.5,
+    'gemini-exp-1206': 0.5
+}
 
 # target model sampling weights will be boosted.
 BATTLE_TARGETS = {}
@@ -427,7 +442,7 @@ def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
 
     if len(text) <= 0:
         state.skip_next = True
-        return (state, state.to_gradio_chatbot(), "", None) + (no_change_btn,) * sandbox_state["btn_list_length"]
+        return (state, state.to_gradio_chatbot(), "") + (no_change_btn,) * sandbox_state["btn_list_length"]
 
     all_conv_text = state.conv.get_prompt()
     all_conv_text = all_conv_text[-2000:] + "\nuser: " + text
@@ -441,7 +456,7 @@ def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
     if (len(state.conv.messages) - state.conv.offset) // 2 >= CONVERSATION_TURN_LIMIT:
         logger.info(f"conversation turn limit. ip: {ip}. text: {text}")
         state.skip_next = True
-        return (state, state.to_gradio_chatbot(), CONVERSATION_LIMIT_MSG, None) + (
+        return (state, state.to_gradio_chatbot(), CONVERSATION_LIMIT_MSG) + (
             no_change_btn,
         ) * sandbox_state["btn_list_length"]
 

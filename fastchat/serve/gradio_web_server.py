@@ -364,7 +364,7 @@ def set_chat_system_messages(state, sandbox_state, model_selector):
     environment_instruction = sandbox_state['sandbox_instruction']
     current_system_message = state.conv.get_system_message(state.is_vision)
     state.conv.set_system_message(environment_instruction) # update system message here
-    return state, state.to_gradio_chatbot(), environment_instruction
+    return state, state.to_gradio_chatbot()
 
 def update_system_prompt(system_prompt, sandbox_state):
     if sandbox_state['enabled_round'] == 0:
@@ -380,7 +380,7 @@ def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
 
     if len(text) <= 0:
         state.skip_next = True
-        return (state, state.to_gradio_chatbot(), "", None) + (no_change_btn,) * sandbox_state["btn_list_length"]
+        return (state, state.to_gradio_chatbot(), "") + (no_change_btn,) * sandbox_state["btn_list_length"]
 
     all_conv_text = state.conv.get_prompt()
     all_conv_text = all_conv_text[-2000:] + "\nuser: " + text
@@ -394,7 +394,7 @@ def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
     if (len(state.conv.messages) - state.conv.offset) // 2 >= CONVERSATION_TURN_LIMIT:
         logger.info(f"conversation turn limit. ip: {ip}. text: {text}")
         state.skip_next = True
-        return (state, state.to_gradio_chatbot(), CONVERSATION_LIMIT_MSG, None) + (
+        return (state, state.to_gradio_chatbot(), CONVERSATION_LIMIT_MSG) + (
             no_change_btn,
         ) * sandbox_state["btn_list_length"]
 
