@@ -91,7 +91,7 @@ register_model_info(
 
 register_model_info(
     [
-        "gemini-1.5-flash",
+        "gemini-1.5-flash-api-0514",
         "gemini-1.5-pro",
         "gemini-1.5-pro-002",
         "gemini-2.0-flash-exp",

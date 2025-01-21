@@ -239,7 +239,7 @@ SAMPLING_WEIGHTS = {
     'qwen2.5-72b-instruct': 0.5,
     'gemini-2.0-flash-exp': 0.5,
     'gemini-1.5-pro': 0.5,
-    'gemini-1.5-flash': 0.5,
+    'gemini-1.5-flash-api-0514': 0.5,
     'gemini-1.5-pro-exp-0801': 0.5,
     'gemini-1.5-pro-exp-0827': 0.5,
     'gemini-1.5-flash-exp-0827': 0.5,
