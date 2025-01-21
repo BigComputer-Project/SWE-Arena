@@ -25,7 +25,7 @@
     "text-arena": true,
     "vision-arena": false
   },
-  "gpt-4-turbo-preview": {
+  "gpt-4-0125-preview": {
     "model_name": "gpt-4-0125-preview",
     "api_type": "openai",
     "api_base": "https://api.openai.com/v1",
