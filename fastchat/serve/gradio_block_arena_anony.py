@@ -427,7 +427,7 @@ def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
 
     if len(text) <= 0:
         state.skip_next = True
-        return (state, state.to_gradio_chatbot(), "", None) + (no_change_btn,) * sandbox_state["btn_list_length"]
+        return (state, state.to_gradio_chatbot(), "") + (no_change_btn,) * sandbox_state["btn_list_length"]
 
     all_conv_text = state.conv.get_prompt()
     all_conv_text = all_conv_text[-2000:] + "\nuser: " + text
@@ -441,7 +441,7 @@ def add_text(state, model_selector, sandbox_state, text, request: gr.Request):
     if (len(state.conv.messages) - state.conv.offset) // 2 >= CONVERSATION_TURN_LIMIT:
         logger.info(f"conversation turn limit. ip: {ip}. text: {text}")
         state.skip_next = True
-        return (state, state.to_gradio_chatbot(), CONVERSATION_LIMIT_MSG, None) + (
+        return (state, state.to_gradio_chatbot(), CONVERSATION_LIMIT_MSG) + (
             no_change_btn,
         ) * sandbox_state["btn_list_length"]
 
