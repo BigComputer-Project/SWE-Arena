@@ -103,8 +103,8 @@
     "text-arena": true,
     "vision-arena": false
   },
-  "gemini-1.5-flash": {
-    "model_name": "gemini-1.5-flash",
+  "gemini-1.5-flash-api-0514": {
+    "model_name": "gemini-1.5-flash-api-0514",
     "api_type": "gemini",
     "api_base": "",
     "api_key": "ENV:GEMINI_API_KEY",
