@@ -91,21 +91,19 @@ register_model_info(
 
 register_model_info(
     [
-        "gemini-1.5-pro-exp-0827",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+        "gemini-1.5-pro-002",
+        "gemini-2.0-flash-exp",
+        "gemini-exp-1121",
+        "gemini-exp-1206",
         "gemini-1.5-pro-exp-0801",
+        "gemini-1.5-pro-exp-0827",
         "gemini-1.5-flash-exp-0827",
-        "gemini-1.5-flash-8b-exp-0827",
-        "gemini-1.5-pro-api-0409-preview",
-        "gemini-1.5-pro-tuned",
-        "gemini-1.5-pro-api-preview",
-        "gemini-1.5-flash-api-preview",
-        "gemini-1.5-pro-api-0514",
-        "gemini-1.5-flash-api-0514",
-        "gemini-advanced-0514",
     ],
-    "Gemini",
+    "Gemini 1.5/2.0",
     "https://deepmind.google/technologies/gemini/",
-    "Gemini by Google",
+    "Next generation Gemini models by Google",
 )
 
 register_model_info(
@@ -197,6 +195,7 @@ register_model_info(
 register_model_info(
     [
         "qwen2.5-72b-instruct",
+        "qwen2.5-coder-32b-instruct",
         "qwen2-72b-instruct",
         "qwen-max-0403",
         "qwen-max-0428",
@@ -205,7 +204,7 @@ register_model_info(
         "qwen2-vl-7b-instruct",
         "qwen-vl-max-0809",
     ],
-    "Qwen Max",
+    "Qwen Series",
     "https://help.aliyun.com/zh/dashscope/developer-reference/model-introduction",
     "The Frontier Qwen Model by Alibaba",
 )
@@ -999,4 +998,13 @@ register_model_info(
     "consistency-llm",
     "https://huggingface.co/cllm",
     "consistency-llm is a new generation of parallel decoder LLMs with fast generation speed.",
+)
+
+register_model_info(
+    [
+        "qwen2.5-coder-32b-instruct",
+    ],
+    "Qwen 2.5 Coder",
+    "https://qwenlm.ai/blog/qwen2.5/",
+    "Code-specialized version of Qwen 2.5 by Alibaba",
 )

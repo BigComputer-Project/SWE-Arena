@@ -1,6 +1,6 @@
 {
-  "gpt-4o-mini": {
-    "model_name": "gpt-4o-mini",
+  "gpt-4o-mini-2024-07-18": {
+    "model_name": "gpt-4o-mini-2024-07-18",
     "api_type": "openai",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
@@ -12,8 +12,8 @@
     "text-arena": true,
     "vision-arena": true
   },
-  "gpt-4o": {
-    "model_name": "chatgpt-4o-latest",
+  "gpt-4o-2024-08-06": {
+    "model_name": "gpt-4o-2024-08-06",
     "api_type": "openai",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
@@ -25,8 +25,8 @@
     "text-arena": true,
     "vision-arena": false
   },
-  "gpt-4-turbo": {
-    "model_name": "gpt-4-turbo-preview",
+  "gpt-4-turbo-preview": {
+    "model_name": "gpt-4-0125-preview",
     "api_type": "openai",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
@@ -38,8 +38,8 @@
     "text-arena": true,
     "vision-arena": false
   },
-  "gpt-3.5-turbo": {
-    "model_name": "gpt-3.5-turbo",
+  "gpt-3.5-turbo-0125": {
+    "model_name": "gpt-3.5-turbo-0125",
     "api_type": "openai",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
