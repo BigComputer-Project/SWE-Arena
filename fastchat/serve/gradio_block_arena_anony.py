@@ -605,7 +605,19 @@ def build_side_by_side_ui_anony(models):
     with gr.Group():
         # chatbot sandbox config
         with gr.Row():
-            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (You can also edit the system prompt at the bottom!)", interactive=True, visible=True)
+            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (Predefined system prompt)", interactive=True, visible=True)
+        
+            with gr.Accordion("System Prompt (Click to edit!)", open=False) as system_prompt_accordion:
+                system_prompt_textbox = gr.Textbox(
+                    value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
+                    show_label=False,
+                    lines=15,
+                    placeholder="Edit system prompt here",
+                    interactive=True,
+                    elem_id="system_prompt_box",
+                    scale=2
+                )
+        
         with gr.Group():
             with gr.Accordion("Sandbox & Output", open=True, visible=True) as sandbox_instruction_accordion:
                 with gr.Group(visible=True) as sandbox_group:
@@ -775,16 +787,6 @@ def build_side_by_side_ui_anony(models):
             step=64,
             interactive=True,
             label="Max output tokens",
-        )
-
-    with gr.Accordion("System Prompt", open=False) as system_prompt_accordion:
-        system_prompt_textbox = gr.Textbox(
-            value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
-            show_label=False,
-            lines=15,
-            placeholder="Edit system prompt here",
-            interactive=True,
-            elem_id="system_prompt_box",
         )
 
     gr.Markdown(notice_markdown, elem_id="notice_markdown")

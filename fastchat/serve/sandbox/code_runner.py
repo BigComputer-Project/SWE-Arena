@@ -960,7 +960,7 @@ def on_run_code(
                 yield update_output("❌ HTML sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ HTML sandbox ready!", clear_output=True)
+                yield update_output("✅ HTML sandbox is ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
@@ -984,7 +984,7 @@ def on_run_code(
                 yield update_output("❌ React sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
-                yield update_output("✅ React sandbox ready!", clear_output=True)
+                yield update_output("✅ React sandbox is ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
@@ -1008,7 +1008,7 @@ def on_run_code(
                 yield update_output("❌ Vue sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
-                yield update_output("✅ Vue sandbox ready!", clear_output=True)
+                yield update_output("✅ Vue sandbox is ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
@@ -1032,7 +1032,7 @@ def on_run_code(
                 yield update_output("❌ PyGame sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
-                yield update_output("✅ PyGame sandbox ready!", clear_output=True)
+                yield update_output("✅ PyGame sandbox is ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
@@ -1055,7 +1055,7 @@ def on_run_code(
                 yield update_output("❌ Gradio sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ Gradio sandbox ready!", clear_output=True)
+                yield update_output("✅ Gradio sandbox is ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
@@ -1078,7 +1078,7 @@ def on_run_code(
                 yield update_output("❌ Streamlit sandbox failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ Streamlit sandbox ready!", clear_output=True)
+                yield update_output("✅ Streamlit sandbox is ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
@@ -1103,7 +1103,7 @@ def on_run_code(
                 yield update_output("❌ Mermaid visualization failed to render!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ Mermaid visualization ready!", clear_output=True)
+                yield update_output("✅ Mermaid visualization is ready!", clear_output=True)
                 yield (
                     gr.Markdown(value=output_text, visible=True),
                     SandboxComponent(
@@ -1149,7 +1149,7 @@ def on_run_code(
                 yield update_output("❌ JavaScript Code Interpreter failed to run!", clear_output=True)
                 yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ Code execution complete!", clear_output=True)
+                yield update_output("✅ Code execution is ready!", clear_output=True)
                 yield (
                     gr.Markdown(
                         value=output_text + "\n\n" + output,
