@@ -938,7 +938,18 @@ def build_single_model_ui(models, add_promotion_links=False):
 
     with gr.Group():
         with gr.Row():
-            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (You can also edit the system prompt at the bottom!)", interactive=True, visible=True)
+            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (Predefined system prompt)", interactive=True, visible=True)
+
+        with gr.Accordion("System Prompt (Click to edit!)", open=False) as system_prompt_accordion:
+                system_prompt_textbox = gr.Textbox(
+                    value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
+                    show_label=False,
+                    lines=15,
+                    placeholder="Edit system prompt here",
+                    interactive=True,
+                    elem_id="system_prompt_box"
+                )
+        
         with gr.Group():
             with gr.Accordion("Sandbox & Output", open=True, visible=True) as sandbox_instruction_accordion:
                 with gr.Group(visible=True) as sandbox_group:
@@ -1053,16 +1064,6 @@ def build_single_model_ui(models, add_promotion_links=False):
 
     # Define btn_list after all buttons are created
     btn_list = [upvote_btn, downvote_btn, flag_btn, regenerate_btn, clear_btn]
-
-    with gr.Accordion("System Prompt", open=False) as system_prompt_accordion:
-        system_prompt_textbox = gr.Textbox(
-            value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
-            show_label=False,
-            lines=15,
-            placeholder="Edit system prompt here",
-            interactive=True,
-            elem_id="system_prompt_box",
-        )
 
     with gr.Accordion("Parameters", open=False) as parameter_row:
         temperature = gr.Slider(
