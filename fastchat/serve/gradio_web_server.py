@@ -947,8 +947,7 @@ def build_single_model_ui(models, add_promotion_links=False):
                     lines=15,
                     placeholder="Edit system prompt here",
                     interactive=True,
-                    elem_id="system_prompt_box",
-                    scale=2
+                    elem_id="system_prompt_box"
                 )
         
         with gr.Group():

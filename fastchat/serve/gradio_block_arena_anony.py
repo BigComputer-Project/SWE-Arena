@@ -614,8 +614,7 @@ def build_side_by_side_ui_anony(models):
                     lines=15,
                     placeholder="Edit system prompt here",
                     interactive=True,
-                    elem_id="system_prompt_box",
-                    scale=2
+                    elem_id="system_prompt_box"
                 )
         
         with gr.Group():
