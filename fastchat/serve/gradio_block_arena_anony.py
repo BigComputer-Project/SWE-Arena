@@ -235,7 +235,7 @@ SAMPLING_WEIGHTS = {
     'gpt-3.5-turbo-0125': 0.5,
     'gpt-4o-mini-2024-07-18': 0.5,
     'gpt-4o-2024-08-06': 0.5,
-    'gpt-4-turbo-preview': 0.5,
+    'gpt-4-0125-preview': 0.5,
     'qwen2.5-coder-32b-instruct': 0.5,
     'qwen2.5-72b-instruct': 0.5,
     'gemini-2.0-flash-exp': 0.5,
