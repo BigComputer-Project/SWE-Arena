@@ -65,7 +65,7 @@ def upload_conv_log_to_azure_storage(filename: str, data: str, write_mode: Liter
         if AZURE_BLOB_STORAGE_CONNECTION_STRING:
             blob_name = get_conv_log_blob_name(filename)
             upload_data_to_azure_storage(
-                str.encode(data),
+                str.encode(data + "\n"),
                 blob_name,
                 write_mode
             )
