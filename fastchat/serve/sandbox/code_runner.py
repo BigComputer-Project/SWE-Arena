@@ -583,40 +583,71 @@ def on_edit_code(
         return
     sandbox_state['code_to_execute'] = sandbox_code
 
-    # Extract packages from installation commands (with versions)
-    python_deps_with_version, npm_deps_with_version = extract_installation_commands(sandbox_code)
-
     # Extract packages from imports (without versions)
-    python_deps_from_imports = extract_python_imports(sandbox_code)
-    npm_deps_from_imports = extract_js_imports(sandbox_code)
+    python_deps_from_imports = set(extract_python_imports(sandbox_code))
+    npm_deps_from_imports = set(extract_js_imports(sandbox_code))
+
+    # Get existing dependencies with versions from state
+    existing_python_deps, existing_npm_deps = sandbox_state["code_dependencies"]
+
+    # Create dictionaries to track package versions
+    python_deps_dict = {}  # pkg_name -> version
+    npm_deps_dict = {}     # pkg_name -> version
+
+    # First add existing dependencies with their specific versions
+    for dep in existing_python_deps:
+        pkg_name = dep.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0]
+        version = dep[len(pkg_name):]
+        if version:  # If it has a specific version
+            python_deps_dict[pkg_name] = version
+        elif pkg_name in python_deps_from_imports:  # Only keep packages that are still imported
+            python_deps_dict[pkg_name] = "latest"
+
+    for dep in existing_npm_deps:
+        if '@' in dep and not dep.startswith('@'):
+            pkg_name = dep.split('@')[0]
+            version = '@' + dep.split('@')[1]
+        elif '@' in dep[1:]:  # Handle scoped packages
+            pkg_name, version = dep.rsplit('@', 1)
+            version = '@' + version
+        else:
+            pkg_name = dep
+            version = "latest"
+        if version != "latest":  # If it has a specific version
+            npm_deps_dict[pkg_name] = version
+        elif pkg_name in npm_deps_from_imports:  # Only keep packages that are still imported
+            npm_deps_dict[pkg_name] = "latest"
+
+    # Add new dependencies from imports with "latest" if not already present
+    for dep in python_deps_from_imports:
+        if dep not in python_deps_dict:
+            python_deps_dict[dep] = "latest"
+
+    for dep in npm_deps_from_imports:
+        if dep not in npm_deps_dict:
+            npm_deps_dict[dep] = "latest"
 
     # Convert to dataframe format
     dependencies = []
 
-    # Add packages with versions from installation commands
-    for dep in python_deps_with_version:
-        dependencies.append(["python", dep, "specified"])
-    for dep in npm_deps_with_version:
-        dependencies.append(["npm", dep, "specified"])
+    # Add Python packages
+    for pkg_name, version in python_deps_dict.items():
+        dependencies.append(["python", pkg_name, version])
 
-    # Add packages from imports with "latest" version if not already added
-    existing_python_pkgs = {dep.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0] for dep in python_deps_with_version}
-    existing_npm_pkgs = {dep.split('@')[0] for dep in npm_deps_with_version}
-
-    for dep in python_deps_from_imports:
-        if dep not in existing_python_pkgs:
-            dependencies.append(["python", dep, "latest"])
-
-    for dep in npm_deps_from_imports:
-        if dep not in existing_npm_pkgs:
-            dependencies.append(["npm", dep, "latest"])
+    # Add NPM packages
+    for pkg_name, version in npm_deps_dict.items():
+        dependencies.append(["npm", pkg_name, version])
 
     # If no dependencies found, provide default empty rows
     if not dependencies:
         dependencies = [["python", "", ""], ["npm", "", ""]]
 
     # Update dependencies in sandbox state
-    sandbox_state["code_dependencies"] = (python_deps_with_version, npm_deps_with_version)
+    sandbox_state["code_dependencies"] = (
+        [f"{pkg}{ver}" if ver != "latest" else pkg for pkg, ver in python_deps_dict.items()],
+        [f"{pkg}{ver}" if ver != "latest" else pkg for pkg, ver in npm_deps_dict.items()]
+    )
+
     yield (
         gr.skip(),  # sandbox_output
         gr.skip(),  # sandbox_ui
