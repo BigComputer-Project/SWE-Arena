@@ -105,15 +105,22 @@ def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
                 "### Model A: " + states[0].model_name,
                 "### Model B: " + states[1].model_name,
             )
-            yield names + (disable_text,) + (disable_btn,) * 10
+            sandbox_titles = (
+                f"### Model A Sandbox: {states[0].model_name}",
+                f"### Model B Sandbox: {states[1].model_name}",
+            )
+            yield names + sandbox_titles + (disable_text,) + (disable_btn,) * 10
             time.sleep(0.1)
     else:
         names = (
             "### Model A: " + states[0].model_name,
             "### Model B: " + states[1].model_name,
         )
-        # yield names + ("",) + (disable_btn,) * 4
-        yield names + (disable_text,) + (disable_btn,) * 10
+        sandbox_titles = (
+            f"### Model A Sandbox: {states[0].model_name}",
+            f"### Model B Sandbox: {states[1].model_name}",
+        )
+        yield names + sandbox_titles + (disable_text,) + (disable_btn,) * 10
 
 
 def leftvote_last_response(
@@ -565,6 +572,7 @@ def build_side_by_side_ui_anony(models):
     states = [gr.State() for _ in range(num_sides)]
     model_selectors = [None] * num_sides
     chatbots: list[gr.Chatbot | None] = [None] * num_sides
+    sandbox_titles = [None] * num_sides
 
     css = """#chatbot-section.chatbot-section {
         height: 65vh !important;
@@ -628,7 +636,11 @@ def build_side_by_side_ui_anony(models):
                             with gr.Column(scale=1, visible=True) as column:
                                 sandbox_state = gr.State(create_chatbot_sandbox_state(btn_list_length=8))
                                 # Add containers for the sandbox output
-                                sandbox_title = gr.Markdown(value=f"### Model {chr(ord('A') + chatbotIdx)} Sandbox", visible=True)
+                                sandbox_titles[chatbotIdx] = gr.Markdown(
+                                    value=f"### Model {chr(ord('A') + chatbotIdx)} Sandbox",
+                                    visible=True
+                                )
+                                sandbox_title = sandbox_titles[chatbotIdx]
 
                                 with gr.Tab(label="Output", visible=True) as sandbox_output_tab:
                                     sandbox_output = gr.Markdown(value="", visible=True)
@@ -825,8 +837,7 @@ def build_side_by_side_ui_anony(models):
     leftvote_btn.click(
         leftvote_last_response,
         states + model_selectors,
-        model_selectors
-        + [textbox, leftvote_btn, rightvote_btn, 
+        model_selectors + sandbox_titles + [textbox, leftvote_btn, rightvote_btn, 
          tie_btn, bothbad_btn, send_btn, send_btn_left, 
          send_btn_right, regenerate_btn, left_regenerate_btn, 
          right_regenerate_btn]
@@ -834,8 +845,7 @@ def build_side_by_side_ui_anony(models):
     rightvote_btn.click(
         rightvote_last_response,
         states + model_selectors,
-        model_selectors
-        + [textbox, leftvote_btn, rightvote_btn, 
+        model_selectors + sandbox_titles + [textbox, leftvote_btn, rightvote_btn, 
          tie_btn, bothbad_btn, send_btn, send_btn_left, 
          send_btn_right, regenerate_btn, left_regenerate_btn, 
          right_regenerate_btn]
@@ -843,8 +853,7 @@ def build_side_by_side_ui_anony(models):
     tie_btn.click(
         tievote_last_response,
         states + model_selectors,
-        model_selectors
-        + [textbox, leftvote_btn, rightvote_btn, 
+        model_selectors + sandbox_titles + [textbox, leftvote_btn, rightvote_btn, 
          tie_btn, bothbad_btn, send_btn, send_btn_left, 
          send_btn_right, regenerate_btn, left_regenerate_btn, 
          right_regenerate_btn]
@@ -852,8 +861,7 @@ def build_side_by_side_ui_anony(models):
     bothbad_btn.click(
         bothbad_vote_last_response,
         states + model_selectors,
-        model_selectors
-        + [textbox, leftvote_btn, rightvote_btn, 
+        model_selectors + sandbox_titles + [textbox, leftvote_btn, rightvote_btn, 
          tie_btn, bothbad_btn, send_btn, send_btn_left, 
          send_btn_right, regenerate_btn, left_regenerate_btn, 
          right_regenerate_btn]
