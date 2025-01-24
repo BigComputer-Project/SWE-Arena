@@ -775,7 +775,7 @@ def build_side_by_side_ui_anony(models):
         right_regenerate_btn = gr.Button(value="🔄  Regenerate Right", interactive=False, visible=False)
         share_btn = gr.Button(value="📷  Share")
         regenerate_one_side_btns = [left_regenerate_btn, right_regenerate_btn]
-    with gr.Row():
+    with gr.Row() as examples_row:
 
         examples = gr.Examples(
             examples = [
@@ -893,6 +893,10 @@ def build_side_by_side_ui_anony(models):
     ).then(
         lambda: (gr.update(interactive=True, value=SandboxEnvironment.AUTO), gr.update(interactive=True, value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO])),
         outputs=[sandbox_env_choice, system_prompt_textbox]
+    ).then(
+        lambda: gr.update(visible=True),
+        inputs=None,
+        outputs=examples_row
     )
 
     share_js = """
@@ -926,6 +930,10 @@ function (a, b, c, d) {
         states + sandbox_states + model_selectors,
         states + chatbots
     ).then(
+        lambda: gr.update(visible=False),
+        inputs=None,
+        outputs=examples_row
+    ).then(
         bot_response_multi,
         states + [temperature, top_p, max_output_tokens] + sandbox_states,
         states + chatbots + btn_list,
@@ -948,6 +956,10 @@ function (a, b, c, d) {
         set_chat_system_messages_multi,
         states + sandbox_states + model_selectors,
         states + chatbots
+    ).then(
+        lambda: gr.update(visible=False),
+        inputs=None,
+        outputs=examples_row
     ).then(
         bot_response_multi,
         states + [temperature, top_p, max_output_tokens] + sandbox_states,
@@ -1005,6 +1017,10 @@ function (a, b, c, d) {
             set_chat_system_messages,
             [state, sandbox_state, model_selector],
             [state, chatbot]
+        ).then(
+            lambda: gr.update(visible=False),
+            inputs=None,
+            outputs=examples_row
         ).then(
             bot_response,
             [state, temperature, top_p, max_output_tokens, sandbox_state],

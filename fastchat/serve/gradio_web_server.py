@@ -1064,7 +1064,7 @@ def build_single_model_ui(models, add_promotion_links=False):
         regenerate_btn = gr.Button(value="🔄  Regenerate", interactive=False)
         clear_btn = gr.Button(value="🗑️  Clear history", interactive=False)
     
-    with gr.Row():
+    with gr.Row() as examples_row:
 
 
         examples = gr.Examples(
@@ -1144,6 +1144,10 @@ def build_single_model_ui(models, add_promotion_links=False):
     ).then(
         lambda: (gr.update(interactive=True, value=SandboxEnvironment.AUTO), gr.update(interactive=True, value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO])),
         outputs=[sandbox_env_choice, system_prompt_textbox]
+    ).then(
+        lambda: gr.update(visible=True),
+        inputs=None,
+        outputs=examples_row
     )
 
     model_selector.change(
@@ -1185,6 +1189,10 @@ def build_single_model_ui(models, add_promotion_links=False):
         inputs=[sandbox_state],
         outputs=[system_prompt_textbox, sandbox_env_choice]
     ).then(
+        lambda: gr.update(visible=False),
+        inputs=None,
+        outputs=examples_row
+    ).then(
         bot_response,
         [state, temperature, top_p, max_output_tokens, sandbox_state],
         [state, chatbot] + btn_list,
@@ -1213,6 +1221,10 @@ def build_single_model_ui(models, add_promotion_links=False):
         ],
         inputs=[sandbox_state],
         outputs=[system_prompt_textbox, sandbox_env_choice]
+    ).then(
+        lambda: gr.update(visible=False),
+        inputs=None,
+        outputs=examples_row
     ).then(
         bot_response,
         [state, temperature, top_p, max_output_tokens, sandbox_state],
