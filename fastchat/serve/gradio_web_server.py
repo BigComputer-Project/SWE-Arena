@@ -48,6 +48,7 @@ from fastchat.utils import (
     parse_gradio_auth_creds,
     load_image,
 )
+from fastchat.serve.sandbox.code_analyzer import SandboxEnvironment
 
 logger = build_logger("gradio_web_server", "gradio_web_server.log")
 
@@ -364,7 +365,7 @@ def set_chat_system_messages(state, sandbox_state, model_selector):
     environment_instruction = sandbox_state['sandbox_instruction']
     current_system_message = state.conv.get_system_message(state.is_vision)
     state.conv.set_system_message(environment_instruction) # update system message here
-    return state, state.to_gradio_chatbot()
+    return state, state.to_gradio_chatbot(),environment_instruction
 
 def update_system_prompt(system_prompt, sandbox_state):
     if sandbox_state['enabled_round'] == 0:
@@ -1052,6 +1053,7 @@ def build_single_model_ui(models, add_promotion_links=False):
             show_label=False,
             placeholder="👉 Enter your prompt and press ENTER",
             elem_id="input_box",
+            label="Type your query",
         )
         send_btn = gr.Button(value="Send", variant="primary", scale=0)
 
@@ -1061,6 +1063,21 @@ def build_single_model_ui(models, add_promotion_links=False):
         flag_btn = gr.Button(value="⚠️  Flag", interactive=False)
         regenerate_btn = gr.Button(value="🔄  Regenerate", interactive=False)
         clear_btn = gr.Button(value="🗑️  Clear history", interactive=False)
+    
+    with gr.Row():
+
+
+        examples = gr.Examples(
+            examples = [
+                ["Write a Python script that uses the Gradio library to create a functional calculator. The calculator should support basic arithmetic operations: addition, subtraction, multiplication, and division. It should have two input fields for numbers and a dropdown menu to select the operation.", SandboxEnvironment.GRADIO],
+                ["Write a Python script using the Streamlit library to create a web application for uploading and displaying files. The app should allow users to upload files of type .csv or .txt. If a .csv file is uploaded, display its contents as a table using Streamlit's st.dataframe() method. If a .txt file is uploaded, display its content as plain text.", SandboxEnvironment.STREAMLIT],
+                ["Write a Python function to solve the Trapping Rain Water problem. The function should take a list of non-negative integers representing the height of bars in a histogram and return the total amount of water trapped between the bars after raining. Use an efficient algorithm with a time complexity of O(n).",SandboxEnvironment.PYTHON_CODE_INTERPRETER],
+                ["Create a simple Pygame script for a game where the player controls a bouncing ball that changes direction when it collides with the edges of the window. Add functionality for the player to control a paddle using arrow keys, aiming to keep the ball from touching the bottom of the screen. Include basic collision detection and a scoring system that increases as the ball bounces off the paddle.", SandboxEnvironment.PYGAME],
+                ["Create a financial management Dashboard using Vue.js, focusing on local data handling without APIs. Include features like a clean dashboard for tracking income and expenses, dynamic charts for visualizing finances, and a budget planner. Implement functionalities for adding, editing, and deleting transactions, as well as filtering by date or category. Ensure responsive design and smooth user interaction for an intuitive experience.", SandboxEnvironment.VUE],
+                ["Create a Mermaid diagram to visualize a flowchart of a user login process. Include the following steps: User enters login credentials; Credentials are validated; If valid, the user is directed to the dashboard; If invalid, an error message is shown, and the user can retry or reset the password.",SandboxEnvironment.MERMAID],
+            ],
+            inputs = [textbox, sandbox_env_choice],
+        )
 
     # Define btn_list after all buttons are created
     btn_list = [upvote_btn, downvote_btn, flag_btn, regenerate_btn, clear_btn]
