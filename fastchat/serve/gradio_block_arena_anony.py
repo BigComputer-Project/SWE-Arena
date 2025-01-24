@@ -243,17 +243,17 @@ SAMPLING_WEIGHTS = {
     'gpt-4o-mini-2024-07-18': 0.5,
     'gpt-4o-2024-08-06': 0.5,
     'gpt-4-0125-preview': 0.5,
-    'qwen2.5-coder-32b-instruct': 0.5,
-    'qwen2.5-72b-instruct': 0.5,
-    'gemini-2.0-flash-exp': 0.5,
-    'gemini-1.5-pro': 0.5,
-    'gemini-1.5-flash-api-0514': 0.5,
-    'gemini-1.5-pro-exp-0801': 0.5,
-    'gemini-1.5-pro-exp-0827': 0.5,
-    'gemini-1.5-flash-exp-0827': 0.5,
-    'gemini-1.5-pro-002': 0.5,
-    'gemini-exp-1121': 0.5,
-    'gemini-exp-1206': 0.5
+    # 'qwen2.5-coder-32b-instruct': 0.5,
+    # 'qwen2.5-72b-instruct': 0.5,
+    # 'gemini-2.0-flash-exp': 0.5,
+    # 'gemini-1.5-pro': 0.5,
+    # 'gemini-1.5-flash-api-0514': 0.5,
+    # 'gemini-1.5-pro-exp-0801': 0.5,
+    # 'gemini-1.5-pro-exp-0827': 0.5,
+    # 'gemini-1.5-flash-exp-0827': 0.5,
+    # 'gemini-1.5-pro-002': 0.5,
+    # 'gemini-exp-1121': 0.5,
+    # 'gemini-exp-1206': 0.5
 }
 
 # target model sampling weights will be boosted.
