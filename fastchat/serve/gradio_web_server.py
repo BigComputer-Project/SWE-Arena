@@ -1137,14 +1137,13 @@ def build_single_model_ui(models, add_promotion_links=False):
         [sandbox_state], 
         [sandbox_env_choice]+[state, chatbot, textbox] + btn_list + [sandbox_state]
     ).then(
-        # enable sandbox env choice and prompt
-        lambda: (gr.update(interactive=True), gr.update(interactive=True)),
-        outputs=[sandbox_env_choice, system_prompt_textbox]
-    ).then(
         # clear existing sandbox components
         clear_sandbox_components,
         inputs=[sandbox_output, sandbox_ui, sandbox_code],
         outputs=[sandbox_output, sandbox_ui, sandbox_code]
+    ).then(
+        lambda: (gr.update(interactive=True, value=SandboxEnvironment.AUTO), gr.update(interactive=True, value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO])),
+        outputs=[sandbox_env_choice, system_prompt_textbox]
     )
 
     model_selector.change(

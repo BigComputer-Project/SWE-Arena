@@ -891,8 +891,7 @@ def build_side_by_side_ui_anony(models):
         inputs=[component for components in sandboxes_components for component in components],
         outputs=[component for components in sandboxes_components for component in components]
     ).then(
-        # enable sandbox env choice and prompt
-        lambda: (gr.update(interactive=True), gr.update(interactive=True)),
+        lambda: (gr.update(interactive=True, value=SandboxEnvironment.AUTO), gr.update(interactive=True, value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO])),
         outputs=[sandbox_env_choice, system_prompt_textbox]
     )
 
