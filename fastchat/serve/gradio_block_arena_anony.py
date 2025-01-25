@@ -219,6 +219,7 @@ def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
         + [disable_btn] * 1  # clear
         + [""]  # slow_warning
         + [enable_btn] * 3  # send_btn, send_btn_left, send_btn_right
+        + [gr.update(value="### Model A Sandbox"), gr.update(value="### Model B Sandbox")]  # Reset sandbox titles
     )
 
 def clear_sandbox_components(*components):
@@ -885,7 +886,8 @@ def build_side_by_side_ui_anony(models):
         + [textbox]
         + btn_list
         + [slow_warning]
-        + [send_btn, send_btn_left, send_btn_right],
+        + [send_btn, send_btn_left, send_btn_right]
+        + sandbox_titles,  # Add sandbox titles to outputs
     ).then(
         clear_sandbox_components,
         inputs=[component for components in sandboxes_components for component in components],
