@@ -637,6 +637,7 @@ def build_side_by_side_vision_ui_anony(context: Context, random_questions=None):
                                 elem_id="chatbot",
                                 height='65vh',
                                 show_copy_button=True,
+                                sanitize_html=False,
                                 latex_delimiters=[
                                     {"left": "$", "right": "$", "display": False},
                                     {"left": "$$", "right": "$$", "display": True},
