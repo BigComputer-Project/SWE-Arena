@@ -405,7 +405,7 @@ def build_single_vision_language_model_ui(
                 show_label=False,
                 interactive=False,
             )
-        with gr.Column(scale=8):
+        with gr.Column(scale=8, elem_id="chatbot-section", elem_classes=["chatbot-section"]):
             chatbot = gr.Chatbot(
                 elem_id="chatbot",
                 label="Scroll down and start chatting",
@@ -419,7 +419,7 @@ def build_single_vision_language_model_ui(
                 ],
             )
 
-    with gr.Row():
+    with gr.Row(elem_id="user-input-region"):
         textbox = gr.Textbox(
             show_label=False,
             placeholder="👉 Input your prompt here. Press Enter to send.",

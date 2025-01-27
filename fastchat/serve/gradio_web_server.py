@@ -769,7 +769,21 @@ a:hover {
 .block {
   overflow-y: hidden !important;
 }
+
+#chatbot-section.chatbot-section {
+    height: 65vh !important;
+}
+
+/* Highlight input area */
+#user-input-region {
+    border-style: solid !important;
+    border-color: rgb(234, 88, 12) !important;
+    border-width: 2px !important;
+}
 """
+'''
+The css block is used to style the chatbot interface.
+'''
 
 
 # block_css = """
@@ -1089,7 +1103,7 @@ def build_single_model_ui(models, add_promotion_links=False):
                             sandbox_dependency,
                         ))
 
-    with gr.Row():
+    with gr.Row(elem_id="user-input-region"):
         textbox = gr.Textbox(
             show_label=False,
             placeholder="👉 Enter your prompt and press ENTER",
