@@ -514,6 +514,7 @@ def build_side_by_side_vision_ui_named(context: Context, random_questions=None):
             elem_id="input_box",
             visible=False,
             scale=3,
+            autofocus=True,
         )
 
         multimodal_textbox = gr.MultimodalTextbox(
@@ -525,6 +526,7 @@ def build_side_by_side_vision_ui_named(context: Context, random_questions=None):
             scale=3,
             submit_btn=False,
             stop_btn=False,
+            autofocus=True,
         )
 
     with gr.Row() as examples_row:
