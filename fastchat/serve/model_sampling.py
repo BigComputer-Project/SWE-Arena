@@ -10,7 +10,7 @@ SAMPLING_WEIGHTS = {
     'qwen2.5-coder-32b-instruct': 1,
     'qwen2.5-72b-instruct': 1,
     'deepseek-chat': 0.5,
-    "deepseek-reasoner": 0.5,
+    # "deepseek-reasoner": 0.5,
     # 'gemini-2.0-flash-exp': 0.5,
     # 'gemini-1.5-pro': 0.5,
     # 'gemini-1.5-flash-api-0514': 0.5,
