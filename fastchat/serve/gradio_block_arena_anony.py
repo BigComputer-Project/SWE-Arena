@@ -38,6 +38,14 @@ from fastchat.serve.gradio_web_server import (
     get_model_description_md,
     set_chat_system_messages
 )
+from fastchat.serve.model_sampling import (
+    ANON_MODELS,
+    BATTLE_STRICT_TARGETS,
+    BATTLE_TARGETS,
+    OUTAGE_MODELS,
+    SAMPLING_BOOST_MODELS,
+    SAMPLING_WEIGHTS
+)
 from fastchat.serve.remote_logger import get_remote_logger
 
 from fastchat.serve.sandbox.code_runner import (SUPPORTED_SANDBOX_ENVIRONMENTS, ChatbotSandboxState, SandboxEnvironment, 
@@ -251,37 +259,6 @@ def share_click(state0, state1, model_selector0, model_selector1, request: gr.Re
         vote_last_response(
             [state0, state1], "share", [model_selector0, model_selector1], request
         )
-
-
-SAMPLING_WEIGHTS = {
-    'gpt-3.5-turbo-0125': 0.5,
-    'gpt-4o-mini-2024-07-18': 0.5,
-    'gpt-4o-2024-08-06': 0.5,
-    'gpt-4-0125-preview': 0.5,
-    # 'qwen2.5-coder-32b-instruct': 0.5,
-    # 'qwen2.5-72b-instruct': 0.5,
-    # 'gemini-2.0-flash-exp': 0.5,
-    # 'gemini-1.5-pro': 0.5,
-    # 'gemini-1.5-flash-api-0514': 0.5,
-    # 'gemini-1.5-pro-exp-0801': 0.5,
-    # 'gemini-1.5-pro-exp-0827': 0.5,
-    # 'gemini-1.5-flash-exp-0827': 0.5,
-    # 'gemini-1.5-pro-002': 0.5,
-    # 'gemini-exp-1121': 0.5,
-    # 'gemini-exp-1206': 0.5
-}
-
-# target model sampling weights will be boosted.
-BATTLE_TARGETS = {}
-
-BATTLE_STRICT_TARGETS = {}
-
-ANON_MODELS = []
-
-SAMPLING_BOOST_MODELS = []
-
-# outage models won't be sampled.
-OUTAGE_MODELS = []
 
 
 def get_sample_weight(model, outage_models, sampling_weights, sampling_boost_models=[]):
@@ -607,7 +584,10 @@ def build_side_by_side_ui_anony(models):
 
     with gr.Blocks():
         with gr.Group(elem_id="share-region-anony"):
-            with gr.Row(elem_id="chatbot-section", elem_classes=["chatbot-section"]):
+            with gr.Row(
+                elem_classes=["chatbot-section"],
+                max_height='65vh'
+            ):
                 for i in range(num_sides):
                     label = "Model A" if i == 0 else "Model B"
                     with gr.Column():
