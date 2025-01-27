@@ -117,7 +117,7 @@ class ChatbotSandboxState(TypedDict):
     '''
     The sandbox id. None if no running.
     '''
-    btn_list_length: int | None
+    btn_list_length: int
 
 
 class CodeRunResult(TypedDict):
