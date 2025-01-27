@@ -562,7 +562,7 @@ def build_side_by_side_ui_named(models):
                                 ))
 
     # First define all UI components
-    with gr.Row():
+    with gr.Row(elem_id="user-input-region"):
         textbox = gr.Textbox(
             show_label=False,
             placeholder="👉 Enter your prompt and press ENTER",

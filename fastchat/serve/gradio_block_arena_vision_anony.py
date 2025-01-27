@@ -630,9 +630,6 @@ def build_side_by_side_vision_ui_anony(context: Context, random_questions=None):
     context_state = gr.State(context)
     text_and_vision_models = context.models
 
-    css = """#chatbot-section.chatbot-section {
-        height: 65vh !important;
-    }"""
     with gr.Row():
         with gr.Column(scale=2, visible=False) as image_column:
             imagebox = gr.Image(
@@ -643,7 +640,7 @@ def build_side_by_side_vision_ui_anony(context: Context, random_questions=None):
 
         with gr.Column(scale=5):
             with gr.Group(elem_id="share-region-anony"):
-                with gr.Row():
+                with gr.Row(elem_id="chatbot-section", elem_classes=["chatbot-section"]):
                     for i in range(num_sides):
                         label = "Model A" if i == 0 else "Model B"
                         with gr.Column():
@@ -669,7 +666,7 @@ def build_side_by_side_vision_ui_anony(context: Context, random_questions=None):
     with gr.Row():
         slow_warning = gr.Markdown("")
 
-    with gr.Row():
+    with gr.Row(elem_id="user-input-region"):
         textbox = gr.Textbox(
             show_label=False,
             placeholder="👉 Input your prompt here. Press Enter to send.",

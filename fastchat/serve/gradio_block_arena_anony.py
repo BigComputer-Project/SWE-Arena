@@ -605,10 +605,7 @@ def build_side_by_side_ui_anony(models):
     chatbots: list[gr.Chatbot | None] = [None] * num_sides
     sandbox_titles = [None] * num_sides
 
-    css = """#chatbot-section.chatbot-section {
-        height: 65vh !important;
-    }"""
-    with gr.Blocks(css=css):
+    with gr.Blocks():
         with gr.Group(elem_id="share-region-anony"):
             with gr.Row(elem_id="chatbot-section", elem_classes=["chatbot-section"]):
                 for i in range(num_sides):
@@ -773,7 +770,7 @@ def build_side_by_side_ui_anony(models):
                                     ]
                                 )
 
-    with gr.Row():
+    with gr.Row(elem_id="user-input-region"):
         textbox = gr.Textbox(
             show_label=False,
             placeholder="👉 Enter your prompt and press ENTER",
