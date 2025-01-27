@@ -55,7 +55,7 @@
     "model_name": "qwen2.5-coder-32b-instruct",
     "api_type": "openai",
     "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "api_key": "ENV:QWEN_API_KEY",
+    "api_key": "ENV:QWEN_32B_API_KEY",
     "anony_only": false,
     "recommended_config": {
       "temperature": 0.7,
@@ -68,7 +68,7 @@
     "model_name": "qwen2.5-72b-instruct",
     "api_type": "openai",
     "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "api_key": "ENV:QWEN_API_KEY",
+    "api_key": "ENV:QWEN_72B_API_KEY",
     "anony_only": false,
     "recommended_config": {
       "temperature": 0.7,
