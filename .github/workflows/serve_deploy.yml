@@ -1,4 +1,4 @@
-name: Deploy to Azure Web Service
+name: Deploy to Azure
 
 on:
   workflow_dispatch
@@ -29,7 +29,7 @@ jobs:
       - name: Push Docker image to Azure Registry
         run: docker push ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/swearenaapp:${{ github.sha }}
 
-      - name: Deploy to Azure Web Service
+      - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ secrets.AZURE_APP_NAME }}
