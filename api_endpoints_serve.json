@@ -6,8 +6,8 @@
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": true
@@ -19,8 +19,8 @@
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": true
@@ -32,8 +32,8 @@
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": true
@@ -45,8 +45,8 @@
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": false
@@ -58,8 +58,8 @@
     "api_key": "ENV:QWEN_32B_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": false
@@ -71,8 +71,8 @@
     "api_key": "ENV:QWEN_72B_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": false
@@ -84,8 +84,8 @@
     "api_key": "ENV:DEEPSEEK_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": false
@@ -97,8 +97,8 @@
     "api_key": "ENV:DEEPSEEK_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": false
@@ -110,8 +110,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": false
@@ -123,8 +123,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": true
@@ -136,8 +136,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     }
   },
   "gemini-1.5-pro-exp-0801": {
@@ -147,8 +147,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": true
@@ -160,8 +160,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": true
@@ -173,8 +173,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     }
   },
   "gemini-1.5-pro-002": {
@@ -184,8 +184,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     },
     "text-arena": true,
     "vision-arena": true
@@ -197,8 +197,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     }
   },
   "gemini-exp-1206": {
@@ -208,8 +208,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.7,
-      "top_p": 1.0
+      "temperature": 0.2,
+      "top_p": 0.9
     }
   }
 }
