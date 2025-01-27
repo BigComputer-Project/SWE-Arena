@@ -45,10 +45,6 @@ from fastchat.serve.gradio_block_arena_anony import (
     share_click,
     bot_response_multi,
     get_battle_pair,
-    SAMPLING_WEIGHTS,
-    BATTLE_TARGETS,
-    SAMPLING_BOOST_MODELS,
-    OUTAGE_MODELS,
 )
 from fastchat.serve.gradio_block_arena_vision import (
     set_invisible_image,
@@ -63,6 +59,16 @@ from fastchat.serve.gradio_block_arena_vision import (
     disable_multimodal,
 )
 from fastchat.serve.gradio_global_state import Context
+from fastchat.serve.model_sampling import (
+    VISION_BATTLE_TARGETS,
+    VISION_OUTAGE_MODELS,
+    VISION_SAMPLING_BOOST_MODELS,
+    VISION_SAMPLING_WEIGHTS,
+    SAMPLING_WEIGHTS,
+    BATTLE_TARGETS,
+    SAMPLING_BOOST_MODELS,
+    OUTAGE_MODELS,
+)
 from fastchat.serve.remote_logger import get_remote_logger
 from fastchat.serve.sandbox.sandbox_telemetry import upload_conv_log_to_azure_storage
 from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, ChatbotSandboxState, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, update_sandbox_config_multi, update_sandbox_state_system_prompt
@@ -80,18 +86,6 @@ enable_moderation = False
 anony_names = ["", ""]
 text_models = []
 vl_models = []
-
-# TODO(chris): fix sampling weights
-VISION_SAMPLING_WEIGHTS = {}
-
-# TODO(chris): Find battle targets that make sense
-VISION_BATTLE_TARGETS = {}
-
-# TODO(chris): Fill out models that require sampling boost
-VISION_SAMPLING_BOOST_MODELS = []
-
-# outage models won't be sampled.
-VISION_OUTAGE_MODELS = []
 
 # Number of user buttons
 USER_BUTTONS_LENGTH = 11
@@ -150,7 +144,12 @@ def vote_last_response(states, sandbox_states: list[ChatbotSandboxState], vote_t
                 f"### Model B Sandbox: {model_name_2}",
             )
             # model_selectors + sandbox_titles + [textbox] + user_buttons
-            yield names + sandbox_titles + (disable_text,) + (disable_btn,) * sandbox_states[0]['btn_list_length']
+            yield (
+                names + sandbox_titles
+                + (disable_text,)
+                + (disable_btn,) * (sandbox_states[0]['btn_list_length'] - 1)
+                + (enable_btn,) # allow clear
+            )
             time.sleep(0.1)
     else:
         names = (
@@ -162,7 +161,12 @@ def vote_last_response(states, sandbox_states: list[ChatbotSandboxState], vote_t
             f"### Model B Sandbox: {model_name_2}",
         )
         # model_selectors + sandbox_titles + [textbox] + user_buttons
-        yield names + sandbox_titles + (disable_text,) + (disable_btn,) * sandbox_states[0]['btn_list_length']
+        yield (
+            names + sandbox_titles
+            + (disable_text,)
+            + (disable_btn,) * (sandbox_states[0]['btn_list_length'] - 1)
+            + (enable_btn,) # allow clear
+        )
 
 
 def leftvote_last_response(
@@ -342,26 +346,8 @@ def add_text_single(
     # increase sandbox state
     sandbox_state['enabled_round'] += 1
 
-    # TODO: We should skip this as we should not allow send to one side initially
-    if state is None:
-        state = State(model_selector, is_vision=is_vision)
-
-    # Init states if necessary
-    if state.model_name == "":
-        model_left, model_right = get_battle_pair(
-            context.all_vision_models,
-            VISION_BATTLE_TARGETS,
-            VISION_OUTAGE_MODELS,
-            VISION_SAMPLING_WEIGHTS,
-            VISION_SAMPLING_BOOST_MODELS,
-        ) if is_vision else get_battle_pair(
-            context.all_text_models,
-            BATTLE_TARGETS,
-            OUTAGE_MODELS,
-            SAMPLING_WEIGHTS,
-            SAMPLING_BOOST_MODELS,
-        )
-        state = State(model_name=model_left, is_vision=is_vision)
+    # should not allow send to one side initially
+    assert state is not None
 
     # skip if text is empty
     if len(text) <= 0:
@@ -640,14 +626,16 @@ def build_side_by_side_vision_ui_anony(context: Context, random_questions=None):
 
         with gr.Column(scale=5):
             with gr.Group(elem_id="share-region-anony"):
-                with gr.Row(elem_id="chatbot-section", elem_classes=["chatbot-section"]):
+                with gr.Row(
+                    elem_classes=["chatbot-section"],
+                ):
                     for i in range(num_sides):
                         label = "Model A" if i == 0 else "Model B"
                         with gr.Column():
                             chatbots[i] = gr.Chatbot(
                                 label=label,
                                 elem_id="chatbot",
-                                height=650,
+                                height='65vh',
                                 show_copy_button=True,
                                 latex_delimiters=[
                                     {"left": "$", "right": "$", "display": False},

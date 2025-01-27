@@ -116,25 +116,37 @@ def vote_last_response(state, vote_type, model_selector, request: gr.Request):
     upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + '\n')
 
 
-def upvote_last_response(state, model_selector, request: gr.Request):
+def upvote_last_response(state: State, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
+    '''
+    Input: [state, model_selector, sandbox_state],
+    Output: [textbox] + user_buttons,
+    '''
     ip = get_ip(request)
     logger.info(f"upvote. ip: {ip}")
     vote_last_response(state, "upvote", model_selector, request)
-    return (None,) + (disable_btn,) * 3
+    return (None,) + (disable_btn,) * (sandbox_state["btn_list_length"] - 1) + (enable_btn,) # enable clear button
 
 
-def downvote_last_response(state, model_selector, request: gr.Request):
+def downvote_last_response(state: State, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
+    '''
+    Input: [state, model_selector, sandbox_state],
+    Output: [textbox] + user_buttons,
+    '''
     ip = get_ip(request)
     logger.info(f"downvote. ip: {ip}")
     vote_last_response(state, "downvote", model_selector, request)
-    return (None,) + (disable_btn,) * 3
+    return (None,) + (disable_btn,) * (sandbox_state["btn_list_length"] - 1) + (enable_btn,) # enable clear button
 
 
-def flag_last_response(state, model_selector, request: gr.Request):
+def flag_last_response(state: State, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
+    '''
+    Input: [state, model_selector, sandbox_state],
+    Output: [textbox] + user_buttons,
+    '''
     ip = get_ip(request)
     logger.info(f"flag. ip: {ip}")
     vote_last_response(state, "flag", model_selector, request)
-    return (None,) + (disable_btn,) * 3
+    return (None,) + (disable_btn,) * (sandbox_state["btn_list_length"] - 1) + (enable_btn,) # enable clear button
 
 
 def regenerate(state: State, sandbox_state: ChatbotSandboxState, request: gr.Request):
@@ -405,11 +417,11 @@ def build_single_vision_language_model_ui(
                 show_label=False,
                 interactive=False,
             )
-        with gr.Column(scale=8, elem_id="chatbot-section", elem_classes=["chatbot-section"]):
+        with gr.Column(scale=8):
             chatbot = gr.Chatbot(
                 elem_id="chatbot",
                 label="Scroll down and start chatting",
-                height=650,
+                height='65vh',
                 show_copy_button=True,
                 latex_delimiters=[
                     {"left": "$", "right": "$", "display": False},
@@ -682,19 +694,20 @@ def build_single_vision_language_model_ui(
 
     upvote_btn.click(
         upvote_last_response,
-        [state, model_selector],
-        [textbox, upvote_btn, downvote_btn, flag_btn],
+        [state, model_selector, sandbox_state],
+        [textbox] + user_buttons,
     )
     downvote_btn.click(
         downvote_last_response,
-        [state, model_selector],
-        [textbox, upvote_btn, downvote_btn, flag_btn],
+        [state, model_selector, sandbox_state],
+        [textbox] + user_buttons,
     )
     flag_btn.click(
         flag_last_response,
-        [state, model_selector],
-        [textbox, upvote_btn, downvote_btn, flag_btn],
+        [state, model_selector, sandbox_state],
+        [textbox] + user_buttons,
     )
+
     regenerate_btn.click(
         regenerate,
         [state, sandbox_state],

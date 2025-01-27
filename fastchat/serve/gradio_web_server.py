@@ -188,7 +188,7 @@ def get_conv_log_filename(is_vision=False, has_csam_image=False):
     return name
 
 
-def get_model_list(controller_url, register_api_endpoint_file, vision_arena):
+def get_model_list(controller_url, register_api_endpoint_file, vision_arena: bool):
     global api_endpoint_info
 
     # Add models from the controller
@@ -770,8 +770,7 @@ a:hover {
   overflow-y: hidden !important;
 }
 
-#chatbot-section.chatbot-section {
-    height: 65vh !important;
+#chatbot-section {
 }
 
 /* Highlight input area */

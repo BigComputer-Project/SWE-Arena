@@ -133,43 +133,43 @@ def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
 
 
 def leftvote_last_response(
-    state0, state1, model_selector0, model_selector1, request: gr.Request
+    state0, state1, model_selector0, model_selector1, sandbox_state0, sandbox_state1, request: gr.Request
 ):
     logger.info(f"leftvote (named). ip: {get_ip(request)}")
     vote_last_response(
         [state0, state1], "leftvote", [model_selector0, model_selector1], request
     )
-    return (None,) + (disable_btn,) * 4
+    return (None,) + (disable_btn,) * (sandbox_state0['btn_list_length'] - 1) + (enable_btn,) # enable clear button
 
 
 def rightvote_last_response(
-    state0, state1, model_selector0, model_selector1, request: gr.Request
+    state0, state1, model_selector0, model_selector1, sandbox_state0, sandbox_state1, request: gr.Request
 ):
     logger.info(f"rightvote (named). ip: {get_ip(request)}")
     vote_last_response(
         [state0, state1], "rightvote", [model_selector0, model_selector1], request
     )
-    return (None,) + (disable_btn,) * 4
+    return (None,) + (disable_btn,) * (sandbox_state0['btn_list_length'] - 1) + (enable_btn,) # enable clear button
 
 
 def tievote_last_response(
-    state0, state1, model_selector0, model_selector1, request: gr.Request
+    state0, state1, model_selector0, model_selector1, sandbox_state0, sandbox_state1, request: gr.Request
 ):
     logger.info(f"tievote (named). ip: {get_ip(request)}")
     vote_last_response(
         [state0, state1], "tievote", [model_selector0, model_selector1], request
     )
-    return (None,) + (disable_btn,) * 4
+    return (None,) + (disable_btn,) * (sandbox_state0['btn_list_length'] - 1) + (enable_btn,) # enable clear button
 
 
 def bothbad_vote_last_response(
-    state0, state1, model_selector0, model_selector1, request: gr.Request
+    state0, state1, model_selector0, model_selector1, sandbox_state0, sandbox_state1, request: gr.Request
 ):
     logger.info(f"bothbad_vote (named). ip: {get_ip(request)}")
     vote_last_response(
         [state0, state1], "bothbad_vote", [model_selector0, model_selector1], request
     )
-    return (None,) + (disable_btn,) * 4
+    return (None,) + (disable_btn,) * (sandbox_state0['btn_list_length'] - 1) + (enable_btn,) # enable clear button
 
 
 def regenerate_single(state, sandbox_state, request: gr.Request):
@@ -490,14 +490,16 @@ def build_side_by_side_vision_ui_named(context: Context, random_questions=None):
                                 container=False,
                             )
 
-                with gr.Row(elem_id="chatbot-section", elem_classes=["chatbot-section"]):
+                with gr.Row(
+                    elem_classes=["chatbot-section"]
+                ):
                     for i in range(num_sides):
                         label = "Model A" if i == 0 else "Model B"
                         with gr.Column():
                             chatbots[i] = gr.Chatbot(
                                 label=label,
                                 elem_id=f"chatbot",
-                                height=650,
+                                height='65vh',
                                 show_copy_button=True,
                                 latex_delimiters=[
                                     {"left": "$", "right": "$", "display": False},
@@ -793,23 +795,23 @@ def build_side_by_side_vision_ui_named(context: Context, random_questions=None):
 
     leftvote_btn.click(
         leftvote_last_response,
-        states + model_selectors,
-        [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn],
+        states + model_selectors + sandbox_states,
+        [textbox] + user_buttons,
     )
     rightvote_btn.click(
         rightvote_last_response,
-        states + model_selectors,
-        [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn],
+        states + model_selectors + sandbox_states,
+        [textbox] + user_buttons,
     )
     tie_btn.click(
         tievote_last_response,
-        states + model_selectors,
-        [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn],
+        states + model_selectors + sandbox_states,
+        [textbox] + user_buttons,
     )
     bothbad_btn.click(
         bothbad_vote_last_response,
-        states + model_selectors,
-        [textbox, leftvote_btn, rightvote_btn, tie_btn, bothbad_btn],
+        states + model_selectors + sandbox_states,
+        [textbox] + user_buttons,
     )
 
     regenerate_btn.click(
