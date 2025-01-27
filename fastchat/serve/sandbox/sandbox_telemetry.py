@@ -1,8 +1,7 @@
 '''
 Module for logging the sandbox interactions and state.
-
-TODO: Support Cloud Storage.
 '''
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from typing import Any, Literal
@@ -59,18 +58,31 @@ def get_conv_log_blob_name(filename: str) -> str:
     blob_name = f"{date_str}/conv_logs/{filename}"
     return blob_name
 
-
-def upload_conv_log_to_azure_storage(filename: str, data: str, write_mode: Literal['overwrite', 'append'] = 'append') -> None:
+_executor = ThreadPoolExecutor(max_workers=20)
+def upload_conv_log_to_azure_storage(
+    filename: str,
+    data: str,
+    write_mode: Literal['overwrite', 'append'] = 'append',
+    use_async: bool = True
+) -> None:
     try:
         if AZURE_BLOB_STORAGE_CONNECTION_STRING:
             blob_name = get_conv_log_blob_name(filename)
-            upload_data_to_azure_storage(
-                str.encode(data + "\n"),
-                blob_name,
-                write_mode
-            )
+
+            def _run_upload():
+                upload_data_to_azure_storage(
+                    str.encode(data + "\n"),
+                    blob_name,
+                    write_mode
+                )
+
+            if use_async:
+                _executor.submit(_run_upload)
+            else:
+                _run_upload()
     except Exception as e:
         print(f"Error uploading conv log to Azure Blob Storage: {e}")
+
 
 def get_sandbox_log_filename(sandbox_state: ChatbotSandboxState) -> str:
     return (

@@ -86,7 +86,7 @@ def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
         }
         fout.write(json.dumps(data) + "\n")
     get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data))
+    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + "\n")
 
 
 def leftvote_last_response(
@@ -235,9 +235,8 @@ def add_text_multi(
     model_selectors = [model_selector0, model_selector1]
     sandbox_states = [sandbox_state0, sandbox_state1]
 
-    if sandbox_state0['enable_sandbox']:
-        sandbox_state0['enabled_round'] += 1
-        sandbox_state1['enabled_round'] += 1
+    sandbox_state0['enabled_round'] += 1
+    sandbox_state1['enabled_round'] += 1
 
     # Init states if necessary
     for i in range(num_sides):
@@ -309,7 +308,7 @@ def bot_response_multi(
     max_new_tokens,
     sandbox_state0,
     sandbox_state1,
-    request: gr.Request = None,
+    request: gr.Request,
 ):
     '''
     The main function for generating responses from both models.
@@ -324,7 +323,7 @@ def bot_response_multi(
                 state1,
                 state0.to_gradio_chatbot() ,
                 state1.to_gradio_chatbot() ,
-            ) + (no_change_btn,) * 8
+            ) + (no_change_btn,) * sandbox_state0['btn_list_length']
             return
 
     states = [state0, state1]
@@ -383,19 +382,19 @@ def bot_response_multi(
                 stop = False
             except StopIteration:
                 pass
-        yield states + chatbots + [disable_btn] * 8
+        yield states + chatbots + [disable_btn] * sandbox_state0['btn_list_length']
         if stop:
             break
 
 
 def flash_buttons():
     btn_updates = [
-        [disable_btn] * 4 + [enable_btn] * 4,
-        [enable_btn] * 8,
+        [disable_btn] * 11,
+        [enable_btn] * 11,
     ]
     for i in range(4):
         yield btn_updates[i % 2]
-        time.sleep(0.3)
+        time.sleep(0.2)
 
 
 def build_side_by_side_ui_named(models):

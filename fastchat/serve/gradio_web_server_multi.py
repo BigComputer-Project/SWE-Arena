@@ -164,6 +164,7 @@ window.__gradio_mode__ = "app";
                         context,
                         random_questions=args.random_questions,
                     )
+
                 with gr.Tab("⚔️ Arena (side-by-side)", id=1) as side_by_side_tab:
                     side_by_side_tab.select(None, None, None)
                     side_by_side_named_list = build_side_by_side_vision_ui_named(
@@ -177,7 +178,6 @@ window.__gradio_mode__ = "app";
                         add_promotion_links=True,
                         random_questions=args.random_questions,
                     )
-
             else:
                 with gr.Tab("⚔️ Arena (battle)", id=0) as arena_tab:
                     arena_tab.select(None, None, None, js=load_js)
