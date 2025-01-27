@@ -16,6 +16,8 @@ import gradio as gr
 from gradio.data_classes import FileData
 import numpy as np
 
+from gradio_sandboxcomponent import SandboxComponent
+
 from fastchat.constants import (
     LOGDIR,
     TEXT_MODERATION_MSG,
@@ -31,17 +33,21 @@ from fastchat.model.model_adapter import (
 )
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.gradio_web_server import (
+    clear_sandbox_components,
     get_model_description_md,
-    acknowledgment_md,
+    acknowledgment_md, # reuse the acknowledgment_md from gradio_web_server
     bot_response,
     get_ip,
     disable_btn,
     State,
     get_conv_log_filename,
     get_remote_logger,
+    set_chat_system_messages,
+    update_system_prompt,
 )
-from fastchat.serve.sandbox.sandbox_telemetry import upload_conv_log_to_azure_storage
+from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, upload_conv_log_to_azure_storage
 from fastchat.serve.vision.image import ImageFormat, Image
+from fastchat.serve.sandbox.code_runner import SandboxEnvironment, SandboxGradioSandboxComponents, DEFAULT_SANDBOX_INSTRUCTIONS, RUN_CODE_BUTTON_HTML, ChatbotSandboxState, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, update_sandbox_config, update_sandbox_state_system_prompt
 from fastchat.utils import (
     build_logger,
     moderation_filter,
@@ -68,12 +74,7 @@ visible_text = gr.Textbox(
 )
 disable_multimodal = gr.MultimodalTextbox(visible=False, value=None, interactive=False)
 
-
-def get_vqa_sample():
-    random_sample = np.random.choice(vqa_samples)
-    question, path = random_sample["question"], random_sample["path"]
-    res = {"text": "", "files": [path]}
-    return (res, path)
+USER_BUTTONS_LENGTH = 6
 
 
 def set_visible_image(textbox):
@@ -112,7 +113,7 @@ def vote_last_response(state, vote_type, model_selector, request: gr.Request):
         }
         fout.write(json.dumps(data) + "\n")
     get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data))
+    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + '\n')
 
 
 def upvote_last_response(state, model_selector, request: gr.Request):
@@ -136,32 +137,69 @@ def flag_last_response(state, model_selector, request: gr.Request):
     return (None,) + (disable_btn,) * 3
 
 
-def regenerate(state, request: gr.Request):
+def regenerate(state: State, sandbox_state: ChatbotSandboxState, request: gr.Request):
+    '''
+    Regenerate the chatbot response.
+
+        regenerate,
+        state,
+        [state, chatbot, textbox] + user_buttons
+
+        user_buttons: list[gr.Button] = [
+            # send button
+            send_btn,
+            # regenerate button
+            regenerate_btn,
+            # vote buttons
+            upvote_btn, downvote_btn, flag_btn,
+            # clear button
+            clear_btn,
+        ]
+    '''
     ip = get_ip(request)
     logger.info(f"regenerate. ip: {ip}")
     if not state.regen_support:
+        # if the model does not support regeneration, skip
         state.skip_next = True
-        return (state, state.to_gradio_chatbot(), "", None) + (no_change_btn,) * 5
-    state.conv.update_last_message(None)
-    return (state, state.to_gradio_chatbot(), None) + (disable_btn,) * 5
+        return (state, state.to_gradio_chatbot()) + (None,) + (no_change_btn,) * sandbox_state["btn_list_length"]
+    else:
+        state.conv.update_last_message(None)
+        return (state, state.to_gradio_chatbot()) + (None,) + (disable_btn,) * sandbox_state["btn_list_length"]
 
 
-def clear_history(request: gr.Request):
+def clear_history(sandbox_state, request: gr.Request):
+    '''
+    Clear the conversation history and reset the state.
+
+        clear_history,
+        sandbox_state,
+        [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
+
+        user_buttons: list[gr.Button] = [
+            # send button
+            send_btn,
+            # regenerate button
+            regenerate_btn,
+            # vote buttons
+            upvote_btn, downvote_btn, flag_btn,
+            # clear button
+            clear_btn,
+        ]
+    '''
     ip = get_ip(request)
     logger.info(f"clear_history. ip: {ip}")
-    state = None
-    return (state, [], enable_multimodal, invisible_text, invisible_btn) + (
-        disable_btn,
-    ) * 5
 
-
-def clear_history_example(request: gr.Request):
-    ip = get_ip(request)
-    logger.info(f"clear_history_example. ip: {ip}")
+    # reset chatbot state
     state = None
-    return (state, [], enable_multimodal, invisible_text, invisible_btn) + (
-        disable_btn,
-    ) * 5
+    # reset sandbox state
+    sandbox_state = reset_sandbox_state(sandbox_state)
+
+    return (
+        (None, None, sandbox_state)
+        + (enable_multimodal, invisible_text)
+        + (enable_btn,)
+        + (invisible_btn,) * 5 # disable buttons
+    )
 
 
 # TODO(Chris): At some point, we would like this to be a live-reporting feature.
@@ -220,107 +258,121 @@ def moderate_input(state, text, all_conv_text, model_list, images, ip):
 
 
 def add_text(
-    state,
-    model_selector,
-    chat_input: Union[str, dict],
+    state: State,
+    model_selector: str, # the selected model name
+    sandbox_state: ChatbotSandboxState, # the sandbox state
+    multimodal_input: dict, text_input: str,
     context: Context,
     request: gr.Request,
 ):
-    if isinstance(chat_input, dict):
-        text, images = chat_input["text"], chat_input["files"]
-    else:
-        text, images = chat_input, []
+    '''
+    Add text to the chatbot state and update the chatbot UI.
 
+        add_text,
+        [state, model_selector, sandbox_state] + [multimodal_textbox, textbox], + [context_state],
+        [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
+    '''
+    if multimodal_input and multimodal_input["text"]:
+        text, images = multimodal_input["text"], multimodal_input["files"]
+    else:
+        text = text_input
+        images = []
+
+    # whether need vision models
+    is_vision = len(images) > 0
+
+    # check whether selected model is valid
+    if model_selector not in context.text_models and model_selector not in context.vision_models:
+        gr.Warning(f"Selected model '{model_selector}' is invalid. Please select a valid model.")
+        return (state, None, sandbox_state) + (None, "") + (no_change_btn,) * sandbox_state["btn_list_length"]
+
+    # check whether selected model supports vision
     if (
-        len(images) > 0
+        is_vision
         and model_selector in context.text_models
         and model_selector not in context.vision_models
     ):
-        gr.Warning(f"{model_selector} is a text-only model. Image is ignored.")
+        gr.Warning(f"Selected model '{model_selector}' is a text-only model. Image is ignored.")
         images = []
+        is_vision = False
 
     ip = get_ip(request)
     logger.info(f"add_text. ip: {ip}. len: {len(text)}")
 
+    # init chatbot state if not exist
     if state is None:
-        if len(images) == 0:
-            state = State(model_selector, is_vision=False)
-        else:
-            state = State(model_selector, is_vision=True)
+        state = State(model_selector, is_vision=is_vision)
 
-    if len(text) <= 0:
+    if len(text) == 0:
+        # skip empty text
         state.skip_next = True
-        return (state, state.to_gradio_chatbot(), None, "", no_change_btn) + (
-            no_change_btn,
-        ) * 5
+        # [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
+        return (
+            (state, state.to_gradio_chatbot(), sandbox_state)
+            + (None, "")
+            + (no_change_btn,) * sandbox_state["btn_list_length"]
+        )
 
     all_conv_text = state.conv.get_prompt()
     all_conv_text = all_conv_text[-2000:] + "\nuser: " + text
 
     images = convert_images_to_conversation_format(images)
 
-    text, image_flagged, csam_flag = moderate_input(
-        state, text, all_conv_text, [state.model_name], images, ip
-    )
-
-    if image_flagged:
-        logger.info(f"image flagged. ip: {ip}. text: {text}")
-        state.skip_next = True
-        return (
-            state,
-            state.to_gradio_chatbot(),
-            {"text": IMAGE_MODERATION_MSG},
-            "",
-            no_change_btn,
-        ) + (no_change_btn,) * 5
+    # TODO: Skip image moderation for now
+    # text, image_flagged, csam_flag = moderate_input(
+    #     state0, text, text, model_list, images, ip
+    # )
+    image_flagged, csam_flag = None, None
+    # if image_flagged:
+    #     logger.info(f"image flagged. ip: {ip}. text: {text}")
+    #     state.skip_next = True
+    #     return (
+    #         state,
+    #         state.to_gradio_chatbot(),
+    #         {"text": IMAGE_MODERATION_MSG},
+    #         "",
+    #         no_change_btn,
+    #     ) + (no_change_btn,) * 5
 
     if (len(state.conv.messages) - state.conv.offset) // 2 >= CONVERSATION_TURN_LIMIT:
         logger.info(f"conversation turn limit. ip: {ip}. text: {text}")
         state.skip_next = True
+        # [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
         return (
-            state,
-            state.to_gradio_chatbot(),
-            {"text": CONVERSATION_LIMIT_MSG},
-            "",
-            no_change_btn,
-        ) + (no_change_btn,) * 5
+            (state, state.to_gradio_chatbot(), sandbox_state)
+            + ({"text": CONVERSATION_LIMIT_MSG}, "")
+            + (no_change_btn,) * sandbox_state["btn_list_length"]
+        )
 
     text = text[:INPUT_CHAR_LEN_LIMIT]  # Hard cut-off
     text = _prepare_text_with_image(state, text, images, csam_flag=csam_flag)
     state.conv.append_message(state.conv.roles[0], text)
     state.conv.append_message(state.conv.roles[1], None)
+
+    sandbox_state['enabled_round'] += 1 
+    # [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
     return (
-        state,
-        state.to_gradio_chatbot(),
-        disable_multimodal,
-        visible_text,
-        enable_btn,
-    ) + (disable_btn,) * 5
+        (state, state.to_gradio_chatbot(), sandbox_state)
+        + (disable_multimodal, visible_text)
+        + (disable_btn,) * sandbox_state["btn_list_length"]
+    )
 
 
 def build_single_vision_language_model_ui(
     context: Context, add_promotion_links=False, random_questions=None
 ):
-    promotion = (
-        f"""
-[Blog](https://blog.lmarena.ai/blog/2023/arena/) | [GitHub](https://github.com/lm-sys/FastChat) | [Paper](https://arxiv.org/abs/2403.04132) | [Dataset](https://github.com/lm-sys/FastChat/blob/main/docs/dataset_release.md) | [Twitter](https://twitter.com/lmsysorg) | [Discord](https://discord.gg/6GXcFg3TH8) | [Kaggle Competition](https://www.kaggle.com/competitions/lmsys-chatbot-arena)
-
-{SURVEY_LINK}
-
-**❗️ For research purposes, we log user prompts and images, and may release this data to the public in the future. Please do not upload any confidential or personal information.**
-
-Note: You can only chat with <span style='color: #DE3163; font-weight: bold'>one image per conversation</span>. You can upload images less than 15MB. Click the "Random Example" button to chat with a random image."""
-        if add_promotion_links
-        else ""
-    )
 
     notice_markdown = f"""
-# 🏔️ SWE Arena: Compare & Test Best AI Chatbots for Code
-{promotion}
+## How It Works
+- **Named Test**: Chat with the selected AI chatbot and give it a prompt or task (e.g., build a web app, create a visualization, design an interface).
+- **Run & Interact**: The AI chatbots generate programs that run in a secure sandbox environment. Test the functionality, explore the features, and evaluate the quality of the outputs.
+- **Visual Input**: Upload images or provide text prompts to guide the AI chatbots in their responses. You can only chat with <span style='color: #DE3163; font-weight: bold'>one image per conversation</span>. The image should be less than 15MB.
+- **Vote for the Best**: After interacting with programs, vote for whether it meets your requirements or provides the superior experience.
+
+**❗️ For research purposes, we log user prompts, images, and interactions with sandbox, and may release this data to the public in the future. Please do not upload any confidential or personal information.**
 """
 
     state = gr.State()
-    gr.Markdown(notice_markdown, elem_id="notice_markdown")
     vision_not_in_text_models = [
         model for model in context.vision_models if model not in context.text_models
     ]
@@ -370,34 +422,204 @@ Note: You can only chat with <span style='color: #DE3163; font-weight: bold'>one
     with gr.Row():
         textbox = gr.Textbox(
             show_label=False,
-            placeholder="👉 Enter your prompt and press ENTER",
+            placeholder="👉 Input your prompt here. Press Enter to send.",
             elem_id="input_box",
             visible=False,
-        )
-
-        send_btn = gr.Button(
-            value="Send", variant="primary", scale=0, visible=False, interactive=False
+            scale=3,
         )
 
         multimodal_textbox = gr.MultimodalTextbox(
             file_types=["image"],
             show_label=False,
-            placeholder="Enter your prompt or add image here",
             container=True,
+            placeholder="Input your prompt or add image here. Press Enter to send.",
             elem_id="input_box",
+            scale=3,
+            submit_btn=False,
+            stop_btn=False,
         )
 
+    with gr.Row() as examples_row:
+        example_prompts = gr.Examples(
+            examples = [
+                ["Write a Python script that uses the Gradio library to create a functional calculator. The calculator should support basic arithmetic operations: addition, subtraction, multiplication, and division. It should have two input fields for numbers and a dropdown menu to select the operation."],
+                ["Write a Todo list app using React.js. The app should allow users to add, delete, and mark tasks as completed. Include features like filtering tasks by status (completed, active), sorting tasks by priority, and displaying the total number of tasks."],
+                ["Write a Python script using the Streamlit library to create a web application for uploading and displaying files. The app should allow users to upload files of type .csv or .txt. If a .csv file is uploaded, display its contents as a table using Streamlit's st.dataframe() method. If a .txt file is uploaded, display its content as plain text."],
+                ["Write a Python function to solve the Trapping Rain Water problem. The function should take a list of non-negative integers representing the height of bars in a histogram and return the total amount of water trapped between the bars after raining. Use an efficient algorithm with a time complexity of O(n)."],
+                ["Create a simple Pygame script for a game where the player controls a bouncing ball that changes direction when it collides with the edges of the window. Add functionality for the player to control a paddle using arrow keys, aiming to keep the ball from touching the bottom of the screen. Include basic collision detection and a scoring system that increases as the ball bounces off the paddle."],
+                ["Create a financial management Dashboard using Vue.js, focusing on local data handling without APIs. Include features like a clean dashboard for tracking income and expenses, dynamic charts for visualizing finances, and a budget planner. Implement functionalities for adding, editing, and deleting transactions, as well as filtering by date or category. Ensure responsive design and smooth user interaction for an intuitive experience."],
+                ["Create a Mermaid diagram to visualize a flowchart of a user login process. Include the following steps: User enters login credentials; Credentials are validated; If valid, the user is directed to the dashboard; If invalid, an error message is shown, and the user can retry or reset the password."],
+            ],
+            example_labels=[
+                "Calculator with Gradio",
+                "Todo List App with React.js",
+                "File Upload Web App with Streamlit",
+                "Solve Trapping Rain Water Problem",
+                "Pygame Bouncing Ball Game",
+                "Financial Dashboard with Vue.js",
+                "User Login Process Flowchart",
+            ],
+            examples_per_page=10,
+            label="Example Prompts",
+            inputs = [multimodal_textbox],
+        )
+
+    # sandbox states and components
+    sandbox_state = None # state for each chatbot
+    sandboxes_components: list[SandboxGradioSandboxComponents] = [] # components for each chatbot
+    sandbox_title = None
+    sandbox_hidden_components = []
+
+     # chatbot sandbox
+    with gr.Group():
+        # chatbot sandbox config
+        with gr.Row():
+            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (Predefined system prompt)", interactive=True, visible=True)
+        
+            with gr.Accordion("System Prompt (Click to edit!)", open=False) as system_prompt_accordion:
+                system_prompt_textbox = gr.Textbox(
+                    value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
+                    show_label=False,
+                    lines=15,
+                    placeholder="Edit system prompt here",
+                    interactive=True,
+                    elem_id="system_prompt_box"
+                )
+
+        with gr.Group():
+            with gr.Accordion("Sandbox & Output", open=True, visible=True) as sandbox_instruction_accordion:
+                with gr.Group(visible=True) as sandbox_group:
+                    sandbox_hidden_components.append(sandbox_group)
+                    with gr.Row(visible=True) as sandbox_row:
+                        sandbox_hidden_components.append(sandbox_row)
+                        with gr.Column(scale=1, visible=True) as column:
+                            sandbox_state = gr.State(create_chatbot_sandbox_state(btn_list_length=USER_BUTTONS_LENGTH))
+                            # Add containers for the sandbox output
+                            sandbox_title = gr.Markdown(
+                                value=f"### Model Sandbox",
+                                visible=True
+                            )
+                            sandbox_title = sandbox_title
+
+                            with gr.Tab(label="Output", visible=True) as sandbox_output_tab:
+                                sandbox_output = gr.Markdown(value="", visible=True)
+                                sandbox_ui = SandboxComponent(
+                                    value=('', False, []),
+                                    show_label=True,
+                                    visible=True,
+                                )
+
+                            # log sandbox telemetry
+                            sandbox_ui.change(
+                                fn=log_sandbox_telemetry_gradio_fn,
+                                inputs=[sandbox_state, sandbox_ui],
+                            )
+
+                            with gr.Tab(label="Code", visible=True) as sandbox_code_tab:
+                                sandbox_code = gr.Code(
+                                    value="",
+                                    interactive=True, # allow user edit
+                                    visible=False,
+                                    label='Sandbox Code',
+                                )
+                                with gr.Row():
+                                    sandbox_code_submit_btn = gr.Button(value="Apply Changes", visible=True, interactive=True, variant='primary', size='sm')
+
+                            with gr.Tab(
+                                label="Dependency", visible=True
+                            ) as sandbox_dependency_tab:
+                                sandbox_dependency = gr.Dataframe(
+                                    headers=["Type", "Package", "Version"],
+                                    datatype=["str", "str", "str"],
+                                    col_count=(3, "fixed"),
+                                    interactive=True,
+                                    visible=False,
+                                    wrap=True,  # Enable text wrapping
+                                    max_height=200,
+                                    type="array",  # Add this line to fix the error
+                                )
+                                with gr.Row():
+                                    dependency_submit_btn = gr.Button(
+                                        value="Apply Changes",
+                                        visible=True,
+                                        interactive=True,
+                                        variant='primary',
+                                        size='sm'
+                                    )
+                                dependency_submit_btn.click(
+                                    fn=on_edit_dependency,
+                                    inputs=[
+                                        state,
+                                        sandbox_state,
+                                        sandbox_dependency,
+                                        sandbox_output,
+                                        sandbox_ui,
+                                        sandbox_code,
+                                    ],
+                                    outputs=[
+                                        sandbox_output,
+                                        sandbox_ui,
+                                        sandbox_code,
+                                        sandbox_dependency,
+                                    ],
+                                )
+                            # run code when click apply changes
+                            sandbox_code_submit_btn.click(
+                                fn=on_edit_code,
+                                inputs=[
+                                    state,
+                                    sandbox_state,
+                                    sandbox_output,
+                                    sandbox_ui,
+                                    sandbox_code,
+                                    sandbox_dependency,
+                                ],
+                                outputs=[
+                                    sandbox_output,
+                                    sandbox_ui,
+                                    sandbox_code,
+                                    sandbox_dependency,
+                                ],
+                            )
+
+                            sandboxes_components.append(
+                                (
+                                    sandbox_output,
+                                    sandbox_ui,
+                                    sandbox_code,
+                                    sandbox_dependency,
+                                )
+                            )
+                            sandbox_hidden_components.extend(
+                                [
+                                    column,
+                                    sandbox_title,
+                                    sandbox_output_tab,
+                                    sandbox_code_tab,
+                                    sandbox_dependency_tab,
+                                ]
+                            )
+
+    with gr.Row():
+        send_btn = gr.Button(
+            value="⬆️  Send",
+            variant="primary",
+        )
+        regenerate_btn = gr.Button(
+            value="🔄  Regenerate",
+            interactive=False,
+            visible=False
+        )
+
+
     with gr.Row(elem_id="buttons"):
-        if random_questions:
-            global vqa_samples
-            with open(random_questions, "r") as f:
-                vqa_samples = json.load(f)
-            random_btn = gr.Button(value="🎲 Random Example", interactive=True)
         upvote_btn = gr.Button(value="👍  Upvote", interactive=False)
         downvote_btn = gr.Button(value="👎  Downvote", interactive=False)
         flag_btn = gr.Button(value="⚠️  Flag", interactive=False)
-        regenerate_btn = gr.Button(value="🔄  Regenerate", interactive=False)
-        clear_btn = gr.Button(value="🗑️  Clear", interactive=False)
+
+    with gr.Row():
+        clear_btn = gr.Button(value="🎲 New Round", interactive=False)
+        share_btn = gr.Button(value="📷  Share")
 
     with gr.Accordion("Parameters", open=False) as parameter_row:
         temperature = gr.Slider(
@@ -418,18 +640,44 @@ Note: You can only chat with <span style='color: #DE3163; font-weight: bold'>one
         )
         max_output_tokens = gr.Slider(
             minimum=0,
-            maximum=2048,
-            value=1024,
+            maximum=4096,
+            value=2048,
             step=64,
             interactive=True,
             label="Max output tokens",
         )
 
-    if add_promotion_links:
-        gr.Markdown(acknowledgment_md, elem_id="ack_markdown")
+    # Notice
+    gr.Markdown(notice_markdown, elem_id="notice_markdown")
+    # Model descriptions
+    gr.Markdown("## Supported Models")            
+    with gr.Accordion(
+        f"🔍 Expand to see the descriptions of {len(text_and_vision_models)} models",
+        open=False,
+    ):
+        model_description_md = get_model_description_md(
+            text_and_vision_models
+        )
+        gr.Markdown(
+            model_description_md, elem_id="model_description_markdown"
+        )
+    # Ack
+    gr.Markdown(acknowledgment_md, elem_id="ack_markdown")
 
     # Register listeners
-    btn_list = [upvote_btn, downvote_btn, flag_btn, regenerate_btn, clear_btn]
+
+    # list of user buttons
+    user_buttons: list[gr.Button] = [
+        # send button
+        send_btn,
+        # regenerate button
+        regenerate_btn,
+        # vote buttons
+        upvote_btn, downvote_btn, flag_btn,
+        # clear button
+        clear_btn,
+    ] # 6 buttons, USER_BUTTONS_LENGTH
+
     upvote_btn.click(
         upvote_last_response,
         [state, model_selector],
@@ -445,70 +693,181 @@ Note: You can only chat with <span style='color: #DE3163; font-weight: bold'>one
         [state, model_selector],
         [textbox, upvote_btn, downvote_btn, flag_btn],
     )
-    regenerate_btn.click(regenerate, state, [state, chatbot, textbox] + btn_list).then(
+    regenerate_btn.click(
+        regenerate,
+        [state, sandbox_state],
+        [state, chatbot, textbox] + user_buttons
+    ).then(
         bot_response,
-        [state, temperature, top_p, max_output_tokens],
-        [state, chatbot] + btn_list,
+        [state, temperature, top_p, max_output_tokens, sandbox_state],
+        [state, chatbot] + user_buttons,
     )
     clear_btn.click(
-        clear_history,
-        None,
-        [state, chatbot, multimodal_textbox, textbox, send_btn] + btn_list,
+      clear_history,
+        sandbox_state,
+        [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
+    ).then(
+        # clear existing sandbox components
+        clear_sandbox_components,
+        inputs=[sandbox_output, sandbox_ui, sandbox_code],
+        outputs=[sandbox_output, sandbox_ui, sandbox_code]
+    ).then(
+        # reset env and system prompt
+        lambda: (
+            gr.update(interactive=True, value=SandboxEnvironment.AUTO),
+            gr.update(interactive=True, value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO])
+        ),
+        outputs=[sandbox_env_choice, system_prompt_textbox]
+    ).then(
+        lambda: gr.update(visible=True),
+        inputs=None,
+        outputs=examples_row
     )
 
     model_selector.change(
         clear_history,
-        None,
-        [state, chatbot, multimodal_textbox, textbox, send_btn] + btn_list,
-    ).then(set_visible_image, [multimodal_textbox], [image_column])
-
-    multimodal_textbox.input(add_image, [multimodal_textbox], [imagebox]).then(
+        sandbox_state,
+        [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
+    ).then(
         set_visible_image, [multimodal_textbox], [image_column]
     ).then(
-        clear_history_example,
-        None,
-        [state, chatbot, multimodal_textbox, textbox, send_btn] + btn_list,
+        clear_sandbox_components,
+        inputs=[sandbox_output, sandbox_ui, sandbox_code],
+        outputs=[sandbox_output, sandbox_ui, sandbox_code]
+    ).then(
+        # enable env and prompt edit
+        fn=lambda: [
+            gr.update(interactive=True),
+            gr.update(interactive=True)
+        ],
+        outputs=[system_prompt_textbox, sandbox_env_choice]
+    )
+
+    multimodal_textbox.input(
+        add_image, [multimodal_textbox], [imagebox]
+    ).then(
+        set_visible_image, [multimodal_textbox], [image_column]
     )
 
     multimodal_textbox.submit(
+        update_system_prompt,
+        inputs=[system_prompt_textbox, sandbox_state],
+        outputs=[sandbox_state]
+    ).then(
         add_text,
-        [state, model_selector, multimodal_textbox, context_state],
-        [state, chatbot, multimodal_textbox, textbox, send_btn] + btn_list,
-    ).then(set_invisible_image, [], [image_column]).then(
+        [state, model_selector, sandbox_state] + [multimodal_textbox, textbox] + [context_state],
+        [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
+    ).then(
+        set_invisible_image, [], [image_column]
+    ).then(
+        set_chat_system_messages,
+        inputs=[state, sandbox_state, model_selector],
+        outputs=[state, chatbot, system_prompt_textbox]
+    ).then(
+        # hide examples
+        lambda sandbox_state: gr.update(visible=sandbox_state['enabled_round'] == 0),
+        inputs=sandbox_state,
+        outputs=examples_row
+    ).then(
+        # disable env and prompt change
+        lambda sandbox_state: (gr.update(interactive=sandbox_state['enabled_round'] == 0),) * 2,
+        inputs=sandbox_state,
+        outputs=[sandbox_env_choice, system_prompt_textbox]
+    ).then(
         bot_response,
-        [state, temperature, top_p, max_output_tokens],
-        [state, chatbot] + btn_list,
+        [state, temperature, top_p, max_output_tokens, sandbox_state],
+        [state, chatbot] + user_buttons,
     )
 
     textbox.submit(
+        update_system_prompt,
+        inputs=[system_prompt_textbox, sandbox_state],
+        outputs=[sandbox_state]
+    ).then(
         add_text,
-        [state, model_selector, textbox, context_state],
-        [state, chatbot, multimodal_textbox, textbox, send_btn] + btn_list,
-    ).then(set_invisible_image, [], [image_column]).then(
+        [state, model_selector, sandbox_state] + [multimodal_textbox, textbox] + [context_state],
+        [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
+    ).then(
+        set_chat_system_messages,
+        [state, sandbox_state, model_selector],
+        [state, chatbot]
+    ).then(
+        set_invisible_image, [], [image_column]
+    ).then(
+        # hide examples
+        lambda sandbox_state: gr.update(visible=sandbox_state['enabled_round'] == 0),
+        inputs=sandbox_state,
+        outputs=examples_row
+    ).then(
+        # disable env and prompt change
+        lambda sandbox_state: (gr.update(interactive=sandbox_state['enabled_round'] == 0),) * 2,
+        inputs=sandbox_state,
+        outputs=[sandbox_env_choice, system_prompt_textbox]
+    ).then(
         bot_response,
-        [state, temperature, top_p, max_output_tokens],
-        [state, chatbot] + btn_list,
+        [state, temperature, top_p, max_output_tokens] + [sandbox_state],
+        [state, chatbot] + user_buttons,
     )
 
     send_btn.click(
+        update_system_prompt,
+        inputs=[system_prompt_textbox, sandbox_state],
+        outputs=[sandbox_state]
+    ).then(
         add_text,
-        [state, model_selector, textbox, context_state],
-        [state, chatbot, multimodal_textbox, textbox, send_btn] + btn_list,
-    ).then(set_invisible_image, [], [image_column]).then(
+        [state, model_selector, sandbox_state] + [multimodal_textbox, textbox] + [context_state],
+        [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
+    ).then(
+        set_invisible_image, [], [image_column]
+    ).then(
+        set_chat_system_messages,
+        [state, sandbox_state, model_selector],
+        [state, chatbot, system_prompt_textbox]
+    ).then(
+        # hide examples
+        lambda sandbox_state: gr.update(visible=sandbox_state['enabled_round'] == 0),
+        inputs=sandbox_state,
+        outputs=examples_row
+    ).then(
+        # disable env and prompt change
+        lambda sandbox_state: (gr.update(interactive=sandbox_state['enabled_round'] == 0),) * 2,
+        inputs=sandbox_state,
+        outputs=[sandbox_env_choice, system_prompt_textbox]
+    ).then(
         bot_response,
-        [state, temperature, top_p, max_output_tokens],
-        [state, chatbot] + btn_list,
+        [state, temperature, top_p, max_output_tokens, sandbox_state],
+        [state, chatbot] + user_buttons,
     )
 
-    if random_questions:
-        random_btn.click(
-            get_vqa_sample,  # First, get the VQA sample
-            [],  # Pass the path to the VQA samples
-            [multimodal_textbox, imagebox],  # Outputs are textbox and imagebox
-        ).then(set_visible_image, [multimodal_textbox], [image_column]).then(
-            clear_history_example,
-            None,
-            [state, chatbot, multimodal_textbox, textbox, send_btn] + btn_list,
-        )
+    sandbox_env_choice.change(
+        fn=update_sandbox_config,
+        inputs=[
+            gr.State(value=True),  # Always enabled
+            sandbox_env_choice,
+            sandbox_state
+        ],
+        outputs=[sandbox_state]
+    ).then(
+        # update system prompt when env choice changes
+        fn=lambda sandbox_state: gr.update(value=sandbox_state['sandbox_instruction']),
+        inputs=[sandbox_state],
+        outputs=[system_prompt_textbox]
+    )
+
+    # update system prompt when textbox changes
+    system_prompt_textbox.change(
+        # update sandbox state
+        fn=lambda system_prompt_textbox, sandbox_state: update_sandbox_state_system_prompt(sandbox_state, system_prompt_textbox),
+        inputs=[system_prompt_textbox, sandbox_state],
+        outputs=[sandbox_state]
+    )
+
+    # trigger sandbox run when click the code message
+    sandbox_components = sandboxes_components[0]
+    chatbot.select(
+        fn=on_click_code_message_run,
+        inputs=[state, sandbox_state, *sandbox_components],
+        outputs=[*sandbox_components]
+    )
 
     return [state, model_selector]
