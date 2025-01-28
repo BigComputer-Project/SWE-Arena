@@ -46,7 +46,7 @@ RUN uv pip install --system boto3 \
     six \
     fsspec \
     s3fs \
-    numpy \
+    numpy==1.26 \
     wheel \
     pip \
     cryptography \
