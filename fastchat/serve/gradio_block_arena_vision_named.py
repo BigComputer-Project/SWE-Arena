@@ -535,6 +535,10 @@ def build_side_by_side_vision_ui_named(context: Context, random_questions=None):
     with gr.Row() as examples_row:
         example_prompts = gr.Examples(
             examples = [
+                ["Write a script for a bouncing yellow ball within a sphere, make sure to handle collision detection properly. make the sphere slowly rotate. make sure ball stays within the sphere. Implement it in p5.js inside HTML."],
+                ["Write a Python script to scrape NVIDIA's stock price for the past month using the yfinance library. Clean the data and create an interactive visualization using Seaborn. Include: 1) A candlestick chart showing daily price movements 2) A line chart with 7-day and 30-day moving averages 3) Volume bars at the bottom. Add hover tooltips showing exact values and date. Make the layout professional with proper titles and axis labels."],
+                ["使用SVG绘制春节主题的图案，包括：1）一个红色的灯笼，带有金色的流苏 2）一个金色的福字，使用书法字体 3）背景添加一些烟花效果 4）在灯笼和福字周围添加一些祥云图案。确保图案布局美观，颜色搭配符合春节传统风格。"],
+                ["SVGを使用して日本の伝統的な和柄パターンを描画してください。1）波紋（さざなみ）模様 2）市松模様 3）麻の葉模様 4）雷文（らいもん）模様を含めてください。色は伝統的な日本の色（藍色、朱色、金色など）を使用し、レイアウトはバランスよく配置してください。"],
                 ["Write a Python script that uses the Gradio library to create a functional calculator. The calculator should support basic arithmetic operations: addition, subtraction, multiplication, and division. It should have two input fields for numbers and a dropdown menu to select the operation."],
                 ["Write a Todo list app using React.js. The app should allow users to add, delete, and mark tasks as completed. Include features like filtering tasks by status (completed, active), sorting tasks by priority, and displaying the total number of tasks."],
                 ["Write a Python script using the Streamlit library to create a web application for uploading and displaying files. The app should allow users to upload files of type .csv or .txt. If a .csv file is uploaded, display its contents as a table using Streamlit's st.dataframe() method. If a .txt file is uploaded, display its content as plain text."],
@@ -542,21 +546,25 @@ def build_side_by_side_vision_ui_named(context: Context, random_questions=None):
                 ["Create a simple Pygame script for a game where the player controls a bouncing ball that changes direction when it collides with the edges of the window. Add functionality for the player to control a paddle using arrow keys, aiming to keep the ball from touching the bottom of the screen. Include basic collision detection and a scoring system that increases as the ball bounces off the paddle."],
                 ["Create a financial management Dashboard using Vue.js, focusing on local data handling without APIs. Include features like a clean dashboard for tracking income and expenses, dynamic charts for visualizing finances, and a budget planner. Implement functionalities for adding, editing, and deleting transactions, as well as filtering by date or category. Ensure responsive design and smooth user interaction for an intuitive experience."],
                 ["Create a Mermaid diagram to visualize a flowchart of a user login process. Include the following steps: User enters login credentials; Credentials are validated; If valid, the user is directed to the dashboard; If invalid, an error message is shown, and the user can retry or reset the password."],
+                []
             ],
             example_labels=[
-                "Calculator with Gradio",
-                "Todo List App with React.js",
-                "File Upload Web App with Streamlit",
-                "Solve Trapping Rain Water Problem",
-                "Pygame Bouncing Ball Game",
-                "Financial Dashboard with Vue.js",
-                "User Login Process Flowchart",
+                "🎱 Bouncing Ball in a Sphere with P5.js",
+                "📈 NVIDIA Stock Analysis with Seaborn",
+                "🏮 春节主题SVG图案",
+                "🎎 日本の伝統的な和柄パターン",
+                "🧮 Calculator with Gradio",
+                "✅ Todo List App with React.js",
+                "📁 File Upload Web App with Streamlit",
+                "💧 Solve Trapping Rain Water Problem",
+                "🏀 Pygame Bouncing Ball Game",
+                "📊 Financial Dashboard with Vue.js",
+                "🔐 User Login Process Flowchart",
             ],
             examples_per_page=10,
             label="Example Prompts",
             inputs = [multimodal_textbox],
         )
-
 
     # sandbox states and components
     sandbox_states: list[gr.State] = [] # state for each chatbot
