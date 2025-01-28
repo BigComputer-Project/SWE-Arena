@@ -893,7 +893,7 @@ def build_about():
 
 We welcome contributors to enhance the platform and encourage feedback to improve its functionality and usability.
 
-## 💻 Supported Outputs
+## 💻 Support
 - Documents (Markdown or Plain Text)
 - Websites (single webpage)
 - Scalable Vector Graphics (SVG) images
@@ -903,6 +903,7 @@ We welcome contributors to enhance the platform and encourage feedback to improv
 - PyGame
 - Gradio/Streamlit interfaces
 - Mermaid diagrams
+- Python/JavaScrip/C/C++/Java/Rust/Golang Plain Code Runners
 - And more coming soon!
 
 ## Technical Implementation

@@ -12,7 +12,7 @@ import threading
 from httpcore import ReadTimeout
 import queue
 
-from .constants import E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT, SANDBOX_RETRY_COUNT, SANDBOX_TIMEOUT_SECONDS
+from .constants import E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT, SANDBOX_RETRY_COUNT, SANDBOX_TIMEOUT_SECONDS, INSTALLED_PYPI_PACKAGES
 
 
 def create_sandbox(template: str = SANDBOX_TEMPLATE_ID) -> Sandbox:
@@ -110,18 +110,19 @@ def install_pip_dependencies(sandbox: Sandbox, dependencies: list[str]) -> list[
     install_errors = []
     if not dependencies:
         return install_errors
-
+  
     for dependency in dependencies:
-        try:
-            sandbox.commands.run(
-                f"uv pip install --system {dependency}",
-                timeout=60 * 3,
-                on_stdout=lambda message: print(message),
-                on_stderr=lambda message: print(message),
-            )
-        except Exception as e:
-            install_errors.append(f"Error during installing pip package {dependency}: {str(e)}")
-            continue
+        if dependency not in INSTALLED_PYPI_PACKAGES:
+            try:
+                sandbox.commands.run(
+                    f"uv pip install --system {dependency}",
+                    timeout=60 * 3,
+                    on_stdout=lambda message: print(message),
+                    on_stderr=lambda message: print(message),
+                )
+            except Exception as e:
+                install_errors.append(f"Error during installing pip package {dependency}: {str(e)}")
+                continue
 
     return install_errors
 
