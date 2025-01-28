@@ -375,14 +375,14 @@ def build_single_vision_language_model_ui(
 ):
 
     notice_markdown = f"""
-## How It Works for Direct Mode
+## How It Works for Direct Chat Mode
 - **Choose Models**: Select an AI chatbot to chat with.
 - **Run & Interact**: The AI chatbots generate programs that run in a secure sandbox environment. Test the functionality, explore the features, and evaluate the quality of the outputs.
 - **Edit & Regenerate**: You can edit the <u>system prompt</u>, <u>code</u>, and its <u>dependency</u> and <u>regenerate the code</u> on any side.
 - **Visual Input**: Upload images or provide text prompts to guide the AI chatbots in their responses. You can only chat with <span style='color: #DE3163; font-weight: bold'>one image per conversation</span>. The image should be less than 15MB.
-- **Vote for the Best**: After interacting with both programs, vote for the one that best meets your requirements or provides the superior experience.
 
 ## Note
+- **Sandbox**: There are four buttons on the top right corner of the sandbox inference. You can use them to copy the link, turn on/off the black mode, make the sandbox full screen, and reload the sandbox. Plus, you can also drag the bottom right corner of the sandbox to resize the sandbox.
 - **Dependency Edit**: You can edit the <u>dependency</u> of the code on any side. Currently, we only support `pypi` and `npm` packages.
 For `pypi` packages, you can use the format `python (use '==', '>=', '<=', '~=', '>', '<' or 'latest') <package_name> <version>`.
 For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_name> <version>`.
@@ -471,7 +471,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
                 ["Write a Todo list app using React.js. The app should allow users to add, delete, and mark tasks as completed. Include features like filtering tasks by status (completed, active), sorting tasks by priority, and displaying the total number of tasks."],
                 ["Write a Python script using the Streamlit library to create a web application for uploading and displaying files. The app should allow users to upload files of type .csv or .txt. If a .csv file is uploaded, display its contents as a table using Streamlit's st.dataframe() method. If a .txt file is uploaded, display its content as plain text."],
                 ["Write a Python function to solve the Trapping Rain Water problem. The function should take a list of non-negative integers representing the height of bars in a histogram and return the total amount of water trapped between the bars after raining. Use an efficient algorithm with a time complexity of O(n)."],
-                ["Create a simple Pygame script for a game where the player controls a bouncing ball that changes direction when it collides with the edges of the window. Add functionality for the player to control a paddle using arrow keys, aiming to keep the ball from touching the bottom of the screen. Include basic collision detection and a scoring system that increases as the ball bounces off the paddle."],
+                ["Create a simple Pygame script for a game where the player controls a bouncing ball that changes direction when it collides with the edges of the window. Add functionality for the player to control a paddle using arrow keys, aiming to keep the ball from touching the bottom of the screen. Include basic collision detection and a scoring system that increases as the ball bounces off the paddle. You need to add clickable buttons to start the game, and reset the game."],
                 ["Create a financial management Dashboard using Vue.js, focusing on local data handling without APIs. Include features like a clean dashboard for tracking income and expenses, dynamic charts for visualizing finances, and a budget planner. Implement functionalities for adding, editing, and deleting transactions, as well as filtering by date or category. Ensure responsive design and smooth user interaction for an intuitive experience."],
                 ["Create a Mermaid diagram to visualize a flowchart of a user login process. Include the following steps: User enters login credentials; Credentials are validated; If valid, the user is directed to the dashboard; If invalid, an error message is shown, and the user can retry or reset the password."],
                 ["Write a Python function to calculate the Fibonacci sequence up to n numbers. Then write test cases to verify the function works correctly for edge cases like negative numbers, zero, and large inputs."],
@@ -479,7 +479,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
                 ["Develop a Streamlit app that takes a CSV file as input and provides: 1) Basic statistics about the data 2) Interactive visualizations using Plotly 3) A data cleaning interface with options to handle missing values 4) An option to download the cleaned data."],
                 ["Write an HTML page with embedded JavaScript that creates an interactive periodic table. Each element should display its properties on hover and allow filtering by category (metals, non-metals, etc.). Include a search bar to find elements by name or symbol."],
                 ["Here's a Python function that sorts a list of dictionaries by a specified key:\n\n```python\ndef sort_dicts(data, key):\n    return sorted(data, key=lambda x: x[key])\n```\n\nWrite test cases to verify the function works correctly for edge cases like empty lists, missing keys, and different data types. If you use unittest, please use `unittest.main(argv=['first-arg-is-ignored'], exit=False)` to run the tests."],
-                ["Create a React Native component for a fitness tracker that shows: 1) Daily step count 2) Calories burned 3) Distance walked 4) A progress bar for daily goals. Use React Native Charts Wrapper for visualizations and implement dark mode support."],
+                ["Create a React component for a fitness tracker that shows: 1) Daily step count 2) Calories burned 3) Distance walked 4) A progress bar for daily goals."],
                 ["Build a Vue.js dashboard for monitoring server health. Include: 1) Real-time CPU and memory usage graphs 2) Disk space visualization 3) Network activity monitor 4) Alerts for critical thresholds. Use Vue ChartJS for visualizations and WebSockets for real-time updates."],
                 ["Write a C program that calculates and prints the first 100 prime numbers in a formatted table with 10 numbers per row. Include a function to check if a number is prime and use it in your solution."],
                 ["Write a C++ program that implements a simple calculator using object-oriented programming. Create a Calculator class with methods for addition, subtraction, multiplication, and division. Include error handling for division by zero."],
@@ -509,7 +509,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
                 "📊 Streamlit Data Cleaning App",
                 "🧪 Interactive Periodic Table with React",
                 "✅ Dictionary Sorting Tests in Python",
-                "🏃‍♂️ React Native Fitness Tracker",
+                "🏃‍♂️ Fitness Tracker with React",
                 "🖥️ Vue Server Monitoring",
                 "🔢 Prime Numbers in C",
                 "🧮 OOP Calculator in C++",
