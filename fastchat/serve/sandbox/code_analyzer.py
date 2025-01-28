@@ -19,9 +19,6 @@ import re
 
 class SandboxEnvironment(StrEnum):
     AUTO = 'Auto'
-    # Code Interpreter
-    PYTHON_CODE_INTERPRETER = 'Python Code Interpreter'
-    JAVASCRIPT_CODE_INTERPRETER = 'Javascript Code Interpreter'
 
     # Web UI Frameworks
     HTML = 'HTML'
@@ -32,13 +29,17 @@ class SandboxEnvironment(StrEnum):
     PYGAME = 'PyGame'
     MERMAID = 'Mermaid'
 
-    # Code Runner
-    C_CODE_RUNNER = 'C Code Runner'
-    CPP_CODE_RUNNER = 'C++ Code Runner'
-    # CSHARP_CODE_RUNNER = 'C# Code Runner'
-    JAVA_CODE_RUNNER = 'Java Code Runner'
-    RUST_CODE_RUNNER = 'Rust Code Runner'
-    GOLANG_CODE_RUNNER = 'Golang Code Runner'
+    # Runner
+    PYTHON_RUNNER = 'Python Runner'
+    JAVASCRIPT_RUNNER = 'Javascript Runner'
+
+    # Compiler
+    C_RUNNER = 'C Runner'
+    CPP_RUNNER = 'C++ Runner'
+    # CSHARP_RUNNER = 'C# Runner'
+    JAVA_RUNNER = 'Java Runner'
+    RUST_RUNNER = 'Rust Runner'
+    GOLANG_RUNNER = 'Golang Runner'
 
 
 def extract_python_imports(code: str) -> list[str]:
@@ -262,7 +263,7 @@ def determine_python_environment(code: str, imports: list[str]) -> SandboxEnviro
     # elif 'nicegui' in imports:
     #     return SandboxEnvironment.NICEGUI
 
-    return SandboxEnvironment.PYTHON_CODE_INTERPRETER
+    return SandboxEnvironment.PYTHON_RUNNER
 
 
 def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironment | None:
@@ -363,7 +364,7 @@ def determine_jsts_environment(code: str, imports: list[str]) -> SandboxEnvironm
         print(f"Tree-sitter parsing error: {e}")
         pass
 
-    return SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER
+    return SandboxEnvironment.JAVASCRIPT_RUNNER
 
 
 def detect_js_ts_code_lang(code: str) -> str:
@@ -664,7 +665,7 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool = False) -> t
         npm_packages = extract_js_imports(main_code)
         sandbox_env_name = SandboxEnvironment.REACT
         main_code_lang = detect_js_ts_code_lang(main_code)
-    elif '<!DOCTYPE html>' in main_code or ('<head' in main_code and '<body' in main_code):
+    elif '<!DOCTYPE html>' in main_code or ('<head' in main_code and '<body' in main_code) or ('<svg' in main_code and '</svg>' in main_code):
         # For HTML files, extract both inline script dependencies and script tag dependencies
         npm_packages = extract_js_from_html_script_tags(main_code)
         sandbox_env_name = SandboxEnvironment.HTML
@@ -686,19 +687,19 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool = False) -> t
         sandbox_env_name = SandboxEnvironment.MERMAID
     elif matches_prefix(main_code_lang, cpp_prefixes):
         main_code_lang = 'cpp'
-        sandbox_env_name = SandboxEnvironment.CPP_CODE_RUNNER
+        sandbox_env_name = SandboxEnvironment.CPP_RUNNER
     elif matches_prefix(main_code_lang, go_prefixes):
         main_code_lang = 'go'
-        sandbox_env_name = SandboxEnvironment.GOLANG_CODE_RUNNER
+        sandbox_env_name = SandboxEnvironment.GOLANG_RUNNER
     elif matches_prefix(main_code_lang, java_prefixes):
         main_code_lang = 'java'
-        sandbox_env_name = SandboxEnvironment.JAVA_CODE_RUNNER
+        sandbox_env_name = SandboxEnvironment.JAVA_RUNNER
     elif matches_prefix(main_code_lang, rust_prefixes):
         main_code_lang = 'rust'
-        sandbox_env_name = SandboxEnvironment.RUST_CODE_RUNNER
+        sandbox_env_name = SandboxEnvironment.RUST_RUNNER
     elif main_code_lang == 'c':
         main_code_lang = 'c'
-        sandbox_env_name = sandbox_env_name = SandboxEnvironment.C_CODE_RUNNER
+        sandbox_env_name = sandbox_env_name = SandboxEnvironment.C_RUNNER
     else:
         sandbox_env_name = None
 
