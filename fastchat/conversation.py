@@ -56,10 +56,10 @@ class Conversation:
     system_message: str = ""
     system_message_vision: str = ""
     # The names of two roles
-    roles: Tuple[str] = ("USER", "ASSISTANT")
+    roles: Tuple[str, str] = ("USER", "ASSISTANT")
     # All messages. Each item is (role, message).
     # Each message is either a string or a tuple of (string, List[image_url]).
-    messages: List[List[str]] = ()
+    messages: List[List[str | None]] = ()
     # The number of few shot examples
     offset: int = 0
     # The separator style and configurations
@@ -347,11 +347,11 @@ class Conversation:
             return self.system_message_vision
         return self.system_message
 
-    def append_message(self, role: str, message: str):
+    def append_message(self, role: str, message: str | None):
         """Append a new message."""
         self.messages.append([role, message])
 
-    def update_last_message(self, message: str):
+    def update_last_message(self, message: str | None):
         """Update the last output.
 
         The last message is typically set to be None when constructing the prompt,
@@ -377,6 +377,17 @@ class Conversation:
 
                 ret.append([msg, None])
             else:
+                # convert msg from markdown to html
+                # if msg:
+                #     code_pattern = r'```(\w+)?\n(.*?)\n```'
+                #     code_matches = re.findall(code_pattern, msg, re.DOTALL)
+                #     for language, code in code_matches:
+                #         if language:
+                #             code_block = f'```{language}\n{code}\n```'
+                #         else:
+                #             code_block = f'```\n{code}\n```'
+                #         html_code = markdown.markdown(code_block, extensions=['fenced_code', 'codehilite'])
+                #         msg = msg.replace(code_block, '\n' + html_code + '\n')
                 ret[-1][-1] = msg
         return ret
 
@@ -610,7 +621,7 @@ class Conversation:
 
     def save_new_images(self, has_csam_images=False, use_remote_storage=False):
         import hashlib
-        from fastchat.constants import LOGDIR
+        from fastchat.serve.chat_state import LOCAL_LOG_DIR
         from fastchat.utils import load_image, upload_image_file_to_gcs
         from PIL import Image
 
@@ -633,7 +644,8 @@ class Conversation:
                     # NOTE(chris): If the URL were public, then we set it here so future model uses the link directly
                     # images[i] = image_url
                 else:
-                    filename = os.path.join(LOGDIR, filename)
+                    filename = os.path.join(LOCAL_LOG_DIR, filename)
+                    # TODO: Update the image path
                     if not os.path.isfile(filename):
                         os.makedirs(os.path.dirname(filename), exist_ok=True)
                         loaded_image.save(filename)
@@ -681,7 +693,7 @@ class Conversation:
             max_image_size_mb=self.max_image_size_mb,
         )
 
-    def dict(self):
+    def to_dict(self):
         return {
             "template_name": self.name,
             "system_message": self.system_message,

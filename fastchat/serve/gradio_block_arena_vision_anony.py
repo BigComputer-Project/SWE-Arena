@@ -3,7 +3,6 @@ Chatbot Arena (battle) tab.
 Users chat with two anonymous models.
 """
 
-import json
 import time
 
 import gradio as gr
@@ -13,7 +12,6 @@ from typing import Union
 
 from fastchat.constants import (
     INPUT_CHAR_LEN_LIMIT,
-    LOGDIR,
     TEXT_MODERATION_MSG,
     IMAGE_MODERATION_MSG,
     MODERATION_MSG,
@@ -24,11 +22,10 @@ from fastchat.constants import (
     SURVEY_LINK,
 )
 from fastchat.model.model_adapter import get_conversation_template
-from fastchat.serve.chat_state import ModelChatState
+from fastchat.serve.chat_state import LOCAL_LOG_DIR, ModelChatState, save_log_to_local
 from fastchat.serve.gradio_block_arena_named import flash_buttons, set_chat_system_messages_multi
 from fastchat.serve.gradio_web_server import (
     bot_response,
-    get_conv_log_filename,
     no_change_btn,
     enable_btn,
     disable_btn,
@@ -71,7 +68,7 @@ from fastchat.serve.model_sampling import (
     OUTAGE_MODELS,
 )
 from fastchat.serve.remote_logger import get_remote_logger
-from fastchat.serve.sandbox.sandbox_telemetry import upload_conv_log_to_azure_storage
+from fastchat.serve.sandbox.sandbox_telemetry import save_conv_log_to_azure_storage
 from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, ChatbotSandboxState, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, update_sandbox_config_multi, update_sandbox_state_system_prompt
 from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 from fastchat.utils import (
@@ -112,19 +109,14 @@ def vote_last_response(
     Return
         model_selectors + sandbox_titles + [textbox] + user_buttons
     '''
-    filename = get_conv_log_filename(states[0].is_vision, states[0].has_csam_image)
-
-    with open(filename, "a") as fout:
-        data = {
-            "tstamp": round(time.time(), 4),
-            "type": vote_type,
-            "models": [x for x in model_selectors],
-            "states": [x.dict() for x in states],
-            "ip": get_ip(request),
-        }
-        fout.write(json.dumps(data) + "\n")
-    get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + "\n")
+    for state in states:
+        local_filepath = state.get_conv_log_filepath(LOCAL_LOG_DIR)
+        log_data = state.generate_vote_record(
+            vote_type=vote_type, ip=get_ip(request)
+        )
+        save_log_to_local(log_data, local_filepath)
+        get_remote_logger().log(log_data)
+        save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
     gr.Info(
         "🎉 Thanks for voting! Your vote shapes the leaderboard, please vote RESPONSIBLY."
@@ -228,7 +220,7 @@ def bothbad_vote_last_response(
         yield x
 
 
-def regenerate_single(state, request: gr.Request):
+def regenerate_single(state: ModelChatState, request: gr.Request):
     '''
     Regenerate message for one side.
 
@@ -236,11 +228,10 @@ def regenerate_single(state, request: gr.Request):
         [state, chatbot, textbox] + user_buttons
     '''
     logger.info(f"regenerate. ip: {get_ip(request)}")
-    if state is None:
-        # if not init yet
-        return [None, None] + [None] + [no_change_btn] * USER_BUTTONS_LENGTH
-    elif state.regen_support:
+
+    if state.regen_support:
         state.conv.update_last_message(None)
+        state.set_response_type("regenerate_single")
         return (
             [state, state.to_gradio_chatbot()]
             + [None] # textbox
@@ -256,7 +247,7 @@ def regenerate_single(state, request: gr.Request):
         )
 
 
-def regenerate_multi(state0, state1, request: gr.Request):
+def regenerate_multi(state0: ModelChatState, state1: ModelChatState, request: gr.Request):
     '''
     Regenerate message for both sides.
     '''
@@ -266,6 +257,7 @@ def regenerate_multi(state0, state1, request: gr.Request):
     if state0.regen_support and state1.regen_support:
         for i in range(num_sides):
             states[i].conv.update_last_message(None)
+            states[i].set_response_type("regenerate_multi")
         return (
             states
             + [x.to_gradio_chatbot() for x in states]
@@ -415,6 +407,7 @@ def add_text_single(
     state.conv.append_message(state.conv.roles[0], post_processed_text)
     state.conv.append_message(state.conv.roles[1], None)
     state.skip_next = False
+    state.set_response_type("chat_single")
 
     hint_msg = ""
     if "deluxe" in state.model_name:
@@ -490,10 +483,11 @@ def add_text_multi(
             SAMPLING_BOOST_MODELS,
         )
 
-        states = [
-            ModelChatState(model_left, is_vision=is_vision),
-            ModelChatState(model_right, is_vision=is_vision),
-        ]
+        states = ModelChatState.create_battle_chat_states(
+            model_left, model_right, chat_mode="battle_anony",
+            is_vision=is_vision
+        )
+        states = list(states) # tuple to list
 
     if len(text) <= 0:
         # skip if no text
@@ -583,6 +577,7 @@ def add_text_multi(
         states[i].conv.append_message(states[i].conv.roles[0], post_processed_text)
         states[i].conv.append_message(states[i].conv.roles[1], None)
         states[i].skip_next = False
+        states[i].set_response_type("chat_multi")
 
     hint_msg = ""
     for i in range(num_sides):

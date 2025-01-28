@@ -35,8 +35,6 @@ BLIND_MODE_INPUT_CHAR_LEN_LIMIT = int(
 CONVERSATION_TURN_LIMIT = 50
 # Session expiration time
 SESSION_EXPIRATION_TIME = 3600
-# The output dir of log files
-LOGDIR = os.getenv("LOGDIR", ".")
 # CPU Instruction Set Architecture
 CPU_ISA = os.getenv("CPU_ISA")
 

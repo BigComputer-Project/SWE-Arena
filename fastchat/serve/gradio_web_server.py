@@ -4,7 +4,6 @@ The gradio demo server for chatting with a single model.
 
 import argparse
 from collections import defaultdict
-import datetime
 import hashlib
 import json5
 import os
@@ -17,7 +16,6 @@ import gradio as gr
 import requests
 
 from fastchat.constants import (
-    LOGDIR,
     WORKER_API_TIMEOUT,
     ErrorCode,
     MODERATION_MSG,
@@ -31,12 +29,12 @@ from fastchat.constants import (
 )
 from fastchat.conversation import Conversation
 from fastchat.model.model_registry import get_model_info, model_info
-from fastchat.serve.chat_state import ModelChatState
+from fastchat.serve.chat_state import LOCAL_LOG_DIR, ModelChatState, save_log_to_local
 from fastchat.serve.api_provider import get_api_provider_stream_iter
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.remote_logger import get_remote_logger
 from fastchat.serve.sandbox.code_runner import SandboxGradioSandboxComponents, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, RUN_CODE_BUTTON_HTML, ChatbotSandboxState, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, reset_sandbox_state, update_sandbox_config, update_sandbox_state_system_prompt, update_visibility_for_single_model, on_edit_dependency
-from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, upload_conv_log_to_azure_storage
+from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, save_conv_log_to_azure_storage
 from fastchat.utils import (
     build_logger,
     get_window_url_params_js,
@@ -124,19 +122,6 @@ def set_global_vars(
     use_remote_storage = use_remote_storage_
 
 
-def get_conv_log_filename(is_vision=False, has_csam_image=False):
-    t = datetime.datetime.now()
-    conv_log_filename = f"{t.year}-{t.month:02d}-{t.day:02d}-conv.json"
-    if is_vision and not has_csam_image:
-        name = os.path.join(LOGDIR, f"vision-tmp-{conv_log_filename}")
-    elif is_vision and has_csam_image:
-        name = os.path.join(LOGDIR, f"vision-csam-{conv_log_filename}")
-    else:
-        name = os.path.join(LOGDIR, conv_log_filename)
-
-    return name
-
-
 def get_model_list(controller_url, register_api_endpoint_file, vision_arena: bool):
     global api_endpoint_info
 
@@ -217,22 +202,17 @@ def load_demo(url_params, request: gr.Request):
     return load_demo_single(models, url_params)
 
 
-def vote_last_response(state, vote_type, model_selector, request: gr.Request):
-    filename = get_conv_log_filename()
-    if "llava" in model_selector:
-        filename = filename.replace("2024", "vision-tmp-2024")
-
-    with open(filename, "a") as fout:
-        data = {
-            "tstamp": round(time.time(), 4),
-            "type": vote_type,
-            "model": model_selector,
-            "state": state.dict(),
-            "ip": get_ip(request),
-        }
-        fout.write(json5.dumps(data) + "\n")
-    get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json5.dumps(data))
+def vote_last_response(
+    state: ModelChatState,
+    vote_type,
+    model_selector: str,
+    request: gr.Request
+):
+    local_filepath = state.get_conv_log_filepath(LOCAL_LOG_DIR)
+    log_data = state.generate_vote_record(vote_type, get_ip(request))
+    get_remote_logger().log(log_data)
+    save_log_to_local(log_data, local_filepath)
+    save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
 
 def upvote_last_response(state, model_selector, request: gr.Request):
@@ -348,7 +328,12 @@ def add_text(
 
     # init chatbot state if not exist
     if state is None:
-        state = ModelChatState(model_selector)
+        state = ModelChatState(
+            model_name=model_selector,
+            chat_mode="direct",
+            is_vision=False,
+            chat_session_id=None,
+        )
 
     if len(text) <= 0:
         state.skip_next = True
@@ -444,7 +429,7 @@ def is_limit_reached(model_name, ip):
 
 
 def bot_response(
-    state,
+    state: ModelChatState,
     temperature,
     top_p,
     max_new_tokens,
@@ -567,19 +552,19 @@ def bot_response(
     yield (state, state.to_gradio_chatbot()) + (disable_btn,) * (sandbox_state["btn_list_length"])
 
     try:
-        data = {"text": ""}
-        for i, data in enumerate(stream_iter):
-            if data["error_code"] == 0:
-                output = data["text"].strip()
+        log_data = {"text": ""}
+        for i, log_data in enumerate(stream_iter):
+            if log_data["error_code"] == 0:
+                output = log_data["text"].strip()
                 conv.update_last_message(output + "▌")
                 # conv.update_last_message(output + html_code)
                 yield (state, state.to_gradio_chatbot()) + (disable_btn,) * sandbox_state["btn_list_length"]
             else:
-                output = data["text"] + f"\n\n(error_code: {data['error_code']})"
+                output = log_data["text"] + f"\n\n(error_code: {log_data['error_code']})"
                 conv.update_last_message(output)
                 yield (state, state.to_gradio_chatbot()) + (disable_btn,) * (sandbox_state["btn_list_length"]-2) + (enable_btn, enable_btn)
                 return
-        output = data["text"].strip()
+        output = log_data["text"].strip()
         conv.update_last_message(output)
 
         # [CODE SANDBOX] Add a "Run in Sandbox" button to the last message if code is detected
@@ -607,35 +592,27 @@ def bot_response(
         yield (state, state.to_gradio_chatbot()) + (enable_btn,) * sandbox_state["btn_list_length"]
         return
 
-    finish_tstamp = time.time()
     logger.info(f"{output}")
 
     conv.save_new_images(
         has_csam_images=state.has_csam_image, use_remote_storage=use_remote_storage
     )
 
-    filename = get_conv_log_filename(
-        is_vision=state.is_vision, has_csam_image=state.has_csam_image
+    # Log the conversation
+    local_filepath = state.get_conv_log_filepath(LOCAL_LOG_DIR)
+    log_data = state.generate_response_record(
+        gen_params={
+            "temperature": temperature,
+            "top_p": top_p,
+            "max_new_tokens": max_new_tokens,
+        },
+        start_ts=start_tstamp,
+        end_ts=time.time(),
+        ip=get_ip(request),
     )
-
-    with open(filename, "a") as fout:
-        data = {
-            "tstamp": round(finish_tstamp, 4),
-            "type": "chat",
-            "model": model_name,
-            "gen_params": {
-                "temperature": temperature,
-                "top_p": top_p,
-                "max_new_tokens": max_new_tokens,
-            },
-            "start": round(start_tstamp, 4),
-            "finish": round(finish_tstamp, 4),
-            "state": state.dict(),
-            "ip": get_ip(request),
-        }
-        fout.write(json5.dumps(data) + "\n")
-    get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json5.dumps(data) + '\n')
+    get_remote_logger().log(log_data)
+    save_log_to_local(log_data, local_filepath)
+    save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
 
 block_css = """
