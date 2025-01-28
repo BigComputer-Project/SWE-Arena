@@ -147,7 +147,7 @@ window.__gradio_mode__ = "app";
 <h2 style="text-align:center;">
     ⚔️ SWE Arena: Compare & Test Best AI Chatbots for Code
     <br>
-    <a href="https://bigcomputer-project.github.io/blog/swe-arena.html" target="_blank"><u>Website</u></a> | <a href="https://x.com/BigComProject" target="_blank"><u>X</u></a>
+    <a href="https://bigcomputer-project.github.io/blog/swe-arena.html" target="_blank"><u>Website</u></a> | <a href="https://x.com/BigComProject" target="_blank"><u>X</u></a> | <a href="https://discord.gg/auCweVA9hB" target="_blank"><u>Discord</u></a>
     <br>
     <br>
     <a href="https://forms.gle/md4jQ7VGPMNQUExp9" target="_blank"

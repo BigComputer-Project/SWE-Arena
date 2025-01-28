@@ -623,7 +623,7 @@ def build_side_by_side_ui_anony(models):
     with gr.Group():
         # chatbot sandbox config
         with gr.Row():
-            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (Predefined system prompt)", interactive=True, visible=True)
+            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (Click to select!)", interactive=True, visible=True)
         
             with gr.Accordion("System Prompt (Click to edit!)", open=False) as system_prompt_accordion:
                 system_prompt_textbox = gr.Textbox(
@@ -665,7 +665,7 @@ def build_side_by_side_ui_anony(models):
                                     inputs=[sandbox_state, sandbox_ui],
                                 )
 
-                                with gr.Tab(label="Code", visible=True) as sandbox_code_tab:
+                                with gr.Tab(label="Code Editor", visible=True) as sandbox_code_tab:
                                     sandbox_code = gr.Code(
                                         value="",
                                         interactive=True, # allow user edit
@@ -676,7 +676,7 @@ def build_side_by_side_ui_anony(models):
                                         sandbox_code_submit_btn = gr.Button(value="Apply Changes", visible=True, interactive=True, variant='primary', size='sm')
 
                                 with gr.Tab(
-                                    label="Dependency", visible=True
+                                    label="Dependency Editor (Beta Mode)", visible=True
                                 ) as sandbox_dependency_tab:
                                     sandbox_dependency = gr.Dataframe(
                                         headers=["Type", "Package", "Version"],
@@ -792,7 +792,7 @@ def build_side_by_side_ui_anony(models):
             examples = [
                 ["Write a Python script that uses the Gradio library to create a functional calculator. The calculator should support basic arithmetic operations: addition, subtraction, multiplication, and division. It should have two input fields for numbers and a dropdown menu to select the operation.", SandboxEnvironment.GRADIO],
                 ["Write a Python script using the Streamlit library to create a web application for uploading and displaying files. The app should allow users to upload files of type .csv or .txt. If a .csv file is uploaded, display its contents as a table using Streamlit's st.dataframe() method. If a .txt file is uploaded, display its content as plain text.", SandboxEnvironment.STREAMLIT],
-                ["Write a Python function to solve the Trapping Rain Water problem. The function should take a list of non-negative integers representing the height of bars in a histogram and return the total amount of water trapped between the bars after raining. Use an efficient algorithm with a time complexity of O(n).",SandboxEnvironment.PYTHON_CODE_INTERPRETER],
+                ["Write a Python function to solve the Trapping Rain Water problem. The function should take a list of non-negative integers representing the height of bars in a histogram and return the total amount of water trapped between the bars after raining. Use an efficient algorithm with a time complexity of O(n).",SandboxEnvironment.PYTHON_RUNNER],
                 ["Create a simple Pygame script for a game where the player controls a bouncing ball that changes direction when it collides with the edges of the window. Add functionality for the player to control a paddle using arrow keys, aiming to keep the ball from touching the bottom of the screen. Include basic collision detection and a scoring system that increases as the ball bounces off the paddle.", SandboxEnvironment.PYGAME],
                 ["Create a financial management Dashboard using Vue.js, focusing on local data handling without APIs. Include features like a clean dashboard for tracking income and expenses, dynamic charts for visualizing finances, and a budget planner. Implement functionalities for adding, editing, and deleting transactions, as well as filtering by date or category. Ensure responsive design and smooth user interaction for an intuitive experience.", SandboxEnvironment.VUE],
                 ["Create a Mermaid diagram to visualize a flowchart of a user login process. Include the following steps: User enters login credentials; Credentials are validated; If valid, the user is directed to the dashboard; If invalid, an error message is shown, and the user can retry or reset the password.",SandboxEnvironment.MERMAID],

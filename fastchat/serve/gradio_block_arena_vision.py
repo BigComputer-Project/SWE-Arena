@@ -375,11 +375,18 @@ def build_single_vision_language_model_ui(
 ):
 
     notice_markdown = f"""
-## How It Works
-- **Named Test**: Chat with the selected AI chatbot and give it a prompt or task (e.g., build a web app, create a visualization, design an interface).
+## How It Works for Direct Mode
+- **Choose Models**: Select an AI chatbot to chat with.
 - **Run & Interact**: The AI chatbots generate programs that run in a secure sandbox environment. Test the functionality, explore the features, and evaluate the quality of the outputs.
+- **Edit & Regenerate**: You can edit the <u>system prompt</u>, <u>code</u>, and its <u>dependency</u> and <u>regenerate the code</u> on any side.
 - **Visual Input**: Upload images or provide text prompts to guide the AI chatbots in their responses. You can only chat with <span style='color: #DE3163; font-weight: bold'>one image per conversation</span>. The image should be less than 15MB.
-- **Vote for the Best**: After interacting with programs, vote for whether it meets your requirements or provides the superior experience.
+- **Vote for the Best**: After interacting with both programs, vote for the one that best meets your requirements or provides the superior experience.
+
+## Note
+- **Dependency Edit**: You can edit the <u>dependency</u> of the code on any side. Currently, we only support `pypi` and `npm` packages.
+For `pypi` packages, you can use the format `python (use '==', '>=', '<=', '~=', '>', '<' or 'latest') <package_name> <version>`.
+For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_name> <version>`.
+- **Temperature**: All models have the same temperature of `0.2` by default. You can adjust the hyperparameters in the `Parameters` section. Low temperature typically works better for code generation.
 
 **❗️ For research purposes, we log user prompts, images, and interactions with sandbox, and may release this data to the public in the future. Please do not upload any confidential or personal information.**
 """
@@ -456,10 +463,10 @@ def build_single_vision_language_model_ui(
     with gr.Row() as examples_row:
         example_prompts = gr.Examples(
             examples = [
-                ["Write a script for a bouncing yellow ball within a sphere, make sure to handle collision detection properly. make the sphere slowly rotate. make sure ball stays within the sphere. Implement it in p5.js inside HTML."],
-                ["Write a Python script to scrape NVIDIA's stock price for the past month using the yfinance library. Clean the data and create an interactive visualization using Seaborn. Include: 1) A candlestick chart showing daily price movements 2) A line chart with 7-day and 30-day moving averages 3) Volume bars at the bottom. Add hover tooltips showing exact values and date. Make the layout professional with proper titles and axis labels."],
                 ["使用SVG绘制春节主题的图案，包括：1）一个红色的灯笼，带有金色的流苏 2）一个金色的福字，使用书法字体 3）背景添加一些烟花效果 4）在灯笼和福字周围添加一些祥云图案。确保图案布局美观，颜色搭配符合春节传统风格。"],
                 ["SVGを使用して日本の伝統的な和柄パターンを描画してください。1）波紋（さざなみ）模様 2）市松模様 3）麻の葉模様 4）雷文（らいもん）模様を含めてください。色は伝統的な日本の色（藍色、朱色、金色など）を使用し、レイアウトはバランスよく配置してください。"],
+                ["Write a script for a bouncing yellow ball within a sphere, make sure to handle collision detection properly. make the sphere slowly rotate. make sure ball stays within the sphere. Implement it in p5.js inside HTML."],
+                ["Write a Python script to scrape NVIDIA's stock price for the past month using the yfinance library. Clean the data and create an interactive visualization using Seaborn. Include: 1) A candlestick chart showing daily price movements 2) A line chart with 7-day and 30-day moving averages 3) Volume bars at the bottom. Add hover tooltips showing exact values and date. Make the layout professional with proper titles and axis labels."],
                 ["Write a Python script that uses the Gradio library to create a functional calculator. The calculator should support basic arithmetic operations: addition, subtraction, multiplication, and division. It should have two input fields for numbers and a dropdown menu to select the operation."],
                 ["Write a Todo list app using React.js. The app should allow users to add, delete, and mark tasks as completed. Include features like filtering tasks by status (completed, active), sorting tasks by priority, and displaying the total number of tasks."],
                 ["Write a Python script using the Streamlit library to create a web application for uploading and displaying files. The app should allow users to upload files of type .csv or .txt. If a .csv file is uploaded, display its contents as a table using Streamlit's st.dataframe() method. If a .txt file is uploaded, display its content as plain text."],
@@ -467,12 +474,29 @@ def build_single_vision_language_model_ui(
                 ["Create a simple Pygame script for a game where the player controls a bouncing ball that changes direction when it collides with the edges of the window. Add functionality for the player to control a paddle using arrow keys, aiming to keep the ball from touching the bottom of the screen. Include basic collision detection and a scoring system that increases as the ball bounces off the paddle."],
                 ["Create a financial management Dashboard using Vue.js, focusing on local data handling without APIs. Include features like a clean dashboard for tracking income and expenses, dynamic charts for visualizing finances, and a budget planner. Implement functionalities for adding, editing, and deleting transactions, as well as filtering by date or category. Ensure responsive design and smooth user interaction for an intuitive experience."],
                 ["Create a Mermaid diagram to visualize a flowchart of a user login process. Include the following steps: User enters login credentials; Credentials are validated; If valid, the user is directed to the dashboard; If invalid, an error message is shown, and the user can retry or reset the password."],
+                ["Write a Python function to calculate the Fibonacci sequence up to n numbers. Then write test cases to verify the function works correctly for edge cases like negative numbers, zero, and large inputs."],
+                ["Build an HTML page for a Kanban board with three columns with Vue.js: To Do, In Progress, and Done. Each column should allow adding, moving, and deleting tasks. Implement drag-and-drop functionality using Vue Draggable and persist the state using Vuex."],
+                ["Develop a Streamlit app that takes a CSV file as input and provides: 1) Basic statistics about the data 2) Interactive visualizations using Plotly 3) A data cleaning interface with options to handle missing values 4) An option to download the cleaned data."],
+                ["Write an HTML page with embedded JavaScript that creates an interactive periodic table. Each element should display its properties on hover and allow filtering by category (metals, non-metals, etc.). Include a search bar to find elements by name or symbol."],
+                ["Here's a Python function that sorts a list of dictionaries by a specified key:\n\n```python\ndef sort_dicts(data, key):\n    return sorted(data, key=lambda x: x[key])\n```\n\nWrite test cases to verify the function works correctly for edge cases like empty lists, missing keys, and different data types. If you use unittest, please use `unittest.main(argv=['first-arg-is-ignored'], exit=False)` to run the tests."],
+                ["Create a React Native component for a fitness tracker that shows: 1) Daily step count 2) Calories burned 3) Distance walked 4) A progress bar for daily goals. Use React Native Charts Wrapper for visualizations and implement dark mode support."],
+                ["Build a Vue.js dashboard for monitoring server health. Include: 1) Real-time CPU and memory usage graphs 2) Disk space visualization 3) Network activity monitor 4) Alerts for critical thresholds. Use Vue ChartJS for visualizations and WebSockets for real-time updates."],
+                ["Write a C program that calculates and prints the first 100 prime numbers in a formatted table with 10 numbers per row. Include a function to check if a number is prime and use it in your solution."],
+                ["Write a C++ program that implements a simple calculator using object-oriented programming. Create a Calculator class with methods for addition, subtraction, multiplication, and division. Include error handling for division by zero."],
+                ["Write a Rust program that generates and prints a Pascal's Triangle with 10 rows. Format the output to center-align the numbers in each row."],
+                ["Write a Java program that simulates a simple bank account system. Create a BankAccount class with methods for deposit, withdrawal, and balance inquiry. Include error handling for insufficient funds and demonstrate its usage with a few transactions."],
+                ["Write a Go program that calculates and prints the Fibonacci sequence up to the 50th number. Format the output in a table with 5 numbers per row and include the index of each Fibonacci number."],
+                ["Write a C program that calculates and prints a histogram of letter frequencies from a predefined string. Use ASCII art to display the histogram vertically."],
+                ["Write a C++ program that implements a simple stack data structure with push, pop, and peek operations. Demonstrate its usage by reversing a predefined string using the stack."],
+                ["Write a Rust program that calculates and prints the first 20 happy numbers. Include a function to check if a number is happy and use it in your solution."],
+                ["Write a Java program that implements a simple binary search algorithm. Create a sorted array of integers and demonstrate searching for different values, including cases where the value is found and not found."],
+                ["Write a Go program that generates and prints a multiplication table from 1 to 12. Format the output in a neat grid with proper alignment."],
             ],
             example_labels=[
+                "🏮 春节主题图案",
+                "🎎 日本の伝統的な和柄パターン",
                 "🎱 Bouncing Ball in a Sphere with P5.js",
                 "📈 NVIDIA Stock Analysis with Seaborn",
-                "🏮 春节主题SVG图案",
-                "🎎 日本の伝統的な和柄パターン",
                 "🧮 Calculator with Gradio",
                 "✅ Todo List App with React.js",
                 "📁 File Upload Web App with Streamlit",
@@ -480,8 +504,25 @@ def build_single_vision_language_model_ui(
                 "🏀 Pygame Bouncing Ball Game",
                 "📊 Financial Dashboard with Vue.js",
                 "🔐 User Login Process Flowchart",
+                "🧪 Fibonacci Sequence with Tests",
+                "📋 Vue Kanban Board",
+                "📊 Streamlit Data Cleaning App",
+                "🧪 Interactive Periodic Table with React",
+                "✅ Dictionary Sorting Tests in Python",
+                "🏃‍♂️ React Native Fitness Tracker",
+                "🖥️ Vue Server Monitoring",
+                "🔢 Prime Numbers in C",
+                "🧮 OOP Calculator in C++",
+                "🔺 Pascal's Triangle in Rust",
+                "🏦 Bank Account Simulation in Java",
+                "🐇 Fibonacci Sequence in Go",
+                "📊 Letter Frequency Histogram in C",
+                "📚 Stack Implementation in C++",
+                "😊 Happy Numbers in Rust",
+                "🔍 Binary Search in Java",
+                "✖️ Multiplication Table in Go",
             ],
-            examples_per_page=10,
+            examples_per_page=100,
             label="Example Prompts",
             inputs = [multimodal_textbox],
         )
@@ -496,7 +537,7 @@ def build_single_vision_language_model_ui(
     with gr.Group():
         # chatbot sandbox config
         with gr.Row():
-            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (Predefined system prompt)", interactive=True, visible=True)
+            sandbox_env_choice = gr.Dropdown(choices=SUPPORTED_SANDBOX_ENVIRONMENTS, label="Programming Expert (Click to select!)", interactive=True, visible=True)
         
             with gr.Accordion("System Prompt (Click to edit!)", open=False) as system_prompt_accordion:
                 system_prompt_textbox = gr.Textbox(
@@ -537,7 +578,7 @@ def build_single_vision_language_model_ui(
                                 inputs=[sandbox_state, sandbox_ui],
                             )
 
-                            with gr.Tab(label="Code", visible=True) as sandbox_code_tab:
+                            with gr.Tab(label="Code Editor", visible=True) as sandbox_code_tab:
                                 sandbox_code = gr.Code(
                                     value="",
                                     interactive=True, # allow user edit
@@ -548,7 +589,7 @@ def build_single_vision_language_model_ui(
                                     sandbox_code_submit_btn = gr.Button(value="Apply Changes", visible=True, interactive=True, variant='primary', size='sm')
 
                             with gr.Tab(
-                                label="Dependency", visible=True
+                                label="Dependency Editor (Beta Mode)", visible=True
                             ) as sandbox_dependency_tab:
                                 sandbox_dependency = gr.Dataframe(
                                     headers=["Type", "Package", "Version"],
@@ -735,12 +776,13 @@ def build_single_vision_language_model_ui(
         inputs=[sandbox_output, sandbox_ui, sandbox_code],
         outputs=[sandbox_output, sandbox_ui, sandbox_code]
     ).then(
-        # reset env and system prompt
+        # reset env and system prompt and enable model selector
         lambda: (
             gr.update(interactive=True, value=SandboxEnvironment.AUTO),
-            gr.update(interactive=True, value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO])
+            gr.update(interactive=True, value=DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO]),
+            gr.update(interactive=True)
         ),
-        outputs=[sandbox_env_choice, system_prompt_textbox]
+        outputs=[sandbox_env_choice, system_prompt_textbox, model_selector]
     ).then(
         lambda: gr.update(visible=True),
         inputs=None,
@@ -792,10 +834,10 @@ def build_single_vision_language_model_ui(
         inputs=sandbox_state,
         outputs=examples_row
     ).then(
-        # disable env and prompt change
-        lambda sandbox_state: (gr.update(interactive=sandbox_state['enabled_round'] == 0),) * 2,
+        # disable env and prompt change and model selector
+        lambda sandbox_state: (gr.update(interactive=sandbox_state['enabled_round'] == 0),) * 3,
         inputs=sandbox_state,
-        outputs=[sandbox_env_choice, system_prompt_textbox]
+        outputs=[sandbox_env_choice, system_prompt_textbox, model_selector]
     ).then(
         bot_response,
         [state, temperature, top_p, max_output_tokens, sandbox_state],
@@ -822,10 +864,10 @@ def build_single_vision_language_model_ui(
         inputs=sandbox_state,
         outputs=examples_row
     ).then(
-        # disable env and prompt change
-        lambda sandbox_state: (gr.update(interactive=sandbox_state['enabled_round'] == 0),) * 2,
+        # disable env and prompt change and model selector
+        lambda sandbox_state: (gr.update(interactive=sandbox_state['enabled_round'] == 0),) * 3,
         inputs=sandbox_state,
-        outputs=[sandbox_env_choice, system_prompt_textbox]
+        outputs=[sandbox_env_choice, system_prompt_textbox, model_selector]
     ).then(
         bot_response,
         [state, temperature, top_p, max_output_tokens] + [sandbox_state],
@@ -852,10 +894,10 @@ def build_single_vision_language_model_ui(
         inputs=sandbox_state,
         outputs=examples_row
     ).then(
-        # disable env and prompt change
-        lambda sandbox_state: (gr.update(interactive=sandbox_state['enabled_round'] == 0),) * 2,
+        # disable env and prompt change and model selector
+        lambda sandbox_state: (gr.update(interactive=sandbox_state['enabled_round'] == 0),) * 3,
         inputs=sandbox_state,
-        outputs=[sandbox_env_choice, system_prompt_textbox]
+        outputs=[sandbox_env_choice, system_prompt_textbox, model_selector]
     ).then(
         bot_response,
         [state, temperature, top_p, max_output_tokens, sandbox_state],

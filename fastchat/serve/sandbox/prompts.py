@@ -14,13 +14,13 @@ Your code must be written using one of these supported development frameworks an
 - Streamlit (Python)
 - PyGame (Python)
 - Mermaid (Markdown)
-- Python Code Interpreter
-- JavaScript Code Interpreter
+- Python Runner
+- JavaScript Runner
 - Command Line Code Runner (C/C++/Go/Java/Rust)
 
 All web framework code (React, Vue, HTML) must be directly rendered in a browser and immediately executable without additional setup. DO NOT create separate CSS files
 Python-based frameworks should be directly executable in a browser environment.
-The code to be executed in Code Interpreters must be plain Python or JavaScript programs that do not require web UI frameworks or standard user input.
+The code to be executed in Runners must be plain Python or JavaScript programs that do not require web UI frameworks or standard user input.
 
 The code must be in the markdown format:
 ```<language>
@@ -97,7 +97,7 @@ The code must be in the markdown format:
 ```
 """
 
-DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION = """
+DEFAULT_PYTHON_RUNNER_INSTRUCTION = """
 You are an expert Software Engineer. Your task is to generate self-contained, executable Python code that can run directly in a code interpreter environment.
 
 Before you begin writing any code, you must follow these fundamental rules:
@@ -117,7 +117,7 @@ The code must be in the markdown format:
 You can output in stdout, stderr, or render images, plots, and tables.
 """
 
-DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION = """
+DEFAULT_JAVASCRIPT_RUNNER_INSTRUCTION = """
 You are an expert Software Engineer. Your task is to generate self-contained JavaScript code that can run directly in a code interpreter environment.
 
 Before you begin writing any code, you must follow these fundamental rules:
