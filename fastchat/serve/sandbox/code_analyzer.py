@@ -23,14 +23,6 @@ class SandboxEnvironment(StrEnum):
     PYTHON_CODE_INTERPRETER = 'Python Code Interpreter'
     JAVASCRIPT_CODE_INTERPRETER = 'Javascript Code Interpreter'
 
-    # Code Runner
-    C_CODE_RUNNER = 'C Code Runner'
-    CPP_CODE_RUNNER = 'C++ Code Runner'
-    # CSHARP_CODE_RUNNER = 'C# Code Runner'
-    JAVA_CODE_RUNNER = 'Java Code Runner'
-    RUST_CODE_RUNNER = 'Rust Code Runner'
-    GOLANG_CODE_RUNNER = 'Golang Code Runner'
-
     # Web UI Frameworks
     HTML = 'HTML'
     REACT = 'React'
@@ -39,6 +31,14 @@ class SandboxEnvironment(StrEnum):
     STREAMLIT = 'Streamlit'
     PYGAME = 'PyGame'
     MERMAID = 'Mermaid'
+
+    # Code Runner
+    C_CODE_RUNNER = 'C Code Runner'
+    CPP_CODE_RUNNER = 'C++ Code Runner'
+    # CSHARP_CODE_RUNNER = 'C# Code Runner'
+    JAVA_CODE_RUNNER = 'Java Code Runner'
+    RUST_CODE_RUNNER = 'Rust Code Runner'
+    GOLANG_CODE_RUNNER = 'Golang Code Runner'
 
 
 def extract_python_imports(code: str) -> list[str]:
