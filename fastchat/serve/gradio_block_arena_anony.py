@@ -22,9 +22,9 @@ from fastchat.constants import (
     SURVEY_LINK,
 )
 from fastchat.model.model_adapter import get_conversation_template
+from fastchat.serve.chat_state import ModelChatState
 from fastchat.serve.gradio_block_arena_named import flash_buttons, set_chat_system_messages_multi
 from fastchat.serve.gradio_web_server import (
-    State,
     bot_response,
     get_conv_log_filename,
     no_change_btn,
@@ -339,7 +339,7 @@ def get_battle_pair(
 
 
 def add_text_multi(
-    state0: State, state1: State,
+    state0: ModelChatState, state1: ModelChatState,
     model_selector0: str, model_selector1: str,
     sandbox_state0: ChatbotSandboxState, sandbox_state1: ChatbotSandboxState,
     text: str,
@@ -370,9 +370,9 @@ def add_text_multi(
             SAMPLING_BOOST_MODELS,
         )
         if states[0] is None:
-            states[0] = State(model_left)
+            states[0] = ModelChatState(model_left)
         if states[1] is None:
-            states[1] = State(model_right)
+            states[1] = ModelChatState(model_right)
         logger.info(f"model: {states[0].model_name}, {states[1].model_name}")
 
     if len(text) <= 0:
@@ -428,7 +428,7 @@ def add_text_multi(
     )
 
 def add_text_single(
-    state: State,
+    state: ModelChatState,
     model_selector: str,
     sandbox_state: ChatbotSandboxState,
     text: str,
@@ -442,7 +442,7 @@ def add_text_single(
 
     # TODO: We should skip this as we should not allow send to one side initially
     if state is None:
-        state = State(model_selector)
+        state = ModelChatState(model_selector)
 
     if state.model_name == "":
         model_left, model_right = get_battle_pair(
@@ -452,7 +452,7 @@ def add_text_single(
             SAMPLING_WEIGHTS,
             SAMPLING_BOOST_MODELS,
         )
-        state = State(model_left)
+        state = ModelChatState(model_left)
         logger.info(f"model: {state.model_name}")
 
     # skip if text is empty

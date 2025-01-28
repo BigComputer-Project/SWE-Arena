@@ -31,6 +31,7 @@ from fastchat.constants import (
 from fastchat.model.model_adapter import (
     get_conversation_template,
 )
+from fastchat.serve.chat_state import ModelChatState
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.gradio_web_server import (
     clear_sandbox_components,
@@ -39,7 +40,6 @@ from fastchat.serve.gradio_web_server import (
     bot_response,
     get_ip,
     disable_btn,
-    State,
     get_conv_log_filename,
     get_remote_logger,
     set_chat_system_messages,
@@ -116,7 +116,8 @@ def vote_last_response(state, vote_type, model_selector, request: gr.Request):
     upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + '\n')
 
 
-def upvote_last_response(state: State, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
+def upvote_last_response(
+    state: ModelChatState, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
     '''
     Input: [state, model_selector, sandbox_state],
     Output: [textbox] + user_buttons,
@@ -127,7 +128,7 @@ def upvote_last_response(state: State, model_selector: str, sandbox_state: Chatb
     return (None,) + (disable_btn,) * (sandbox_state["btn_list_length"] - 1) + (enable_btn,) # enable clear button
 
 
-def downvote_last_response(state: State, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
+def downvote_last_response(state: ModelChatState, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
     '''
     Input: [state, model_selector, sandbox_state],
     Output: [textbox] + user_buttons,
@@ -138,7 +139,7 @@ def downvote_last_response(state: State, model_selector: str, sandbox_state: Cha
     return (None,) + (disable_btn,) * (sandbox_state["btn_list_length"] - 1) + (enable_btn,) # enable clear button
 
 
-def flag_last_response(state: State, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
+def flag_last_response(state: ModelChatState, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
     '''
     Input: [state, model_selector, sandbox_state],
     Output: [textbox] + user_buttons,
@@ -149,7 +150,7 @@ def flag_last_response(state: State, model_selector: str, sandbox_state: Chatbot
     return (None,) + (disable_btn,) * (sandbox_state["btn_list_length"] - 1) + (enable_btn,) # enable clear button
 
 
-def regenerate(state: State, sandbox_state: ChatbotSandboxState, request: gr.Request):
+def regenerate(state: ModelChatState, sandbox_state: ChatbotSandboxState, request: gr.Request):
     '''
     Regenerate the chatbot response.
 
@@ -270,7 +271,7 @@ def moderate_input(state, text, all_conv_text, model_list, images, ip):
 
 
 def add_text(
-    state: State,
+    state: ModelChatState,
     model_selector: str, # the selected model name
     sandbox_state: ChatbotSandboxState, # the sandbox state
     multimodal_input: dict, text_input: str,
@@ -313,7 +314,7 @@ def add_text(
 
     # init chatbot state if not exist
     if state is None:
-        state = State(model_selector, is_vision=is_vision)
+        state = ModelChatState(model_selector, is_vision=is_vision)
 
     if len(text) == 0:
         # skip empty text

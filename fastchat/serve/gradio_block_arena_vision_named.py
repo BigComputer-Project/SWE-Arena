@@ -24,6 +24,7 @@ from fastchat.constants import (
     SURVEY_LINK,
 )
 from fastchat.model.model_adapter import get_conversation_template
+from fastchat.serve.chat_state import ModelChatState
 from fastchat.serve.gradio_block_arena_named import (
     clear_sandbox_components,
     flash_buttons,
@@ -46,7 +47,6 @@ from fastchat.serve.gradio_block_arena_vision import (
 )
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.gradio_web_server import (
-    State,
     bot_response,
     get_conv_log_filename,
     no_change_btn,
@@ -240,7 +240,7 @@ def clear_history(sandbox_state0, sandbox_state1, request: gr.Request) -> List[d
 
 
 def add_text_single(
-    state: State,
+    state: ModelChatState,
     model_selector: str,
     sandbox_state: ChatbotSandboxState,
     multimodal_input: dict, text_input: str,
@@ -276,7 +276,7 @@ def add_text_single(
 
     # Init states if necessary
     if state is None:
-        state = State(model_selector, is_vision=is_vision)
+        state = ModelChatState(model_selector, is_vision=is_vision)
 
     if len(text) <= 0:
         state.skip_next = True
@@ -378,7 +378,7 @@ def add_text_multi(
     # Init states if necessary
     for i in range(num_sides):
         if states[i] is None:
-            states[i] = State(model_selectors[i], is_vision=is_vision)
+            states[i] = ModelChatState(model_selectors[i], is_vision=is_vision)
 
     if len(text) <= 0:
         # skip if no text

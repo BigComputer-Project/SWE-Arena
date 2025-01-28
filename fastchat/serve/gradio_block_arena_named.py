@@ -19,8 +19,8 @@ from fastchat.constants import (
     SURVEY_LINK,
 )
 from fastchat.model.model_adapter import get_conversation_template
+from fastchat.serve.chat_state import ModelChatState
 from fastchat.serve.gradio_web_server import (
-    State,
     add_text,
     bot_response,
     get_conv_log_filename,
@@ -212,7 +212,7 @@ def set_chat_system_messages_multi(state0, state1, sandbox_state0, sandbox_state
     # Init states if necessary
     for i in range(num_sides):
         if states[i] is None:
-            states[i] = State(model_selectors[i])
+            states[i] = ModelChatState(model_selectors[i])
         sandbox_state = sandbox_states[i]
         # if sandbox_state is None or sandbox_state['enable_sandbox'] is False or sandbox_state["enabled_round"] > 0:
         #     continue
@@ -241,7 +241,7 @@ def add_text_multi(
     # Init states if necessary
     for i in range(num_sides):
         if states[i] is None:
-            states[i] = State(model_selectors[i])
+            states[i] = ModelChatState(model_selectors[i])
 
     if len(text) <= 0:
         for i in range(num_sides):

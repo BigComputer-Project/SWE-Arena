@@ -24,9 +24,9 @@ from fastchat.constants import (
     SURVEY_LINK,
 )
 from fastchat.model.model_adapter import get_conversation_template
+from fastchat.serve.chat_state import ModelChatState
 from fastchat.serve.gradio_block_arena_named import flash_buttons, set_chat_system_messages_multi
 from fastchat.serve.gradio_web_server import (
-    State,
     bot_response,
     get_conv_log_filename,
     no_change_btn,
@@ -101,7 +101,13 @@ def load_demo_side_by_side_vision_anony():
     return states + selector_updates
 
 
-def vote_last_response(states, sandbox_states: list[ChatbotSandboxState], vote_type, model_selectors, request: gr.Request):
+def vote_last_response(
+    states: list[ModelChatState],
+    sandbox_states: list[ChatbotSandboxState],
+    vote_type,
+    model_selectors,
+    request: gr.Request
+):
     '''
     Return
         model_selectors + sandbox_titles + [textbox] + user_buttons
@@ -315,7 +321,7 @@ def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
 
 
 def add_text_single(
-    state: State,
+    state: ModelChatState,
     model_selector: str,
     sandbox_state: ChatbotSandboxState,
     multimodal_input: dict, text_input: str,
@@ -485,8 +491,8 @@ def add_text_multi(
         )
 
         states = [
-            State(model_left, is_vision=is_vision),
-            State(model_right, is_vision=is_vision),
+            ModelChatState(model_left, is_vision=is_vision),
+            ModelChatState(model_right, is_vision=is_vision),
         ]
 
     if len(text) <= 0:
