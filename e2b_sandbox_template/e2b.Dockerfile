@@ -28,7 +28,7 @@ RUN apt-get install -y ffmpeg
 
 # Pre-Install Python packages
 RUN pip install uv
-RUN uv pip install boto3 \
+RUN uv pip install --system boto3 \
     botocore \
     urllib3 \
     setuptools \
