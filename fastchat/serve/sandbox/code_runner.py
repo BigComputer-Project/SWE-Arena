@@ -11,16 +11,18 @@ import base64
 from e2b_code_interpreter import Sandbox as CodeSandbox
 from gradio_sandboxcomponent import SandboxComponent
 
-from fastchat.serve.sandbox.code_analyzer import SandboxEnvironment, extract_code_from_markdown, extract_installation_commands, extract_js_imports, extract_python_imports, replace_placeholder_urls, validate_dependencies
-from fastchat.serve.sandbox.prompts import DEFAULT_GRADIO_SANDBOX_INSTRUCTION, DEFAULT_HTML_SANDBOX_INSTRUCTION, DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION, DEFAULT_MERMAID_SANDBOX_INSTRUCTION, DEFAULT_PYGAME_SANDBOX_INSTRUCTION, DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION, DEFAULT_REACT_SANDBOX_INSTRUCTION, DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION, DEFAULT_VUE_SANDBOX_INSTRUCTION, GENERAL_SANDBOX_INSTRUCTION
+from fastchat.serve.sandbox.code_analyzer import SandboxEnvironment, extract_code_from_markdown, extract_installation_commands, extract_java_class_name, extract_js_imports, extract_python_imports, replace_placeholder_urls, validate_dependencies
+from fastchat.serve.sandbox.prompts import (
+    DEFAULT_C_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_CPP_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_GOLANG_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_GRADIO_SANDBOX_INSTRUCTION, DEFAULT_HTML_SANDBOX_INSTRUCTION, DEFAULT_JAVA_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_JAVASCRIPT_CODE_INTERPRETER_INSTRUCTION, DEFAULT_MERMAID_SANDBOX_INSTRUCTION, DEFAULT_PYGAME_SANDBOX_INSTRUCTION, DEFAULT_PYTHON_CODE_INTERPRETER_INSTRUCTION, DEFAULT_REACT_SANDBOX_INSTRUCTION, DEFAULT_RUST_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION, DEFAULT_VUE_SANDBOX_INSTRUCTION, GENERAL_SANDBOX_INSTRUCTION
+)
 
 
-from .constants import E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT
+from .constants import CODE_RUN_TIMEOUT_SECONDS, E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT
 from .sandbox_manager import get_sandbox_app_url, create_sandbox, install_npm_dependencies, install_pip_dependencies, reuse_or_create_sandbox, run_background_command_with_timeout, run_command_in_sandbox
-
 
 SUPPORTED_SANDBOX_ENVIRONMENTS: list[str] = [
     env.value for env in SandboxEnvironment
+    
 ]
 
 WEB_UI_SANDBOX_ENVIRONMENTS = [
@@ -33,6 +35,9 @@ WEB_UI_SANDBOX_ENVIRONMENTS = [
     SandboxEnvironment.PYGAME,
     SandboxEnvironment.MERMAID
 ]
+'''
+Sandbox environments that can be rendered in the web UI.
+'''
 
 VALID_GRADIO_CODE_LANGUAGES = [
     'python', 'c', 'cpp', 'markdown', 'json', 'html', 'css', 'javascript', 'jinja2', 'typescript', 'yaml', 'dockerfile', 'shell', 'r', 'sql',
@@ -59,7 +64,14 @@ DEFAULT_SANDBOX_INSTRUCTIONS: dict[SandboxEnvironment, str] = {
     SandboxEnvironment.GRADIO: DEFAULT_GRADIO_SANDBOX_INSTRUCTION.strip(),
     SandboxEnvironment.STREAMLIT: DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION.strip(),
     SandboxEnvironment.PYGAME: DEFAULT_PYGAME_SANDBOX_INSTRUCTION.strip(),
-    SandboxEnvironment.MERMAID: DEFAULT_MERMAID_SANDBOX_INSTRUCTION.strip()
+    SandboxEnvironment.MERMAID: DEFAULT_MERMAID_SANDBOX_INSTRUCTION.strip(),
+    # Code runners
+    SandboxEnvironment.C_CODE_RUNNER: DEFAULT_C_CODE_RUN_SANDBOX_INSTRUCTION,
+    SandboxEnvironment.CPP_CODE_RUNNER: DEFAULT_CPP_CODE_RUN_SANDBOX_INSTRUCTION,
+    SandboxEnvironment.JAVA_CODE_RUNNER: DEFAULT_JAVA_CODE_RUN_SANDBOX_INSTRUCTION,
+    SandboxEnvironment.GOLANG_CODE_RUNNER: DEFAULT_GOLANG_CODE_RUN_SANDBOX_INSTRUCTION,
+    SandboxEnvironment.RUST_CODE_RUNNER: DEFAULT_RUST_CODE_RUN_SANDBOX_INSTRUCTION,
+
 }
 
 
@@ -564,6 +576,169 @@ def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[st
     return (url, sandbox.sandbox_id, '\n'.join(stderrs))
 
 
+def run_c_code(code: str, existing_sandbox_id: str | None = None) -> tuple[str, str]:
+    """
+    Executes the provided C code within a sandboxed environment and returns the output.
+
+    Args:
+        code (str): The C code to be executed.
+
+    Returns:
+        tuple: (stdout, stderr)
+    """
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
+
+    file_path = "~/main.c"
+    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+
+    is_success, stdouts, stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command=f"gcc {file_path} -o ~/main && ./main",
+        timeout=CODE_RUN_TIMEOUT_SECONDS,
+    )
+
+    # collect stdout, stderr from sandbox
+    stdout = "\n".join(stdouts)
+    stderr = "\n".join(stderrs)
+    return stdout, stderr
+
+
+def run_cpp_code(code: str, existing_sandbox_id: str | None = None) -> tuple[str, str]:
+    """
+    Executes the provided C++ code within a sandboxed environment and returns the output.
+
+    Args:
+        code (str): The C++ code to be executed.
+
+    Returns:
+        tuple: (stdout, stderr)
+    """
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
+
+    file_path = "~/main.cpp"
+    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+
+    is_success, stdouts, stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command=f"g++ {file_path} -o ~/main && ./main",
+        timeout=CODE_RUN_TIMEOUT_SECONDS,
+    )
+
+    # collect stdout, stderr from sandbox
+    stdout = "\n".join(stdouts)
+    stderr = "\n".join(stderrs)
+    return stdout, stderr
+
+
+def run_java_code(code: str, existing_sandbox_id: str | None = None) -> tuple[str, str]:
+    """
+    Executes the provided Java code within a sandboxed environment and returns the output.
+
+    Args:
+        code (str): The Java code to be executed.
+
+    Returns:
+        tuple: (stdout, stderr)
+    """
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
+
+    class_name = extract_java_class_name(code)
+    file_path = f"~/{class_name}.java"
+    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+
+    is_success, stdouts, stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command=f"javac {file_path} && java {class_name}",
+        timeout=CODE_RUN_TIMEOUT_SECONDS,
+    )
+
+    # collect stdout, stderr from sandbox
+    stdout = "\n".join(stdouts)
+    stderr = "\n".join(stderrs)
+    return stdout, stderr
+
+
+def run_golang_code(code: str, existing_sandbox_id: str | None = None) -> tuple[str, str]:
+    """
+    Executes the provided Go code within a sandboxed environment and returns the output.
+
+    Args:
+        code (str): The Go code to be executed
+
+    Returns:
+        tuple: (stdout, stderr)
+    """
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
+
+    file_path = "~/main.go"
+    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+
+    is_success, stdouts, stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command=f"go run {file_path}",
+        timeout=CODE_RUN_TIMEOUT_SECONDS,
+    )
+
+    # collect stdout, stderr from sandbox
+    stdout = "\n".join(stdouts)
+    stderr = "\n".join(stderrs)
+    return stdout, stderr
+
+
+# def run_csharp_code(code: str, existing_sandbox_id: str | None = None) -> tuple[str, str]:
+#     """
+#     Executes the provided C# code within a sandboxed environment and returns the output.
+
+#     Args:
+#         code (str): The C# code to be executed
+
+#     Returns:
+#         tuple: (stdout, stderr)
+#     """
+#     sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
+
+#     file_path = "~/main.cs"
+#     sandbox.files.write(path=file_path, data=code, request_timeout=60)
+
+#     is_success, stdouts, stderrs = run_command_in_sandbox(
+#         sandbox=sandbox,
+#         command=f"mcs {file_path} && mono main.exe",
+#         timeout=CODE_RUN_TIMEOUT_SECONDS,
+#     )
+
+#     # collect stdout, stderr from sandbox
+#     stdout = "\n".join(stdouts)
+#     stderr = "\n".join(stderrs)
+#     return stdout, stderr
+
+
+def run_rust_code(code: str, existing_sandbox_id: str | None = None) -> tuple[str, str]:
+    """
+    Executes the provided Rust code within a sandboxed environment and returns the output.
+
+    Args:
+        code (str): The Rust code to be executed
+
+    Returns:
+        tuple: (stdout, stderr)
+    """
+    sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
+
+    file_path = "~/main.rs"
+    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+
+    is_success, stdouts, stderrs = run_command_in_sandbox(
+        sandbox=sandbox,
+        command=f"rustc {file_path} && ./main",
+        timeout=CODE_RUN_TIMEOUT_SECONDS,
+    )
+
+    # collect stdout, stderr from sandbox
+    stdout = "\n".join(stdouts)
+    stderr = "\n".join(stderrs)
+    return stdout, stderr
+
+
 def on_edit_code(
     state,
     sandbox_state: ChatbotSandboxState,
@@ -782,7 +957,8 @@ def on_click_code_message_run(
 
     if code_language == 'tsx':
         code_language = 'typescript'
-    code_language = code_language.lower() if code_language and code_language.lower(
+    code_language = code_language.lower()
+    gradio_code_language = code_language.lower() if code_language and code_language.lower(
         # ensure gradio supports the code language
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
@@ -829,7 +1005,7 @@ def on_click_code_message_run(
     yield (
         gr.skip(),  # sandbox_output
         gr.skip(),  # sandbox_ui
-        gr.update(value=code, language=code_language),  # sandbox_code
+        gr.update(value=code, language=gradio_code_language),  # sandbox_code
         gr.update(value=dependencies)  # sandbox_dependency
     )
 
@@ -880,9 +1056,7 @@ def on_run_code(
         yield None, None, None, None
         return
 
-    if code_language == 'tsx':
-        code_language = 'typescript'
-    code_language = code_language.lower() if code_language and code_language.lower(
+    gradio_code_language = code_language.lower() if code_language and code_language.lower(
         # ensure gradio supports the code language
     ) in VALID_GRADIO_CODE_LANGUAGES else None
 
@@ -948,13 +1122,13 @@ def on_run_code(
         dependencies = [["python", "", ""], ["npm", "", ""]]
 
     # Initialize output with loading message
-    output_text = "### Sandbox Execution Log\n\n"
+    markdown_output_text = "### Sandbox Execution Log\n\n"
     yield (
         gr.Markdown(
-            value=output_text + "🔄 Initializing sandbox environment...", visible=True
+            value=markdown_output_text + "🔄 Initializing sandbox environment...", visible=True
         ),
         SandboxComponent(visible=False),
-        gr.Code(value=code, language=code_language, visible=True),
+        gr.Code(value=code, language=gradio_code_language, visible=True),
         gr.update(value=dependencies, visible=True),  # Update with unified dependencies
     )
 
@@ -965,13 +1139,13 @@ def on_run_code(
         else sandbox_state['sandbox_environment']
     )
 
-    def update_output(message: str, clear_output: bool = False):
-        nonlocal output_text
+    def update_markdown_output(message: str, clear_output: bool = False):
+        nonlocal markdown_output_text
         if clear_output:
-            output_text = ""
-        output_text += f"\n{message}"
+            markdown_output_text = ""
+        markdown_output_text += f"\n{message}"
         return (
-            gr.Markdown(value=output_text, visible=True, sanitize_html=False),
+            gr.Markdown(value=markdown_output_text, visible=True, sanitize_html=False),
             gr.skip(),
             gr.skip(),
             gr.skip()  # Always include dependencies update
@@ -981,19 +1155,19 @@ def on_run_code(
     print(f"sandbox_env: {sandbox_env}")
     match sandbox_env:
         case SandboxEnvironment.HTML:
-            yield update_output("🔄 Setting up HTML sandbox...")
+            yield update_markdown_output("🔄 Setting up HTML sandbox...")
             sandbox_url, sandbox_id, stderr = run_html_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
             if stderr:
-                yield update_output("❌ HTML sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_markdown_output("❌ HTML sandbox failed to run!", clear_output=True)
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ HTML sandbox is ready!", clear_output=True)
+                yield update_markdown_output("✅ HTML sandbox is ready!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text, visible=True),
+                    gr.Markdown(value=markdown_output_text, visible=True),
                     SandboxComponent(
                         value=(sandbox_url, True, []),
                         label="Example",
@@ -1004,7 +1178,7 @@ def on_run_code(
                     gr.skip(),
                 )
         case SandboxEnvironment.REACT:
-            yield update_output("🔄 Setting up React sandbox...")
+            yield update_markdown_output("🔄 Setting up React sandbox...")
             code_run_result = run_react_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
@@ -1012,12 +1186,12 @@ def on_run_code(
             )
             sandbox_id = code_run_result['sandbox_id']
             if code_run_result['is_run_success'] is False and code_run_result['stderr']:
-                yield update_output("❌ React sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
+                yield update_markdown_output("❌ React sandbox failed to run!", clear_output=True)
+                yield update_markdown_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
-                yield update_output("✅ React sandbox is ready!", clear_output=True)
+                yield update_markdown_output("✅ React sandbox is ready!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text, visible=True),
+                    gr.Markdown(value=markdown_output_text, visible=True),
                     SandboxComponent(
                         value=(code_run_result['sandbox_url'], True, []),
                         label="Example",
@@ -1028,7 +1202,7 @@ def on_run_code(
                     gr.skip(),
                 )
         case SandboxEnvironment.VUE:
-            yield update_output("🔄 Setting up Vue sandbox...")
+            yield update_markdown_output("🔄 Setting up Vue sandbox...")
             code_run_result = run_vue_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
@@ -1036,12 +1210,12 @@ def on_run_code(
             )
             sandbox_id = code_run_result['sandbox_id']
             if code_run_result['is_run_success'] is False and code_run_result['stderr']:
-                yield update_output("❌ Vue sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
+                yield update_markdown_output("❌ Vue sandbox failed to run!", clear_output=True)
+                yield update_markdown_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
-                yield update_output("✅ Vue sandbox is ready!", clear_output=True)
+                yield update_markdown_output("✅ Vue sandbox is ready!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text, visible=True),
+                    gr.Markdown(value=markdown_output_text, visible=True),
                     SandboxComponent(
                         value=(code_run_result['sandbox_url'], True, []),
                         label="Example",
@@ -1052,7 +1226,7 @@ def on_run_code(
                     gr.skip(),
                 )
         case SandboxEnvironment.PYGAME:
-            yield update_output("🔄 Setting up PyGame sandbox...")
+            yield update_markdown_output("🔄 Setting up PyGame sandbox...")
             code_run_result = run_pygame_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
@@ -1060,12 +1234,12 @@ def on_run_code(
             )
             sandbox_id = code_run_result['sandbox_id']
             if code_run_result['is_run_success'] is False and code_run_result['stderr']:
-                yield update_output("❌ PyGame sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
+                yield update_markdown_output("❌ PyGame sandbox failed to run!", clear_output=True)
+                yield update_markdown_output(f"### Stderr:\n```\n{code_run_result['stderr']}\n```\n\n")
             else:
-                yield update_output("✅ PyGame sandbox is ready!", clear_output=True)
+                yield update_markdown_output("✅ PyGame sandbox is ready!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text, visible=True),
+                    gr.Markdown(value=markdown_output_text, visible=True),
                     SandboxComponent(
                         value=(code_run_result['sandbox_url'], True, []),
                         label="Example",
@@ -1076,19 +1250,19 @@ def on_run_code(
                     gr.skip(),
                 )
         case SandboxEnvironment.GRADIO:
-            yield update_output("🔄 Setting up Gradio sandbox...")
+            yield update_markdown_output("🔄 Setting up Gradio sandbox...")
             sandbox_url, sandbox_id, stderr = run_gradio_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
             if stderr:
-                yield update_output("❌ Gradio sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_markdown_output("❌ Gradio sandbox failed to run!", clear_output=True)
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ Gradio sandbox is ready!", clear_output=True)
+                yield update_markdown_output("✅ Gradio sandbox is ready!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text, visible=True),
+                    gr.Markdown(value=markdown_output_text, visible=True),
                     SandboxComponent(
                         value=(sandbox_url, True, []),
                         label="Example",
@@ -1099,19 +1273,19 @@ def on_run_code(
                     gr.skip(),
                 )
         case SandboxEnvironment.STREAMLIT:
-            yield update_output("🔄 Setting up Streamlit sandbox...")
+            yield update_markdown_output("🔄 Setting up Streamlit sandbox...")
             sandbox_url, sandbox_id, stderr = run_streamlit_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
             if stderr:
-                yield update_output("❌ Streamlit sandbox failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_markdown_output("❌ Streamlit sandbox failed to run!", clear_output=True)
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ Streamlit sandbox is ready!", clear_output=True)
+                yield update_markdown_output("✅ Streamlit sandbox is ready!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text, visible=True),
+                    gr.Markdown(value=markdown_output_text, visible=True),
                     SandboxComponent(
                         value=(sandbox_url, True, []),
                         label="Example",
@@ -1122,7 +1296,7 @@ def on_run_code(
                     gr.skip(),
                 )
         case SandboxEnvironment.MERMAID:
-            yield update_output("🔄 Setting up Mermaid visualization...")
+            yield update_markdown_output("🔄 Setting up Mermaid visualization...")
             # Convert Mermaid to HTML at execution time
             html_code = mermaid_to_html(code, theme='light')
             sandbox_url, sandbox_id, stderr = run_html_sandbox(
@@ -1131,12 +1305,12 @@ def on_run_code(
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
             if stderr:
-                yield update_output("❌ Mermaid visualization failed to render!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_markdown_output("❌ Mermaid visualization failed to render!", clear_output=True)
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ Mermaid visualization is ready!", clear_output=True)
+                yield update_markdown_output("✅ Mermaid visualization is ready!", clear_output=True)
                 yield (
-                    gr.Markdown(value=output_text, visible=True),
+                    gr.Markdown(value=markdown_output_text, visible=True),
                     SandboxComponent(
                         value=(sandbox_url, True, []),
                         label="Mermaid Diagram",
@@ -1147,18 +1321,18 @@ def on_run_code(
                     gr.skip(),
                 )
         case SandboxEnvironment.PYTHON_CODE_INTERPRETER:
-            yield update_output("🔄 Running Python Code Interpreter...", clear_output=True)
+            yield update_markdown_output("🔄 Running Python Code Interpreter...", clear_output=True)
             output, stderr = run_code_interpreter(
                 code=code, code_language='python', code_dependencies=code_dependencies
             )
             if stderr:
-                yield update_output("❌ Python Code Interpreter failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_markdown_output("❌ Python Code Interpreter failed to run!", clear_output=True)
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ Code execution complete!", clear_output=True)
+                yield update_markdown_output("✅ Code execution complete!", clear_output=True)
                 yield (
                     gr.Markdown(
-                        value=output_text + "\n\n" + output,
+                        value=markdown_output_text + "\n\n" + output,
                         sanitize_html=False,
                         visible=True,
                     ),
@@ -1172,18 +1346,18 @@ def on_run_code(
                     gr.skip(),
                 )
         case SandboxEnvironment.JAVASCRIPT_CODE_INTERPRETER:
-            yield update_output("🔄 Running JavaScript Code Interpreter...", clear_output=True)
+            yield update_markdown_output("🔄 Running JavaScript Code Interpreter...", clear_output=True)
             output, stderr = run_code_interpreter(
                 code=code, code_language='javascript', code_dependencies=code_dependencies
             )
             if stderr:
-                yield update_output("❌ JavaScript Code Interpreter failed to run!", clear_output=True)
-                yield update_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+                yield update_markdown_output("❌ JavaScript Code Interpreter failed to run!", clear_output=True)
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
             else:
-                yield update_output("✅ Code execution is ready!", clear_output=True)
+                yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
                     gr.Markdown(
-                        value=output_text + "\n\n" + output,
+                        value=markdown_output_text + "\n\n" + output,
                         sanitize_html=False,
                         visible=True,
                     ),
@@ -1196,6 +1370,66 @@ def on_run_code(
                     gr.skip(),
                     gr.skip(),
                 )
+        case SandboxEnvironment.C_CODE_RUNNER:
+            yield update_markdown_output("🔄 Running C Code Runner...", clear_output=True)
+            output, stderr = run_c_code(
+                code=code, existing_sandbox_id=sandbox_state['sandbox_id']
+            )
+            yield update_markdown_output("✅ Code execution complete!", clear_output=True)
+            if output:
+                yield update_markdown_output(f"### Stdout:\n```\n{output}\n```\n\n")
+            if stderr:
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+        case SandboxEnvironment.CPP_CODE_RUNNER:
+            yield update_markdown_output("🔄 Running C++ Code Runner...", clear_output=True)
+            output, stderr = run_cpp_code(
+                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
+            )
+            yield update_markdown_output("✅ Code execution complete!", clear_output=True)
+            if output:
+                yield update_markdown_output(f"### Stdout:\n```\n{output}\n```\n\n")
+            if stderr:
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+        case SandboxEnvironment.JAVA_CODE_RUNNER:
+            yield update_markdown_output("🔄 Running Java Code Runner...", clear_output=True)
+            output, stderr = run_java_code(
+                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
+            )
+            yield update_markdown_output("✅ Code execution complete!", clear_output=True)
+            if output:
+                yield update_markdown_output(f"### Stdout:\n```\n{output}\n```\n\n")
+            if stderr:
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+        case SandboxEnvironment.GOLANG_CODE_RUNNER:
+            yield update_markdown_output("🔄 Running Go Code Runner...", clear_output=True)
+            output, stderr = run_golang_code(
+                code=code, existing_sandbox_id=sandbox_state['sandbox_id']
+            )
+            yield update_markdown_output("✅ Code execution complete!", clear_output=True)
+            if output:
+                yield update_markdown_output(f"### Stdout:\n```\n{output}\n```\n\n")
+            if stderr:
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+        # case SandboxEnvironment.CSHARP_CODE_RUNNER:
+        #     yield update_markdown_output("🔄 Running C# Code Runner...", clear_output=True)
+        #     output, stderr = run_csharp_code(
+        #         code=code, existing_sandbox_id=sandbox_state['sandbox_id']
+        #     )
+        #     yield update_markdown_output("✅ Code execution complete!", clear_output=True)
+        #     if output:
+        #         yield update_markdown_output(f"### Stdout:\n```\n{output}\n```\n\n")
+        #     if stderr:
+        #         yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
+        case SandboxEnvironment.RUST_CODE_RUNNER:
+            yield update_markdown_output("🔄 Running Rust Code Runner...", clear_output=True)
+            output, stderr = run_rust_code(
+                code=code, existing_sandbox_id=sandbox_state['sandbox_id']
+            )
+            yield update_markdown_output("✅ Code execution complete!", clear_output=True)
+            if output:
+                yield update_markdown_output(f"### Stdout:\n```\n{output}\n```\n\n")
+            if stderr:
+                yield update_markdown_output(f"### Stderr:\n```\n{stderr}\n```\n\n")
         case _:
             yield (
                 gr.Markdown(value=code, visible=True),
