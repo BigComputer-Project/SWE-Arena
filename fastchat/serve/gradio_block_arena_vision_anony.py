@@ -609,10 +609,10 @@ def build_side_by_side_vision_ui_anony(context: Context, random_questions=None):
 - **Vote for the Best**: After interacting with both programs, vote for the one that best meets your requirements or provides the superior experience.
 
 ## Note
-- **Dependency Edit**: You can edit the _dependency_ of the code on any side. Currently, we only support `pypi` and `npm` packages.
+- **Dependency Edit**: You can edit the <u>dependency</u> of the code on any side. Currently, we only support `pypi` and `npm` packages.
 For `pypi` packages, you can use the format `python (use '==', '>=', '<=', '~=', '>', '<' or 'latest') <package_name> <version>`.
 For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_name> <version>`.
-- **Temperature**: All models have the same temperature of `0.2`. Low temperature typically works better for code generation.
+- **Temperature**: All models have the same temperature of `0.2` and `top_p` of `1.0` by default. Low temperature typically works better for code generation.
 
 **❗️ For research purposes, we log user prompts, images, and interactions with sandbox, and may release this data to the public in the future. Please do not upload any confidential or personal information.**
 """
@@ -934,7 +934,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         temperature = gr.Slider(
             minimum=0.0,
             maximum=1.0,
-            value=0.7,
+            value=0.2,
             step=0.1,
             interactive=True,
             label="Temperature",
