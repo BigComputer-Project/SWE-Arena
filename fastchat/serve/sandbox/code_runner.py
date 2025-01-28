@@ -566,7 +566,7 @@ def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[st
 
     stderr = run_background_command_with_timeout(
         sandbox,
-        "sudo kill -9 $(ss -lptn 'sport = :8501' | grep -oP '(?<=pid=)\d+'); streamlit run ~/mystreamlit/app.py --server.port 8501 --server.headless true",
+        r"sudo kill -9 $(ss -lptn 'sport = :8501' | grep -oP '(?<=pid=)\d+'); streamlit run ~/mystreamlit/app.py --server.port 8501 --server.headless true",
         timeout=8,
     )
     stderrs.append(stderr)
