@@ -128,10 +128,10 @@ RUN pip install boto3 \
     rpds-py \
     et-xmlfile
 
-RUN pip install numpy==1.26
-RUN uv pip install --system pandas numpy matplotlib requests seaborn plotly
+RUN uv pip install --system pandas matplotlib requests seaborn plotly
 RUN uv pip install --system pygame pygbag black
 RUN uv pip install --system --upgrade streamlit gradio nicegui
+RUN pip install numpy==1.26
 
 # Build container_app
 WORKDIR /home/user/container_app
