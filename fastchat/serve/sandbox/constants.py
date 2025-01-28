@@ -31,7 +31,12 @@ Nginx port for the sandbox.
 
 SANDBOX_TIMEOUT_SECONDS: int = 5 * 60
 '''
-Timeout in seconds for created sandboxes.
+Timeout in seconds for created sandboxes to expire.
+'''
+
+CODE_RUN_TIMEOUT_SECONDS: int = 60
+'''
+Timeout in seconds for code execution.
 '''
 
 SANDBOX_RETRY_COUNT: int = 3

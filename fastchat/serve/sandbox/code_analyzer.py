@@ -22,6 +22,7 @@ class SandboxEnvironment(StrEnum):
     # Code Interpreter
     PYTHON_CODE_INTERPRETER = 'Python Code Interpreter'
     JAVASCRIPT_CODE_INTERPRETER = 'Javascript Code Interpreter'
+
     # Web UI Frameworks
     HTML = 'HTML'
     REACT = 'React'
@@ -30,6 +31,14 @@ class SandboxEnvironment(StrEnum):
     STREAMLIT = 'Streamlit'
     PYGAME = 'PyGame'
     MERMAID = 'Mermaid'
+
+    # Code Runner
+    C_CODE_RUNNER = 'C Code Runner'
+    CPP_CODE_RUNNER = 'C++ Code Runner'
+    # CSHARP_CODE_RUNNER = 'C# Code Runner'
+    JAVA_CODE_RUNNER = 'Java Code Runner'
+    RUST_CODE_RUNNER = 'Rust Code Runner'
+    GOLANG_CODE_RUNNER = 'Golang Code Runner'
 
 
 def extract_python_imports(code: str) -> list[str]:
@@ -625,6 +634,12 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool = False) -> t
     html_prefixes = ['html', 'xhtml', 'htm']
     ts_prefixes = ['ts', 'typescript', 'tsx']
     mermaid_prefixes = ['mermaid', 'mmd']
+    c_prefixes = ['c']
+    cpp_prefixes = ['cpp', 'c++']
+    go_prefixes = ['go', 'golang']
+    java_prefixes = ['java']
+    rust_prefixes = ['rust']
+    csharp_prefixes = ['cs', 'csharp', 'dotnet']
 
     # Extract package dependencies from the main program
     python_packages: list[str] = []
@@ -669,6 +684,21 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool = False) -> t
     elif matches_prefix(main_code_lang, mermaid_prefixes):
         main_code_lang = 'markdown'
         sandbox_env_name = SandboxEnvironment.MERMAID
+    elif matches_prefix(main_code_lang, cpp_prefixes):
+        main_code_lang = 'cpp'
+        sandbox_env_name = SandboxEnvironment.CPP_CODE_RUNNER
+    elif matches_prefix(main_code_lang, go_prefixes):
+        main_code_lang = 'go'
+        sandbox_env_name = SandboxEnvironment.GOLANG_CODE_RUNNER
+    elif matches_prefix(main_code_lang, java_prefixes):
+        main_code_lang = 'java'
+        sandbox_env_name = SandboxEnvironment.JAVA_CODE_RUNNER
+    elif matches_prefix(main_code_lang, rust_prefixes):
+        main_code_lang = 'rust'
+        sandbox_env_name = SandboxEnvironment.RUST_CODE_RUNNER
+    elif main_code_lang == 'c':
+        main_code_lang = 'c'
+        sandbox_env_name = sandbox_env_name = SandboxEnvironment.C_CODE_RUNNER
     else:
         sandbox_env_name = None
 
@@ -896,3 +926,11 @@ def validate_dependencies(dependencies: list) -> tuple[bool, str]:
                     return False, f"Invalid NPM version format for {pkg_name}: {version}"
 
     return True, ""
+
+
+def extract_java_class_name(java_code: str) -> str:
+    '''
+    Extract the class name from Java code.
+    '''
+    match = re.search(r'public\s+class\s+(\w+)', java_code)
+    return match.group(1) if match else "Main"

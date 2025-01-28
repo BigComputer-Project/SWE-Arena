@@ -82,14 +82,21 @@ def run_command_in_sandbox(
             cwd=working_directory,
             timeout=timeout,
             request_timeout=timeout + 5,
-            on_stdout=lambda message: print(message) if print_output else None and stdouts.append(message),
-            on_stderr=lambda message: print(message) if print_output else None and stderrs.append(message),
+            on_stdout=lambda message: stdouts.append(message),
+            on_stderr=lambda message: stderrs.append(message),
         )
         if command_result and command_result.exit_code == 0:
             is_run_success = True
     except Exception as e:
         stderrs.append(str(e))
         is_run_success = False
+
+    if print_output:
+        print(f"Command: {command}")
+        for stdout in stdouts:
+            print(stdout)
+        for stderr in stderrs:
+            print(stderr)
 
     return is_run_success, stdouts, stderrs
 
