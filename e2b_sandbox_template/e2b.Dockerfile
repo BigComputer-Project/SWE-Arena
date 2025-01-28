@@ -28,7 +28,7 @@ RUN apt-get install -y ffmpeg
 
 # Pre-Install Python packages
 RUN pip install uv
-RUN uv pip install --system boto3 \
+RUN pip install boto3 \
     botocore \
     urllib3 \
     setuptools \
@@ -46,7 +46,6 @@ RUN uv pip install --system boto3 \
     six \
     fsspec \
     s3fs \
-    numpy==1.26 \
     wheel \
     pip \
     cryptography \
@@ -129,6 +128,7 @@ RUN uv pip install --system boto3 \
     rpds-py \
     et-xmlfile
 
+RUN pip install numpy==1.26
 RUN uv pip install --system pandas numpy matplotlib requests seaborn plotly
 RUN uv pip install --system pygame pygbag black
 RUN uv pip install --system --upgrade streamlit gradio nicegui
