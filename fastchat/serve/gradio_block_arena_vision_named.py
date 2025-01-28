@@ -452,7 +452,7 @@ def add_text_multi(
 
 def build_side_by_side_vision_ui_named(context: Context, random_questions=None):
     notice_markdown = f"""
-## How It Works for Side-by-Side Mode
+## How It Works for Side-by-Side Chat Mode
 - **Choose Models**: Select two AI chatbots to chat with.
 - **Run & Interact**: The AI chatbots generate programs that run in a secure sandbox environment. Test the functionality, explore the features, and evaluate the quality of the outputs.
 - **Edit & Regenerate**: You can edit the <u>system prompt</u>, <u>code</u>, and its <u>dependency</u> and <u>regenerate the code</u> on any side.
