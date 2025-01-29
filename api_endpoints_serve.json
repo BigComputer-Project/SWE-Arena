@@ -77,6 +77,19 @@
     "text-arena": true,
     "vision-arena": false
   },
+  "qwen2.5-vl-72b-instruct": {
+    "model_name": "qwen2.5-vl-72b-instruct",
+    "api_type": "openai",
+    "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "api_key": "ENV:QWEN_72B_INSTRUCT_API_KEY",
+    "anony_only": false,
+    "recommended_config": {
+      "temperature": 0.2,
+      "top_p": 0.9
+    },
+    "text-arena": true,
+    "vision-arena": true
+  },
   "deepseek-chat": {
     "model_name": "deepseek-chat",
     "api_type": "openai",
@@ -207,6 +220,32 @@
     "api_base": "",
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.2,
+      "top_p": 0.9
+    }
+  },
+  "claude-3-5-sonnet-20241022": {
+    "model_name": "claude-3-5-sonnet-20241022",
+    "api_type": "anthropic",
+    "api_base": "",
+    "api_key": "ENV:ANTHROPIC_API_KEY",
+    "anony_only": true,
+    "text-arena": true,
+    "vision-arena": true,
+    "recommended_config": {
+      "temperature": 0.2,
+      "top_p": 0.9
+    }
+  },
+  "claude-3-haiku-20240307": {
+    "model_name": "claude-3-haiku-20240307",
+    "api_type": "anthropic",
+    "api_base": "",
+    "api_key": "ENV:ANTHROPIC_API_KEY",
+    "anony_only": false,
+    "text-arena": true,
+    "vision-arena": true,
     "recommended_config": {
       "temperature": 0.2,
       "top_p": 0.9
