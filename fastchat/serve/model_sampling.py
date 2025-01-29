@@ -11,7 +11,7 @@ SAMPLING_WEIGHTS = {
     'qwen2.5-72b-instruct': 1,
     'qwen2.5-vl-72b-instruct': 1,
     'claude-3-5-sonnet-20241022': 1,
-    'claude-3-haiku-20240307': 1,
+    'claude-3-5-haiku-20241022': 1,
 
     # 'deepseek-chat': 0.5,
     # "deepseek-reasoner": 0.5,
@@ -44,7 +44,7 @@ VISION_SAMPLING_WEIGHTS = {
     "gpt-4o-mini-2024-07-18": 1,
     "gpt-4o-2024-08-06": 1,
     'qwen2.5-vl-72b-instruct': 1,
-    'claude-3-haiku-20240307': 1,
+    'claude-3-5-sonnet-20241022': 1,
     # "gpt-4-0125-preview": 1,
     # "gemini-1.5-pro": 0.5,
     # "gemini-1.5-pro-exp-0801": 0.5,

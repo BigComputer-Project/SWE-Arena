@@ -238,8 +238,8 @@
       "top_p": 0.9
     }
   },
-  "claude-3-haiku-20240307": {
-    "model_name": "claude-3-haiku-20240307",
+  "claude-3-5-haiku-20241022": {
+    "model_name": "claude-3-5-haiku-20241022",
     "api_type": "anthropic_message",
     "api_base": "",
     "api_key": "ENV:ANTHROPIC_API_KEY",

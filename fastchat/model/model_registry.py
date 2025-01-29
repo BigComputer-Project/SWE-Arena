@@ -67,6 +67,7 @@ register_model_info(
     [
         "claude-3-5-sonnet-20240620",
         "claude-3-5-sonnet-20241022",
+        "claude-3-5-haiku-20241022",
     ],
     "Claude 3.5",
     "https://www.anthropic.com/news/claude-3-5-sonnet",
