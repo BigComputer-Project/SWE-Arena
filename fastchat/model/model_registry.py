@@ -515,6 +515,13 @@ register_model_info(
 )
 
 register_model_info(
+    ["deepseek-chat", "deepseek-reasoner"],
+    "DeepSeek LLM API",
+    "https://www.deepseek.com/",
+    "Large language model API by DeepSeek",
+)
+
+register_model_info(
     ["stripedhyena-nous-7b"],
     "StripedHyena-Nous",
     "https://huggingface.co/togethercomputer/StripedHyena-Nous-7B",
