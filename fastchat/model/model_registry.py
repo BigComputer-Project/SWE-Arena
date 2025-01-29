@@ -66,6 +66,8 @@ register_model_info(
 register_model_info(
     [
         "claude-3-5-sonnet-20240620",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-haiku-20241022",
     ],
     "Claude 3.5",
     "https://www.anthropic.com/news/claude-3-5-sonnet",
@@ -203,6 +205,7 @@ register_model_info(
         "qwen-plus-0828",
         "qwen2-vl-7b-instruct",
         "qwen-vl-max-0809",
+        "qwen2.5-vl-72b-instruct",
     ],
     "Qwen Series",
     "https://help.aliyun.com/zh/dashscope/developer-reference/model-introduction",
