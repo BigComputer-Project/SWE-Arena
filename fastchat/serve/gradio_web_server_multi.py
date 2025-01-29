@@ -150,6 +150,10 @@ window.__gradio_mode__ = "app";
     <a href="https://bigcomputer-project.github.io/blog/swe-arena.html" target="_blank"><u>Website</u></a> | <a href="https://x.com/BigComProject" target="_blank"><u>X</u></a> | <a href="https://discord.gg/auCweVA9hB" target="_blank"><u>Discord</u></a>
     <br>
     <br>
+    <div style="display: inline-block; text-decoration: none; color: #1E90FF; font-weight: bold; font-size: large; border: 2px solid #1E90FF; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px;">
+        Featuring the latest top-tier models: DeepSeek's R1, OpenAI's o1 series, Google's Gemini 2.0 series, and Meta's Llama 3.3 70B!
+    </div>
+    <br>
     <a href="https://forms.gle/md4jQ7VGPMNQUExp9" target="_blank"
     style="display: inline-block; text-decoration: none; color: #DE3163; font-weight: bold; font-size: large; border: 2px solid #DE3163; padding: 4px 8px; border-radius: 4px;">
     Please fill out this survey to help us improve the arena! 📝
