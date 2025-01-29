@@ -227,7 +227,7 @@
   },
   "claude-3-5-sonnet-20241022": {
     "model_name": "claude-3-5-sonnet-20241022",
-    "api_type": "anthropic",
+    "api_type": "anthropic_message",
     "api_base": "",
     "api_key": "ENV:ANTHROPIC_API_KEY",
     "anony_only": true,
@@ -240,12 +240,12 @@
   },
   "claude-3-haiku-20240307": {
     "model_name": "claude-3-haiku-20240307",
-    "api_type": "anthropic",
+    "api_type": "anthropic_message",
     "api_base": "",
     "api_key": "ENV:ANTHROPIC_API_KEY",
     "anony_only": false,
     "text-arena": true,
-    "vision-arena": true,
+    "vision-arena": false,
     "recommended_config": {
       "temperature": 0.2,
       "top_p": 0.9
