@@ -12,6 +12,7 @@ import numpy as np
 from typing import Union
 
 from fastchat.constants import (
+    INPUT_CHAR_LEN_LIMIT,
     LOGDIR,
     TEXT_MODERATION_MSG,
     IMAGE_MODERATION_MSG,
@@ -671,6 +672,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
             visible=False,
             scale=3,
             autofocus=True,
+            max_length=INPUT_CHAR_LEN_LIMIT,
         )
 
         multimodal_textbox = gr.MultimodalTextbox(
@@ -683,6 +685,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
             submit_btn=False,
             stop_btn=False,
             autofocus=True,
+            max_plain_text_length=INPUT_CHAR_LEN_LIMIT,
         )
 
     with gr.Row() as examples_row:
