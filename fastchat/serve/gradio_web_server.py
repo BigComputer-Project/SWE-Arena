@@ -89,10 +89,11 @@ The service collects user data, including dialogue (text and images), editing hi
 
 SWE Arena extends [Chatbot Arena](https://lmarena.ai/?arena) with powerful code execution capabilities, enabling direct evaluation of LLM-generated programs across a wide range of outputs - from simple computations to complex visual interfaces.
 
-We thank [E2B](https://e2b.dev/), [Hugging Face](https://huggingface.co/), [Alibaba Qwen](https://qwenlm.ai/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:
+We thank [E2B](https://e2b.dev/), [Hyperbolic](https://hyperbolic.xyz/), [Hugging Face](https://huggingface.co/), [Alibaba Qwen](https://qwenlm.ai/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:
 
-<div class="sponsor-image-about" style="display: flex; justify-content: center;">
+<div class="sponsor-image-about">
     <img src="https://github.com/e2b-dev/E2B/blob/main/readme-assets/logo-circle.png?raw=true" alt="E2B">
+    <img src="https://pbs.twimg.com/profile_images/1775708849707819008/1RRWsmmg_400x400.jpg" alt="Hyperbolic AI">
     <img src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo.png" alt="HuggingFace">
     <img src="https://qwenlm.ai/static/favicon.png" alt="Qwen">
     <img src="https://style.csiro.au/WP_Partners/assets/img/data61-logo.png" alt="Data61">
@@ -925,10 +926,11 @@ SWE Arena provides:
 [Email](mailto:computer.intelligence.project@gmail.com) | [X](https://x.com/BigComProject) | [Discord](https://discord.gg/auCweVA9hB)
 
 ## Acknowledgments
-We thank [E2B](https://e2b.dev/), [Hugging Face](https://huggingface.co/), [Alibaba Qwen](hhttps://qwenlm.ai/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:
+We thank [E2B](https://e2b.dev/), [Hyperbolic](https://hyperbolic.xyz/), [Hugging Face](https://huggingface.co/), [Alibaba Qwen](https://qwenlm.ai/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:
 
 <div class="sponsor-image-about">
     <img src="https://github.com/e2b-dev/E2B/blob/main/readme-assets/logo-circle.png?raw=true" alt="E2B">
+    <img src="https://pbs.twimg.com/profile_images/1775708849707819008/1RRWsmmg_400x400.jpg" alt="Hyperbolic AI">
     <img src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo.png" alt="HuggingFace">
     <img src="https://qwenlm.ai/static/favicon.png" alt="Qwen">
     <img src="https://style.csiro.au/WP_Partners/assets/img/data61-logo.png" alt="Data61">
