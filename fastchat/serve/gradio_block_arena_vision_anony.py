@@ -91,6 +91,189 @@ vl_models = []
 # Number of user buttons
 USER_BUTTONS_LENGTH = 11
 
+# Add at the top level, before the functions
+feedback_js = """
+function(s0, s1, ms0, ms1, ss0, ss1) {
+    console.log('JavaScript function called with:', {s0, s1, ms0, ms1, ss0, ss1});
+    
+    function submitFeedback(selectedFeedback) {
+        console.log('Submit function called');
+        console.log('User selected feedback:', selectedFeedback);
+        console.log('Returning data to backend:', {
+            states: [s0, s1],
+            model_selectors: [ms0, ms1],
+            sandbox_states: [ss0, ss1],
+            feedback: selectedFeedback
+        });
+        
+        // Create a hidden input to store feedback
+        const feedbackInput = document.createElement('input');
+        feedbackInput.type = 'hidden';
+        feedbackInput.id = 'feedback_data';
+        feedbackInput.value = JSON.stringify(selectedFeedback);
+        document.body.appendChild(feedbackInput);
+        
+        setTimeout(() => {
+            console.log('Attempting to click feedback submit button...');
+            const submitBtn = document.getElementById('feedback_submit_btn');
+            if (submitBtn) {
+                console.log('Found feedback submit button, clicking...');
+                submitBtn.click();
+            } else {
+                console.log('Feedback submit button not found');
+            }
+            // Clean up
+            document.body.removeChild(feedbackInput);
+        }, 500);
+
+        return [s0, s1, ms0, ms1, ss0, ss1, feedbackInput.value];
+    }
+
+    return new Promise((resolve) => {
+        // Create popup container
+        const popup = document.createElement('div');
+        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        console.log('Created popup, dark mode:', isDarkMode);
+        
+        popup.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: ${isDarkMode ? '#1a1a1a' : 'white'};
+            color: ${isDarkMode ? '#ffffff' : '#000000'};
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid ${isDarkMode ? '#404040' : '#e0e0e0'};
+            box-shadow: 0 2px 10px ${isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)'};
+            z-index: 1000;
+            max-width: 500px;
+            width: 90%;
+        `;
+
+        // Add title
+        const title = document.createElement('h3');
+        title.textContent = 'Please provide additional feedback';
+        title.style.cssText = `
+            margin-bottom: 15px;
+            color: ${isDarkMode ? '#ffffff' : '#000000'};
+            font-size: 1.2em;
+        `;
+        popup.appendChild(title);
+
+        // Add checkboxes
+        const options = [
+            'Code quality is better',
+            'UI/UX design is better',
+            'Explanation is clearer',
+            'Solution is more creative',
+            'Implementation is more efficient',
+            'Error handling is better',
+            'Documentation is better'
+        ];
+
+        const checkboxContainer = document.createElement('div');
+        checkboxContainer.style.marginBottom = '20px';
+        options.forEach(option => {
+            const label = document.createElement('label');
+            label.style.cssText = `
+                display: block;
+                margin-bottom: 10px;
+                color: ${isDarkMode ? '#ffffff' : '#000000'};
+                cursor: pointer;
+                padding: 5px;
+                border-radius: 4px;
+                transition: background-color 0.2s;
+            `;
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = option;
+            checkbox.style.cssText = `
+                margin-right: 10px;
+                cursor: pointer;
+            `;
+            
+            label.onmouseover = () => {
+                label.style.backgroundColor = isDarkMode ? '#333333' : '#f5f5f5';
+            };
+            label.onmouseout = () => {
+                label.style.backgroundColor = 'transparent';
+            };
+            
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(option));
+            checkboxContainer.appendChild(label);
+        });
+        popup.appendChild(checkboxContainer);
+
+        // Add submit button
+        const submitBtn = document.createElement('button');
+        submitBtn.textContent = 'Submit Feedback';
+        submitBtn.style.cssText = `
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: opacity 0.2s;
+        `;
+        
+        submitBtn.onmouseover = () => {
+            submitBtn.style.opacity = '0.9';
+        };
+        submitBtn.onmouseout = () => {
+            submitBtn.style.opacity = '1';
+        };
+
+        submitBtn.onclick = () => {
+            console.log('Submit button clicked');
+            const selectedFeedback = Array.from(checkboxContainer.querySelectorAll('input:checked'))
+                .map(cb => cb.value);
+            console.log('Selected checkboxes:', selectedFeedback);
+            
+            document.body.removeChild(popup);
+            document.body.removeChild(overlay);
+            
+            const result = submitFeedback(selectedFeedback);
+            console.log('Resolving promise with result:', result);
+            resolve(result);
+        };
+
+        popup.appendChild(submitBtn);
+
+        // Add overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: ${isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)'};
+            z-index: 999;
+        `;
+        document.body.appendChild(overlay);
+        document.body.appendChild(popup);
+
+        // Add event listener for escape key
+        const closePopup = (e) => {
+            if (e.key === 'Escape') {
+                console.log('Escape key pressed, closing popup');
+                document.body.removeChild(popup);
+                document.body.removeChild(overlay);
+                const result = submitFeedback([]);
+                console.log('Resolving promise with empty feedback:', result);
+                resolve(result);
+            }
+        };
+        document.addEventListener('keydown', closePopup);
+    });
+}
+"""
+
 def load_demo_side_by_side_vision_anony():
     states = [None] * num_sides
     selector_updates = [
@@ -101,32 +284,49 @@ def load_demo_side_by_side_vision_anony():
     return states + selector_updates
 
 
-def vote_last_response(states, sandbox_states: list[ChatbotSandboxState], vote_type, model_selectors, request: gr.Request):
+def vote_last_response(states, sandbox_states: list[ChatbotSandboxState], vote_type, model_selectors, feedback_data: str = None, request: gr.Request = None):
     '''
     Return
         model_selectors + sandbox_titles + [textbox] + user_buttons
     '''
+    logger.info(f"=== Vote Response Start ===")
+    logger.info(f"Vote type: {vote_type}")
+    logger.info(f"Feedback data received: {feedback_data}")
+    
     filename = get_conv_log_filename(states[0].is_vision, states[0].has_csam_image)
 
     with open(filename, "a") as fout:
         data = {
             "tstamp": round(time.time(), 4),
             "type": vote_type,
-            "models": [x for x in model_selectors],
-            "states": [x.dict() for x in states],
+            "models": [x for x in model_selectors] if model_selectors else [],
+            "states": [x.dict() for x in states] if states else [],
             "ip": get_ip(request),
         }
+        
+        # Add feedback data if available
+        if feedback_data:
+            try:
+                feedback_list = json.loads(feedback_data)
+                data["feedback"] = feedback_list
+                logger.info(f"Processed feedback: {feedback_list}")
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse feedback data: {feedback_data}")
+                logger.error(f"JSON decode error: {str(e)}")
+        else:
+            logger.warning("No feedback data received")
+        
         fout.write(json.dumps(data) + "\n")
+        logger.info(f"Data written to file: {filename}")
+    
     get_remote_logger().log(data)
     upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + "\n")
 
-    gr.Info(
-        "🎉 Thanks for voting! Your vote shapes the leaderboard, please vote RESPONSIBLY."
-    )
+    logger.info("=== Vote Response End ===")
 
     # display model names
-    model_name_1 = states[0].model_name
-    model_name_2 = states[1].model_name
+    model_name_1 = states[0].model_name if states and states[0] else ""
+    model_name_2 = states[1].model_name if states and states[1] else ""
     model_name_map = {}
 
     if model_name_1 in model_name_map:
@@ -134,7 +334,7 @@ def vote_last_response(states, sandbox_states: list[ChatbotSandboxState], vote_t
     if model_name_2 in model_name_map:
         model_name_2 = model_name_map[model_name_2]
 
-    if ":" not in model_selectors[0]:
+    if not model_selectors or ":" not in model_selectors[0]:
         for i in range(5):
             names = (
                 "### Model A: " + model_name_1,
@@ -174,52 +374,141 @@ def leftvote_last_response(
     state0, state1,
     model_selector0, model_selector1,
     sandbox_state0, sandbox_state1,
-    request: gr.Request
+    feedback_data: str = None,
+    request: gr.Request = None
 ):
-    logger.info(f"leftvote (anony). ip: {get_ip(request)}")
+    ip = get_ip(request)
+    logger.info(f"=== Leftvote Start ===")
+    logger.info(f"IP: {ip}")
+    logger.info(f"Raw feedback data received in leftvote: {feedback_data}")
+    print(f"\n=== Feedback Submission ===")
+    print(f"Vote type: leftvote")
+    print(f"IP: {ip}")
+    
+    if feedback_data:
+        try:
+            feedback_list = json.loads(feedback_data)
+            print(f"Selected feedback items: {feedback_list}")
+            logger.info(f"User feedback for leftvote: {feedback_list}")
+        except json.JSONDecodeError:
+            print(f"Error parsing feedback data: {feedback_data}")
+            logger.error(f"Failed to parse feedback data: {feedback_data}")
+    else:
+        print("No feedback data received")
+        logger.warning("No feedback data received in leftvote")
+
     for x in vote_last_response(
-        [state0, state1], [sandbox_state0, sandbox_state1], "leftvote", [model_selector0, model_selector1], request
+        [state0, state1], [sandbox_state0, sandbox_state1], "leftvote", 
+        [model_selector0, model_selector1], feedback_data, request
     ):
         yield x
+    
+    logger.info("=== Leftvote End ===")
 
 
 def rightvote_last_response(
     state0, state1,
     model_selector0, model_selector1,
     sandbox_state0, sandbox_state1,
-    request: gr.Request
+    feedback_data: str = None,
+    request: gr.Request = None
 ):
-    logger.info(f"rightvote (anony). ip: {get_ip(request)}")
+    ip = get_ip(request)
+    logger.info(f"=== Rightvote Start ===")
+    logger.info(f"IP: {ip}")
+    print(f"\n=== Feedback Submission ===")
+    print(f"Vote type: rightvote")
+    print(f"IP: {ip}")
+    
+    if feedback_data:
+        try:
+            feedback_list = json.loads(feedback_data)
+            print(f"Selected feedback items: {feedback_list}")
+            logger.info(f"User feedback for rightvote: {feedback_list}")
+        except json.JSONDecodeError:
+            print(f"Error parsing feedback data: {feedback_data}")
+            logger.error(f"Failed to parse feedback data: {feedback_data}")
+    else:
+        print("No feedback data received")
+        logger.warning("No feedback data received in rightvote")
+
     for x in vote_last_response(
-        [state0, state1], [sandbox_state0, sandbox_state1], "rightvote", [model_selector0, model_selector1], request
+        [state0, state1], [sandbox_state0, sandbox_state1], "rightvote", 
+        [model_selector0, model_selector1], feedback_data, request
     ):
         yield x
+    
+    logger.info("=== Rightvote End ===")
 
 
 def tievote_last_response(
     state0, state1,
     model_selector0, model_selector1,
     sandbox_state0, sandbox_state1,
-    request: gr.Request
+    feedback_data: str = None,
+    request: gr.Request = None
 ):
-    logger.info(f"tievote (anony). ip: {get_ip(request)}")
+    ip = get_ip(request)
+    logger.info(f"=== Tievote Start ===")
+    logger.info(f"IP: {ip}")
+    print(f"\n=== Feedback Submission ===")
+    print(f"Vote type: tievote")
+    print(f"IP: {ip}")
+    
+    if feedback_data:
+        try:
+            feedback_list = json.loads(feedback_data)
+            print(f"Selected feedback items: {feedback_list}")
+            logger.info(f"User feedback for tievote: {feedback_list}")
+        except json.JSONDecodeError:
+            print(f"Error parsing feedback data: {feedback_data}")
+            logger.error(f"Failed to parse feedback data: {feedback_data}")
+    else:
+        print("No feedback data received")
+        logger.warning("No feedback data received in tievote")
+
     for x in vote_last_response(
-        [state0, state1], [sandbox_state0, sandbox_state1], "tievote", [model_selector0, model_selector1], request
+        [state0, state1], [sandbox_state0, sandbox_state1], "tievote", 
+        [model_selector0, model_selector1], feedback_data, request
     ):
         yield x
+    
+    logger.info("=== Tievote End ===")
 
 
 def bothbad_vote_last_response(
     state0, state1,
     model_selector0, model_selector1,
     sandbox_state0, sandbox_state1,
-    request: gr.Request
+    feedback_data: str = None,
+    request: gr.Request = None
 ):
-    logger.info(f"bothbad_vote (anony). ip: {get_ip(request)}")
+    ip = get_ip(request)
+    logger.info(f"=== Bothbad Vote Start ===")
+    logger.info(f"IP: {ip}")
+    print(f"\n=== Feedback Submission ===")
+    print(f"Vote type: bothbad")
+    print(f"IP: {ip}")
+    
+    if feedback_data:
+        try:
+            feedback_list = json.loads(feedback_data)
+            print(f"Selected feedback items: {feedback_list}")
+            logger.info(f"User feedback for bothbad_vote: {feedback_list}")
+        except json.JSONDecodeError:
+            print(f"Error parsing feedback data: {feedback_data}")
+            logger.error(f"Failed to parse feedback data: {feedback_data}")
+    else:
+        print("No feedback data received")
+        logger.warning("No feedback data received in bothbad_vote")
+
     for x in vote_last_response(
-        [state0, state1], [sandbox_state0, sandbox_state1], "bothbad_vote", [model_selector0, model_selector1], request
+        [state0, state1], [sandbox_state0, sandbox_state1], "bothbad_vote", 
+        [model_selector0, model_selector1], feedback_data, request
     ):
         yield x
+    
+    logger.info("=== Bothbad Vote End ===")
 
 
 def regenerate_single(state, request: gr.Request):
@@ -233,21 +522,6 @@ def regenerate_single(state, request: gr.Request):
     if state is None:
         # if not init yet
         return [None, None] + [None] + [no_change_btn] * USER_BUTTONS_LENGTH
-    elif state.regen_support:
-        state.conv.update_last_message(None)
-        return (
-            [state, state.to_gradio_chatbot()]
-            + [None] # textbox
-            + [disable_btn] * USER_BUTTONS_LENGTH
-        )
-    else:
-        # if not support regen
-        state.skip_next = True
-        return (
-            [state, state.to_gradio_chatbot()]
-            + [None] # textbox
-            + [no_change_btn] * USER_BUTTONS_LENGTH
-        )
 
 
 def regenerate_multi(state0, state1, request: gr.Request):
@@ -294,6 +568,8 @@ def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
     + states
     + chatbots
     + model_selectors
+    + [multimodal_textbox, textbox]
+    + user_buttons
     + [multimodal_textbox, textbox]
     + user_buttons
     + [slow_warning]
@@ -941,8 +1217,9 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         )
 
     with gr.Row():
-        clear_btn = gr.Button(value="🎲 New Round", interactive=False)
+        clear_btn = gr.Button(value="🎲 New Round", interactive=False, elem_id="clear_btn")
         share_btn = gr.Button(value="📷  Share")
+        feedback_submit_btn = gr.Button(value="Submit Feedback", visible=False, elem_id="feedback_submit_btn")
 
     with gr.Accordion("Parameters", open=False, visible=False) as parameter_row:
         temperature = gr.Slider(
@@ -990,24 +1267,50 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         clear_btn,
     ] # 11 buttons, USER_BUTTONS_LENGTH
 
+    # Create a feedback state that persists across the chain
+    feedback_state = gr.State(None)
+    
     leftvote_btn.click(
+        None,  # No Python function for the first step
+        states + model_selectors + sandbox_states,
+        states + model_selectors + sandbox_states + [feedback_state],  # Use feedback_state
+        js=feedback_js,  # Run feedback collection in JS
+    ).then(
         leftvote_last_response,
-         states + model_selectors + sandbox_states,
+        states + model_selectors + sandbox_states + [feedback_state],  # Pass feedback_state
         model_selectors + sandbox_titles + [textbox] + user_buttons,
     )
+
     rightvote_btn.click(
+        None,
+        states + model_selectors + sandbox_states,
+        states + model_selectors + sandbox_states + [feedback_state],
+        js=feedback_js,
+    ).then(
         rightvote_last_response,
-        states + model_selectors + sandbox_states,
+        states + model_selectors + sandbox_states + [feedback_state],
         model_selectors + sandbox_titles + [textbox] + user_buttons,
     )
+
     tie_btn.click(
-        tievote_last_response,
+        None,
         states + model_selectors + sandbox_states,
+        states + model_selectors + sandbox_states + [feedback_state],
+        js=feedback_js,
+    ).then(
+        tievote_last_response,
+        states + model_selectors + sandbox_states + [feedback_state],
         model_selectors + sandbox_titles + [textbox] + user_buttons,
     )
+
     bothbad_btn.click(
-        bothbad_vote_last_response,
+        None,
         states + model_selectors + sandbox_states,
+        states + model_selectors + sandbox_states + [feedback_state],
+        js=feedback_js,
+    ).then(
+        bothbad_vote_last_response,
+        states + model_selectors + sandbox_states + [feedback_state],
         model_selectors + sandbox_titles + [textbox] + user_buttons,
     )
 
@@ -1045,7 +1348,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         outputs=[sandbox_env_choice, system_prompt_textbox]
     ).then(
         lambda: gr.update(visible=True),
-        outputs=[examples_row]
+        outputs=examples_row
     )
 
     share_js = """
@@ -1267,5 +1570,34 @@ function (a, b, c, d) {
             inputs=[state, sandbox_state, *sandbox_components],
             outputs=[*sandbox_components],
         )
+
+    # Add the feedback submission handler
+    feedback_submit_btn.click(
+        fn=lambda states, model_selectors, sandbox_states, feedback_data: [
+            states[0], states[1], 
+            model_selectors[0], model_selectors[1],
+            sandbox_states[0], sandbox_states[1],
+            feedback_data
+        ],
+        inputs=states + model_selectors + sandbox_states + [feedback_state],
+        outputs=states + model_selectors + sandbox_states + [feedback_state]
+    ).then(
+        leftvote_last_response,
+        states + model_selectors + sandbox_states + [feedback_state],
+        model_selectors + sandbox_titles + [textbox] + user_buttons,
+    ).then(
+        clear_history,
+        inputs=sandbox_states,
+        outputs=(
+            sandbox_states
+            + states
+            + chatbots
+            + model_selectors
+            + [multimodal_textbox, textbox]
+            + user_buttons
+            + [slow_warning]
+            + sandbox_titles
+        )
+    )
 
     return states + model_selectors
