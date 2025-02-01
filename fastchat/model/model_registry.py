@@ -536,7 +536,9 @@ register_model_info(
 register_model_info(
     [
         "deepseek-chat",
+        "deepseek-v3",
         "deepseek-reasoner",
+        "deepseek-r1",
         "deepseek-r1-zero (FP8, Hyperbolic)",
         "deepseek-r1 (FP8, Hyperbolic)",
     ],
