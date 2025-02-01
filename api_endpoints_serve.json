@@ -130,7 +130,7 @@
     "text-arena": true,
     "vision-arena": true
   },
-  "deepseek-chat": {
+  "deepseek-v3": {
     "model_name": "deepseek-chat",
     "api_type": "openai",
     "api_base": "https://api.deepseek.com",

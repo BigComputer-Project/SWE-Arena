@@ -25,7 +25,7 @@ SAMPLING_WEIGHTS = {
     "llama-3.1-8B-Instruct (BF16, Hyperbolic)": 1,
     "llama-3.3-70B-Instruct (BF16, Hyperbolic)": 1,
 
-    # 'deepseek-chat': 0.5,
+    # 'deepseek-v3': 0.5,
     # "deepseek-reasoner": 0.5,
     # 'gemini-2.0-flash-exp': 0.5,
     # 'gemini-1.5-pro': 0.5,
