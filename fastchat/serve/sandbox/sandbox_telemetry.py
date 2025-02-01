@@ -8,7 +8,7 @@ from typing import Any, Literal
 import datetime
 
 from fastchat.serve.chat_state import LOCAL_LOG_DIR
-from fastchat.serve.sandbox.code_runner import ChatbotSandboxState
+from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
 
 from azure.storage.blob import BlobServiceClient
 
@@ -150,22 +150,24 @@ def get_sandbox_log_filename(sandbox_state: ChatbotSandboxState) -> str:
     return (
         '-'.join(
             [
-                "sandbox-records",
-                f"{sandbox_state['sandbox_id']}",
-                f"{sandbox_state['enabled_round']}",
-                f"{sandbox_state['sandbox_run_round']}",
+                "sandbox-logs",
+                f"{sandbox_state['conv_id']}", # chat conv id
+                f"{sandbox_state['enabled_round']}", # current chat round
+                f"{sandbox_state['sandbox_run_round']}", # current sandbox round
             ]
          ) + ".json"
     )
 
 
 def upsert_sandbox_log(filename: str, data: str) -> None:
-    filepath = os.path.join(LOCAL_LOG_DIR, filename)
+    filepath = os.path.join(LOCAL_LOG_DIR, 'sandbox_logs', filename)
+    # create directory if not exists
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "w") as fout:
         fout.write(data)
 
 
-def create_sandbox_log(sandbox_state: ChatbotSandboxState, user_interaction_records: list[Any]) -> dict:
+def create_sandbox_log(sandbox_state: ChatbotSandboxState, user_interaction_records: list[Any] | None) -> dict:
     return {
         "sandbox_state": sandbox_state,
         "user_interaction_records": user_interaction_records,
@@ -174,12 +176,12 @@ def create_sandbox_log(sandbox_state: ChatbotSandboxState, user_interaction_reco
 
 def log_sandbox_telemetry_gradio_fn(
     sandbox_state: ChatbotSandboxState,
-    sandbox_ui_value: tuple[str, bool, list[Any]]
+    sandbox_ui_value: tuple[str, bool, list[Any]] | None
 ) -> None:
-    if sandbox_state is None or sandbox_ui_value is None:
+    if sandbox_state is None:
         return
     sandbox_id = sandbox_state['sandbox_id']
-    user_interaction_records = sandbox_ui_value[2]
+    user_interaction_records = sandbox_ui_value[2] if sandbox_ui_value else None
     if sandbox_id is None or user_interaction_records is None or len(user_interaction_records) == 0:
         return
     

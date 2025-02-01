@@ -43,9 +43,10 @@ from fastchat.serve.gradio_web_server import (
     set_chat_system_messages,
     update_system_prompt,
 )
+from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
 from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, save_conv_log_to_azure_storage
 from fastchat.serve.vision.image import ImageFormat, Image
-from fastchat.serve.sandbox.code_runner import SandboxEnvironment, SandboxGradioSandboxComponents, DEFAULT_SANDBOX_INSTRUCTIONS, RUN_CODE_BUTTON_HTML, ChatbotSandboxState, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, update_sandbox_config, update_sandbox_state_system_prompt
+from fastchat.serve.sandbox.code_runner import SandboxEnvironment, SandboxGradioSandboxComponents, DEFAULT_SANDBOX_INSTRUCTIONS, RUN_CODE_BUTTON_HTML, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, update_sandbox_config, update_sandbox_state_system_prompt, set_sandbox_state_ids
 from fastchat.utils import (
     build_logger,
     moderation_filter,
@@ -316,6 +317,11 @@ def add_text(
             chat_mode="direct",
             is_vision=is_vision,
             chat_session_id=None,
+        )
+        set_sandbox_state_ids(
+            sandbox_state=sandbox_state,
+            conv_id=state.conv_id,
+            chat_session_id=state.chat_session_id
         )
 
     if len(text) == 0:

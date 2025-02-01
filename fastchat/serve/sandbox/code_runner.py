@@ -11,10 +11,12 @@ import base64
 from e2b_code_interpreter import Sandbox as CodeSandbox
 from gradio_sandboxcomponent import SandboxComponent
 
+from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
 from fastchat.serve.sandbox.code_analyzer import SandboxEnvironment, extract_code_from_markdown, extract_installation_commands, extract_java_class_name, extract_js_imports, extract_python_imports, replace_placeholder_urls, validate_dependencies
 from fastchat.serve.sandbox.prompts import (
     DEFAULT_C_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_CPP_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_GOLANG_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_GRADIO_SANDBOX_INSTRUCTION, DEFAULT_HTML_SANDBOX_INSTRUCTION, DEFAULT_JAVA_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_JAVASCRIPT_RUNNER_INSTRUCTION, DEFAULT_MERMAID_SANDBOX_INSTRUCTION, DEFAULT_PYGAME_SANDBOX_INSTRUCTION, DEFAULT_PYTHON_RUNNER_INSTRUCTION, DEFAULT_REACT_SANDBOX_INSTRUCTION, DEFAULT_RUST_CODE_RUN_SANDBOX_INSTRUCTION, DEFAULT_STREAMLIT_SANDBOX_INSTRUCTION, DEFAULT_VUE_SANDBOX_INSTRUCTION, GENERAL_SANDBOX_INSTRUCTION
 )
+from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 
 
 from .constants import CODE_RUN_TIMEOUT_SECONDS, E2B_API_KEY, SANDBOX_TEMPLATE_ID, SANDBOX_NGINX_PORT
@@ -85,53 +87,6 @@ SandboxGradioSandboxComponents: TypeAlias =  tuple[
 Gradio components for the sandbox.
 '''
 
-class ChatbotSandboxState(TypedDict):
-    '''
-    Chatbot sandbox state in gr.state.
-    '''
-    enable_sandbox: bool
-    '''
-    Whether the code sandbox is enabled.
-    '''
-    sandbox_instruction: str | None
-    '''
-    The sandbox instruction to display.
-    '''
-    enabled_round: int
-    '''
-    The chat round after which the sandbox is enabled.
-    '''
-    sandbox_run_round: int
-    '''
-    How many rounds the sandbox has been run inside the session.
-    '''
-    sandbox_environment: SandboxEnvironment | None
-    '''
-    The sandbox environment to run the code.
-    '''
-    auto_selected_sandbox_environment: SandboxEnvironment | None
-    '''
-    The sandbox environment selected automatically.
-    '''
-    code_to_execute: str | None
-    '''
-    The code to execute in the sandbox.
-    '''
-    code_language: str | None
-    '''
-    The code language to execute in the sandbox.
-    '''
-    code_dependencies: tuple[list[str], list[str]]
-    '''
-    The code dependencies for the sandbox (python, npm).
-    '''
-    sandbox_id: str | None
-    '''
-    The sandbox id. None if no running.
-    '''
-    btn_list_length: int
-
-
 class CodeRunResult(TypedDict):
     '''
     The result of running the code in the sandbox.
@@ -162,6 +117,7 @@ def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxStat
         'enable_sandbox': True,  # Always enabled
         'enabled_round': 0,
         'sandbox_run_round': 0,
+        'edit_round': 0,
         'sandbox_environment': SandboxEnvironment.AUTO,
         'auto_selected_sandbox_environment': None,
         'sandbox_instruction': DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO],
@@ -170,7 +126,22 @@ def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxStat
         'code_dependencies': ([], []),
         'btn_list_length': btn_list_length,
         'sandbox_id': None,
+        'chat_session_id': None,
+        'conv_id': None,
     }
+
+
+def set_sandbox_state_ids(
+    sandbox_state: ChatbotSandboxState,
+    conv_id: str,
+    chat_session_id: str,
+) -> ChatbotSandboxState:
+    '''
+    Set the conv_id and chat_session_id in the sandbox state.
+    '''
+    sandbox_state['conv_id'] = conv_id
+    sandbox_state['chat_session_id'] = chat_session_id
+    return sandbox_state
 
 
 def reset_sandbox_state(state: ChatbotSandboxState) -> ChatbotSandboxState:
@@ -178,15 +149,23 @@ def reset_sandbox_state(state: ChatbotSandboxState) -> ChatbotSandboxState:
     Reset the sandbox state.
     Used when the chatbot session is reset.
     '''
+    # reset rounds
     state['enabled_round'] = 0
     state['sandbox_run_round'] = 0
+    state['edit_round'] = 0
+
     # state['sandbox_environment'] = SandboxEnvironment.AUTO
     state['auto_selected_sandbox_environment'] = None
     state['sandbox_instruction'] = DEFAULT_SANDBOX_INSTRUCTIONS[SandboxEnvironment.AUTO]
     state['code_to_execute'] = ""
     state['code_language'] = None
     state['code_dependencies'] = ([], [])
+
+    # reset ids
     state['sandbox_id'] = None
+    state['conv_id'] = None
+    state['chat_session_id'] = None
+
     return state
 
 
@@ -900,6 +879,9 @@ def on_edit_dependency(
     # Update sandbox state with new dependencies
     sandbox_state["code_dependencies"] = (python_deps, npm_deps)
 
+    # increase edit round
+    sandbox_state['edit_round'] += 1
+
     # First yield: Update UI with success message
     yield (
         gr.Markdown("Dependencies updated successfully"),
@@ -1001,6 +983,9 @@ def on_click_code_message_run(
     sandbox_state["code_dependencies"] = code_dependencies
     if sandbox_state['sandbox_environment'] == SandboxEnvironment.AUTO:
         sandbox_state['auto_selected_sandbox_environment'] = env_selection
+
+    # reset edit round
+    sandbox_state['edit_round'] = 0
 
     yield (
         gr.skip(),  # sandbox_output
@@ -1521,3 +1506,7 @@ def on_run_code(
     sandbox_state['sandbox_run_round'] += 1
     if sandbox_id:
         sandbox_state['sandbox_id'] = sandbox_id
+        log_sandbox_telemetry_gradio_fn(
+            sandbox_state=sandbox_state,
+            sandbox_ui_value=None,
+        )
