@@ -92,41 +92,22 @@ vl_models = []
 USER_BUTTONS_LENGTH = 11
 
 # Add at the top level, before the functions
-feedback_js = """
-function(s0, s1, ms0, ms1, ss0, ss1) {
-    console.log('JavaScript function called with:', {s0, s1, ms0, ms1, ss0, ss1});
+feedback_popup_js = """
+function() {
+    // console.log('JavaScript function called with:', {s0, s1, ms0, ms1, ss0, ss1});
     
     function submitFeedback(selectedFeedback) {
         console.log('Submit function called');
         console.log('User selected feedback:', selectedFeedback);
         console.log('Returning data to backend:', {
-            states: [s0, s1],
-            model_selectors: [ms0, ms1],
-            sandbox_states: [ss0, ss1],
             feedback: selectedFeedback
         });
         
-        // Create a hidden input to store feedback
-        const feedbackInput = document.createElement('input');
-        feedbackInput.type = 'hidden';
-        feedbackInput.id = 'feedback_data';
-        feedbackInput.value = JSON.stringify(selectedFeedback);
-        document.body.appendChild(feedbackInput);
-        
-        setTimeout(() => {
-            console.log('Attempting to click feedback submit button...');
-            const submitBtn = document.getElementById('feedback_submit_btn');
-            if (submitBtn) {
-                console.log('Found feedback submit button, clicking...');
-                submitBtn.click();
-            } else {
-                console.log('Feedback submit button not found');
-            }
-            // Clean up
-            document.body.removeChild(feedbackInput);
-        }, 500);
+        feedback_details_textbox = document.querySelector('#feedback_details');
+        feedback_details_textbox.value = JSON.stringify(selectedFeedback);
+        feedback_btn = document.querySelector('#feedback_btn');
 
-        return [s0, s1, ms0, ms1, ss0, ss1, feedbackInput.value];
+        feedback_btn.click();
     }
 
     return new Promise((resolve) => {
@@ -283,15 +264,25 @@ def load_demo_side_by_side_vision_anony():
 
     return states + selector_updates
 
-
-def vote_last_response(states, sandbox_states: list[ChatbotSandboxState], vote_type, model_selectors, feedback_data: str = None, request: gr.Request = None):
+def vote_last_response(
+        states, 
+        model_selectors, 
+        sandbox_states: list[ChatbotSandboxState], 
+        feedback_state: str,
+        feedback_details: str = None, 
+        request: gr.Request = None
+):
     '''
     Return
         model_selectors + sandbox_titles + [textbox] + user_buttons
     '''
+    vote_type = feedback_state
+    assert vote_type in ["vote_left", "vote_right", "vote_tie", "vote_bothbad"]
+
+
     logger.info(f"=== Vote Response Start ===")
     logger.info(f"Vote type: {vote_type}")
-    logger.info(f"Feedback data received: {feedback_data}")
+    logger.info(f"Feedback data received: {feedback_details}")
     
     filename = get_conv_log_filename(states[0].is_vision, states[0].has_csam_image)
 
@@ -305,13 +296,13 @@ def vote_last_response(states, sandbox_states: list[ChatbotSandboxState], vote_t
         }
         
         # Add feedback data if available
-        if feedback_data:
+        if feedback_details:
             try:
-                feedback_list = json.loads(feedback_data)
+                feedback_list = json.loads(feedback_details)
                 data["feedback"] = feedback_list
                 logger.info(f"Processed feedback: {feedback_list}")
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse feedback data: {feedback_data}")
+                logger.error(f"Failed to parse feedback data: {feedback_details}")
                 logger.error(f"JSON decode error: {str(e)}")
         else:
             logger.warning("No feedback data received")
@@ -406,109 +397,109 @@ def leftvote_last_response(
     logger.info("=== Leftvote End ===")
 
 
-def rightvote_last_response(
-    state0, state1,
-    model_selector0, model_selector1,
-    sandbox_state0, sandbox_state1,
-    feedback_data: str = None,
-    request: gr.Request = None
-):
-    ip = get_ip(request)
-    logger.info(f"=== Rightvote Start ===")
-    logger.info(f"IP: {ip}")
-    print(f"\n=== Feedback Submission ===")
-    print(f"Vote type: rightvote")
-    print(f"IP: {ip}")
+# def rightvote_last_response(
+#     state0, state1,
+#     model_selector0, model_selector1,
+#     sandbox_state0, sandbox_state1,
+#     feedback_data: str = None,
+#     request: gr.Request = None
+# ):
+#     ip = get_ip(request)
+#     logger.info(f"=== Rightvote Start ===")
+#     logger.info(f"IP: {ip}")
+#     print(f"\n=== Feedback Submission ===")
+#     print(f"Vote type: rightvote")
+#     print(f"IP: {ip}")
     
-    if feedback_data:
-        try:
-            feedback_list = json.loads(feedback_data)
-            print(f"Selected feedback items: {feedback_list}")
-            logger.info(f"User feedback for rightvote: {feedback_list}")
-        except json.JSONDecodeError:
-            print(f"Error parsing feedback data: {feedback_data}")
-            logger.error(f"Failed to parse feedback data: {feedback_data}")
-    else:
-        print("No feedback data received")
-        logger.warning("No feedback data received in rightvote")
+#     if feedback_data:
+#         try:
+#             feedback_list = json.loads(feedback_data)
+#             print(f"Selected feedback items: {feedback_list}")
+#             logger.info(f"User feedback for rightvote: {feedback_list}")
+#         except json.JSONDecodeError:
+#             print(f"Error parsing feedback data: {feedback_data}")
+#             logger.error(f"Failed to parse feedback data: {feedback_data}")
+#     else:
+#         print("No feedback data received")
+#         logger.warning("No feedback data received in rightvote")
 
-    for x in vote_last_response(
-        [state0, state1], [sandbox_state0, sandbox_state1], "rightvote", 
-        [model_selector0, model_selector1], feedback_data, request
-    ):
-        yield x
+#     for x in vote_last_response(
+#         [state0, state1], [sandbox_state0, sandbox_state1], "rightvote", 
+#         [model_selector0, model_selector1], feedback_data, request
+#     ):
+#         yield x
     
-    logger.info("=== Rightvote End ===")
+#     logger.info("=== Rightvote End ===")
 
 
-def tievote_last_response(
-    state0, state1,
-    model_selector0, model_selector1,
-    sandbox_state0, sandbox_state1,
-    feedback_data: str = None,
-    request: gr.Request = None
-):
-    ip = get_ip(request)
-    logger.info(f"=== Tievote Start ===")
-    logger.info(f"IP: {ip}")
-    print(f"\n=== Feedback Submission ===")
-    print(f"Vote type: tievote")
-    print(f"IP: {ip}")
+# def tievote_last_response(
+#     state0, state1,
+#     model_selector0, model_selector1,
+#     sandbox_state0, sandbox_state1,
+#     feedback_data: str = None,
+#     request: gr.Request = None
+# ):
+#     ip = get_ip(request)
+#     logger.info(f"=== Tievote Start ===")
+#     logger.info(f"IP: {ip}")
+#     print(f"\n=== Feedback Submission ===")
+#     print(f"Vote type: tievote")
+#     print(f"IP: {ip}")
     
-    if feedback_data:
-        try:
-            feedback_list = json.loads(feedback_data)
-            print(f"Selected feedback items: {feedback_list}")
-            logger.info(f"User feedback for tievote: {feedback_list}")
-        except json.JSONDecodeError:
-            print(f"Error parsing feedback data: {feedback_data}")
-            logger.error(f"Failed to parse feedback data: {feedback_data}")
-    else:
-        print("No feedback data received")
-        logger.warning("No feedback data received in tievote")
+#     if feedback_data:
+#         try:
+#             feedback_list = json.loads(feedback_data)
+#             print(f"Selected feedback items: {feedback_list}")
+#             logger.info(f"User feedback for tievote: {feedback_list}")
+#         except json.JSONDecodeError:
+#             print(f"Error parsing feedback data: {feedback_data}")
+#             logger.error(f"Failed to parse feedback data: {feedback_data}")
+#     else:
+#         print("No feedback data received")
+#         logger.warning("No feedback data received in tievote")
 
-    for x in vote_last_response(
-        [state0, state1], [sandbox_state0, sandbox_state1], "tievote", 
-        [model_selector0, model_selector1], feedback_data, request
-    ):
-        yield x
+#     for x in vote_last_response(
+#         [state0, state1], [sandbox_state0, sandbox_state1], "tievote", 
+#         [model_selector0, model_selector1], feedback_data, request
+#     ):
+#         yield x
     
-    logger.info("=== Tievote End ===")
+#     logger.info("=== Tievote End ===")
 
 
-def bothbad_vote_last_response(
-    state0, state1,
-    model_selector0, model_selector1,
-    sandbox_state0, sandbox_state1,
-    feedback_data: str = None,
-    request: gr.Request = None
-):
-    ip = get_ip(request)
-    logger.info(f"=== Bothbad Vote Start ===")
-    logger.info(f"IP: {ip}")
-    print(f"\n=== Feedback Submission ===")
-    print(f"Vote type: bothbad")
-    print(f"IP: {ip}")
+# def bothbad_vote_last_response(
+#     state0, state1,
+#     model_selector0, model_selector1,
+#     sandbox_state0, sandbox_state1,
+#     feedback_data: str = None,
+#     request: gr.Request = None
+# ):
+#     ip = get_ip(request)
+#     logger.info(f"=== Bothbad Vote Start ===")
+#     logger.info(f"IP: {ip}")
+#     print(f"\n=== Feedback Submission ===")
+#     print(f"Vote type: bothbad")
+#     print(f"IP: {ip}")
     
-    if feedback_data:
-        try:
-            feedback_list = json.loads(feedback_data)
-            print(f"Selected feedback items: {feedback_list}")
-            logger.info(f"User feedback for bothbad_vote: {feedback_list}")
-        except json.JSONDecodeError:
-            print(f"Error parsing feedback data: {feedback_data}")
-            logger.error(f"Failed to parse feedback data: {feedback_data}")
-    else:
-        print("No feedback data received")
-        logger.warning("No feedback data received in bothbad_vote")
+#     if feedback_data:
+#         try:
+#             feedback_list = json.loads(feedback_data)
+#             print(f"Selected feedback items: {feedback_list}")
+#             logger.info(f"User feedback for bothbad_vote: {feedback_list}")
+#         except json.JSONDecodeError:
+#             print(f"Error parsing feedback data: {feedback_data}")
+#             logger.error(f"Failed to parse feedback data: {feedback_data}")
+#     else:
+#         print("No feedback data received")
+#         logger.warning("No feedback data received in bothbad_vote")
 
-    for x in vote_last_response(
-        [state0, state1], [sandbox_state0, sandbox_state1], "bothbad_vote", 
-        [model_selector0, model_selector1], feedback_data, request
-    ):
-        yield x
+#     for x in vote_last_response(
+#         [state0, state1], [sandbox_state0, sandbox_state1], "bothbad_vote", 
+#         [model_selector0, model_selector1], feedback_data, request
+#     ):
+#         yield x
     
-    logger.info("=== Bothbad Vote End ===")
+#     logger.info("=== Bothbad Vote End ===")
 
 
 def regenerate_single(state, request: gr.Request):
@@ -1269,50 +1260,105 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
 
     # Create a feedback state that persists across the chain
     feedback_state = gr.State(None)
+    # The hidden vote button used to trigger the vote submission
+    with gr.Group(visible=False, interactive=True):
+        feedback_btn = gr.Button(
+            elem_id="feedback_btn",
+            value="The hidden vote button. The user shoudl not be able to see this", 
+            visible=False, 
+            interactive=True
+        )
+        feedback_details = gr.Textbox(
+            elem_id="feedback_details",
+            value="",
+            visible=False,
+            interactive=True
+        )
     
+    # The one and only entry for submitting the vote
+    feedback_btn.click(
+        vote_last_response,
+        inputs=states + model_selectors + sandbox_states + feedback_state + feedback_details,
+        outputs=model_selectors + sandbox_titles + [
+            textbox,
+            # vote buttons
+            leftvote_btn, rightvote_btn, tie_btn, bothbad_btn,
+            # send buttons
+            send_btn, send_btn_left, send_btn_right,
+            # regenerate buttons
+            regenerate_btn, left_regenerate_btn, right_regenerate_btn,
+        ]
+    )
+
     leftvote_btn.click(
-        None,  # No Python function for the first step
-        states + model_selectors + sandbox_states,
-        states + model_selectors + sandbox_states + [feedback_state],  # Use feedback_state
-        js=feedback_js,  # Run feedback collection in JS
-    ).then(
-        leftvote_last_response,
-        states + model_selectors + sandbox_states + [feedback_state],  # Pass feedback_state
-        model_selectors + sandbox_titles + [textbox] + user_buttons,
+        lambda: "vote_left",
+        inputs=[],
+        outputs=[feedback_state],
+        js=feedback_popup_js
     )
-
     rightvote_btn.click(
-        None,
-        states + model_selectors + sandbox_states,
-        states + model_selectors + sandbox_states + [feedback_state],
-        js=feedback_js,
-    ).then(
-        rightvote_last_response,
-        states + model_selectors + sandbox_states + [feedback_state],
-        model_selectors + sandbox_titles + [textbox] + user_buttons,
-    )
+        lambda: "vote_right",
+        inputs=[],
+        outputs=[feedback_state],
+        js=feedback_popup_js
 
+    )
     tie_btn.click(
-        None,
-        states + model_selectors + sandbox_states,
-        states + model_selectors + sandbox_states + [feedback_state],
-        js=feedback_js,
-    ).then(
-        tievote_last_response,
-        states + model_selectors + sandbox_states + [feedback_state],
-        model_selectors + sandbox_titles + [textbox] + user_buttons,
+        lambda: "vote_tie",
+        inputs=[],
+        outputs=[feedback_state],
+        js=feedback_popup_js
     )
-
     bothbad_btn.click(
-        None,
-        states + model_selectors + sandbox_states,
-        states + model_selectors + sandbox_states + [feedback_state],
-        js=feedback_js,
-    ).then(
-        bothbad_vote_last_response,
-        states + model_selectors + sandbox_states + [feedback_state],
-        model_selectors + sandbox_titles + [textbox] + user_buttons,
+        lambda: "vote_bothbad",
+        inputs=[],
+        outputs=[feedback_state],
+        js=feedback_popup_js
     )
+    
+    # leftvote_btn.click(
+    #     None,  # No Python function for the first step
+    #     states + model_selectors + sandbox_states,
+    #     states + model_selectors + sandbox_states + [feedback_state],  # Use feedback_state
+    #     js=feedback_js,  # Run feedback collection in JS
+    # ).then(
+    #     leftvote_last_response,
+    #     states + model_selectors + sandbox_states + [feedback_state],  # Pass feedback_state
+    #     model_selectors + sandbox_titles + [textbox] + user_buttons,
+    # )
+
+    # rightvote_btn.click(
+    #     None,
+    #     states + model_selectors + sandbox_states,
+    #     states + model_selectors + sandbox_states + [feedback_state],
+    #     js=feedback_js,
+    # ).then(
+    #     rightvote_last_response,
+    #     states + model_selectors + sandbox_states + [feedback_state],
+    #     model_selectors + sandbox_titles + [textbox] + user_buttons,
+    # )
+
+    # tie_btn.click(
+    #     None,
+    #     states + model_selectors + sandbox_states,
+    #     states + model_selectors + sandbox_states + [feedback_state],
+    #     js=feedback_js,
+    # ).then(
+    #     tievote_last_response,
+    #     states + model_selectors + sandbox_states + [feedback_state],
+    #     model_selectors + sandbox_titles + [textbox] + user_buttons,
+    # )
+
+    # bothbad_btn.click(
+    #     None,
+    #     states + model_selectors + sandbox_states,
+    #     states + model_selectors + sandbox_states + [feedback_state],
+    #     js=feedback_js,
+    # ).then(
+    #     bothbad_vote_last_response,
+    #     states + model_selectors + sandbox_states + [feedback_state],
+    #     model_selectors + sandbox_titles + [textbox] + user_buttons,
+    # )
 
     regenerate_btn.click(
         regenerate_multi,
