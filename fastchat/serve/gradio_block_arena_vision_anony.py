@@ -264,27 +264,32 @@ def load_demo_side_by_side_vision_anony():
 
     return states + selector_updates
 
-def vote_last_response(
-        states, 
-        model_selectors, 
-        sandbox_states: list[ChatbotSandboxState], 
-        feedback_state: str,
-        feedback_details: str = None, 
-        request: gr.Request = None
-):
+def vote_last_response(state0, state1, vote_type, model_selector0, model_selector1, feedback_details=None, request: gr.Request = None):
     '''
-    Return
-        model_selectors + sandbox_titles + [textbox] + user_buttons
+    Handle voting for a response, including any feedback details provided.
+    
+    Args:
+        state0: First conversation state
+        state1: Second conversation state
+        vote_type: Type of vote (left, right, tie, etc)
+        model_selector0: First model selector
+        model_selector1: Second model selector
+        feedback_details: Optional feedback details from the popup
+        request: Gradio request object
+    Returns:
+        Tuple of (model_selectors[2] + sandbox_titles[2] + textbox[1] + user_buttons[10])
     '''
-    vote_type = feedback_state
-    assert vote_type in ["vote_left", "vote_right", "vote_tie", "vote_bothbad"]
+    states = [state0, state1]
+    model_selectors = [model_selector0, model_selector1]
 
+    if state0 is None or state1 is None:
+        return (None, None) + (disable_text,) + (disable_btn,) * (USER_BUTTONS_LENGTH - 1)
 
     logger.info(f"=== Vote Response Start ===")
     logger.info(f"Vote type: {vote_type}")
     logger.info(f"Feedback data received: {feedback_details}")
     
-    filename = get_conv_log_filename(states[0].is_vision, states[0].has_csam_image)
+    filename = get_conv_log_filename(state0.is_vision, state0.has_csam_image)
 
     with open(filename, "a") as fout:
         data = {
@@ -316,8 +321,8 @@ def vote_last_response(
     logger.info("=== Vote Response End ===")
 
     # display model names
-    model_name_1 = states[0].model_name if states and states[0] else ""
-    model_name_2 = states[1].model_name if states and states[1] else ""
+    model_name_1 = state0.model_name if state0 else ""
+    model_name_2 = state1.model_name if state1 else ""
     model_name_map = {}
 
     if model_name_1 in model_name_map:
@@ -325,40 +330,23 @@ def vote_last_response(
     if model_name_2 in model_name_map:
         model_name_2 = model_name_map[model_name_2]
 
-    if not model_selectors or ":" not in model_selectors[0]:
-        for i in range(5):
-            names = (
-                "### Model A: " + model_name_1,
-                "### Model B: " + model_name_2,
-            )
-            sandbox_titles = (
-                f"### Model A Sandbox: {model_name_1}",
-                f"### Model B Sandbox: {model_name_2}",
-            )
-            # model_selectors + sandbox_titles + [textbox] + user_buttons
-            yield (
-                names + sandbox_titles
-                + (disable_text,)
-                + (disable_btn,) * (sandbox_states[0]['btn_list_length'] - 1)
-                + (enable_btn,) # allow clear
-            )
-            time.sleep(0.1)
-    else:
-        names = (
-            "### Model A: " + model_name_1,
-            "### Model B: " + model_name_2,
-        )
-        sandbox_titles = (
-            f"### Model A Sandbox: {model_name_1}",
-            f"### Model B Sandbox: {model_name_2}",
-        )
-        # model_selectors + sandbox_titles + [textbox] + user_buttons
-        yield (
-            names + sandbox_titles
-            + (disable_text,)
-            + (disable_btn,) * (sandbox_states[0]['btn_list_length'] - 1)
-            + (enable_btn,) # allow clear
-        )
+    names = (
+        "### Model A: " + model_name_1,
+        "### Model B: " + model_name_2,
+    )
+    sandbox_titles = (
+        f"### Model A Sandbox: {model_name_1}",
+        f"### Model B Sandbox: {model_name_2}",
+    )
+    
+    # Return exactly the number of outputs expected by the click handler
+    # 2 model selectors + 2 sandbox titles + 1 textbox + 10 buttons = 15 outputs
+    return (
+        names[0], names[1],  # model selectors (2)
+        sandbox_titles[0], sandbox_titles[1],  # sandbox titles (2)
+        disable_text,  # textbox (1)
+        *(disable_btn,) * (USER_BUTTONS_LENGTH - 1)  # disable all buttons except clear (10)
+    )  # Total: 15 outputs
 
 
 def leftvote_last_response(
@@ -388,13 +376,14 @@ def leftvote_last_response(
         print("No feedback data received")
         logger.warning("No feedback data received in leftvote")
 
-    for x in vote_last_response(
-        [state0, state1], [sandbox_state0, sandbox_state1], "leftvote", 
-        [model_selector0, model_selector1], feedback_data, request
-    ):
-        yield x
+    result = vote_last_response(
+        state0, state1, "leftvote", 
+        model_selector0, model_selector1,
+        feedback_data, request
+    )
     
     logger.info("=== Leftvote End ===")
+    return result
 
 
 def regenerate_single(state, request: gr.Request):
@@ -1156,7 +1145,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     # Create a feedback state that persists across the chain
     feedback_state = gr.State(None)
     # The hidden vote button used to trigger the vote submission
-    with gr.Group(visible=False, interactive=True):
+    with gr.Group(visible=False):
         feedback_btn = gr.Button(
             elem_id="feedback_btn",
             value="The hidden vote button. The user shoudl not be able to see this", 
@@ -1173,7 +1162,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     # The one and only entry for submitting the vote
     feedback_btn.click(
         vote_last_response,
-        inputs=states + model_selectors + sandbox_states + feedback_state + feedback_details,
+        inputs=[states[0], states[1], feedback_state, model_selectors[0], model_selectors[1], feedback_details],
         outputs=model_selectors + sandbox_titles + [
             textbox,
             # vote buttons
