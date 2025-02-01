@@ -173,7 +173,7 @@ class ModelChatState:
         '''
         Get the filepath for the conversation log.
 
-        Epxected directory structure:
+        Expected directory structure:
             softwarearenlog/
             └── YEAR_MONTH_DAY/
                 ├── conv_logs/

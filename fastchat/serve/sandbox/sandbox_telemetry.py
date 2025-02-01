@@ -60,7 +60,7 @@ def get_conv_log_filepath(
     '''
     Get the filepath for the conversation log.
 
-    Epxected directory structure:
+    Expected directory structure:
         softwarearenlog/
         └── YEAR_MONTH_DAY/
             ├── conv_logs/
@@ -89,7 +89,7 @@ def get_sandbox_log_filepath(
     '''
     Get the filepath for the conversation log.
 
-    Epxected directory structure:
+    Expected directory structure:
         softwarearenlog/
         └── YEAR_MONTH_DAY/
             ├── conv_logs/
