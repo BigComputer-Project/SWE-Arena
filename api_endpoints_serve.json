@@ -1,4 +1,5 @@
 {
+  // GPT Models
   "gpt-4o-mini-2024-07-18": {
     "model_name": "gpt-4o-mini-2024-07-18",
     "api_type": "openai",
@@ -44,6 +45,45 @@
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": false,
+    "recommended_config": {
+      "temperature": 0.2,
+      "top_p": 0.9
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "o1-2024-12-17 (OpenAI)": {
+    "model_name": "o1-2024-12-17",
+    "api_type": "openai_o1",
+    "api_base": "https://api.openai.com/v1",
+    "api_key": "ENV:OPENAI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.2,
+      "top_p": 0.9
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "o1-mini-2024-09-12 (OpenAI)": {
+    "model_name": "o1-mini-2024-09-12",
+    "api_type": "openai_o1",
+    "api_base": "https://api.openai.com/v1",
+    "api_key": "ENV:OPENAI_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.2,
+      "top_p": 0.9
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "o3-mini-2025-01-31 (OpenAI)": {
+    "model_name": "o3-mini-2025-01-31",
+    "api_type": "openai_o1",
+    "api_base": "https://api.openai.com/v1",
+    "api_key": "ENV:OPENAI_API_KEY",
+    "anony_only": true,
     "recommended_config": {
       "temperature": 0.2,
       "top_p": 0.9
@@ -103,11 +143,24 @@
     "text-arena": true,
     "vision-arena": false
   },
-  "deepseek-reasoner": {
-    "model_name": "deepseek-reasoner",
+  // "deepseek-reasoner": {
+  //   "model_name": "deepseek-reasoner",
+  //   "api_type": "openai",
+  //   "api_base": "https://api.deepseek.com",
+  //   "api_key": "ENV:DEEPSEEK_API_KEY",
+  //   "anony_only": true,
+  //   "recommended_config": {
+  //     "temperature": 0.2,
+  //     "top_p": 0.9
+  //   },
+  //   "text-arena": true,
+  //   "vision-arena": false
+  // },
+  "deepseek-r1-zero (FP8, Hyperbolic)": {
+    "model_name": "deepseek-ai/DeepSeek-R1-Zero",
     "api_type": "openai",
-    "api_base": "https://api.deepseek.com",
-    "api_key": "ENV:DEEPSEEK_API_KEY",
+    "api_base": "https://api.hyperbolic.xyz/v1",
+    "api_key": "ENV:HYPERBOLIC_API_KEY",
     "anony_only": true,
     "recommended_config": {
       "temperature": 0.2,
@@ -116,6 +169,47 @@
     "text-arena": true,
     "vision-arena": false
   },
+  "deepseek-r1 (FP8, Hyperbolic)": {
+    "model_name": "deepseek-ai/DeepSeek-R1",
+    "api_type": "openai",
+    "api_base": "https://api.hyperbolic.xyz/v1",
+    "api_key": "ENV:HYPERBOLIC_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.2,
+      "top_p": 0.9
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  // Llama models
+  "llama-3.1-8B-Instruct (BF16, Hyperbolic)": {
+    "model_name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    "api_type": "openai",
+    "api_base": "https://api.hyperbolic.xyz/v1",
+    "api_key": "ENV:HYPERBOLIC_API_KEY",
+    "anony_only": false,
+    "recommended_config": {
+      "temperature": 0.2,
+      "top_p": 0.9
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  "llama-3.3-70B-Instruct (BF16, Hyperbolic)": {
+    "model_name": "meta-llama/Llama-3.3-70B-Instruct",
+    "api_type": "openai",
+    "api_base": "https://api.hyperbolic.xyz/v1",
+    "api_key": "ENV:HYPERBOLIC_API_KEY",
+    "anony_only": false,
+    "recommended_config": {
+      "temperature": 0.2,
+      "top_p": 0.9
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
+  // Gemini models
   "gemini-2.0-flash-exp": {
     "model_name": "gemini-2.0-flash-exp",
     "api_type": "gemini",

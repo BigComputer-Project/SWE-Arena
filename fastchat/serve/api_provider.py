@@ -323,6 +323,9 @@ def openai_api_stream_iter(
         for chunk in res:
             if len(chunk.choices) > 0:
                 text += chunk.choices[0].delta.content or ""
+                if "deepseek" in model_name:
+                    # Support for deepseek <think> tag
+                    text = text.replace('<think>', '<details open><summary style="color: lightgray;">Thinking...</summary>').replace('</think>', '</details>\n\n')
                 data = {
                     "text": text,
                     "error_code": 0,
@@ -330,6 +333,15 @@ def openai_api_stream_iter(
                 yield data
     else:
         if is_o1:
+            is_o1_mini = "o1-mini" in model_name
+            for message in messages:
+                # see https://platform.openai.com/docs/guides/text-generation#building-prompts
+                # system role is deprecated in O1 and replaced with developer
+                # and o1 mini not yet support system or developer role
+                if message["role"] == "system":
+                    message["role"] = "developer" if not is_o1_mini else "assistant"
+                    break
+
             res = client.chat.completions.create(
                 model=model_name,
                 messages=messages,

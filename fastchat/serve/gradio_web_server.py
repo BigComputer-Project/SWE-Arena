@@ -6,7 +6,7 @@ import argparse
 from collections import defaultdict
 import datetime
 import hashlib
-import json
+import json5
 import os
 import random
 import time
@@ -208,7 +208,7 @@ def get_model_list(controller_url, register_api_endpoint_file, vision_arena: boo
 
     # Add models from the API providers
     if register_api_endpoint_file:
-        api_endpoint_info = json.load(open(register_api_endpoint_file))
+        api_endpoint_info = json5.load(open(register_api_endpoint_file))
         for mdl, mdl_dict in api_endpoint_info.items():
             mdl_vision = mdl_dict.get("vision-arena", False)
             mdl_text = mdl_dict.get("text-arena", True)
@@ -282,9 +282,9 @@ def vote_last_response(state, vote_type, model_selector, request: gr.Request):
             "state": state.dict(),
             "ip": get_ip(request),
         }
-        fout.write(json.dumps(data) + "\n")
+        fout.write(json5.dumps(data) + "\n")
     get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data))
+    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json5.dumps(data))
 
 
 def upvote_last_response(state, model_selector, request: gr.Request):
@@ -476,7 +476,7 @@ def model_worker_stream_iter(
     )
     for chunk in response.iter_lines(decode_unicode=False, delimiter=b"\0"):
         if chunk:
-            data = json.loads(chunk.decode())
+            data = json5.loads(chunk.decode())
             yield data
 
 
@@ -685,9 +685,9 @@ def bot_response(
             "state": state.dict(),
             "ip": get_ip(request),
         }
-        fout.write(json.dumps(data) + "\n")
+        fout.write(json5.dumps(data) + "\n")
     get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + '\n')
+    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json5.dumps(data) + '\n')
 
 
 block_css = """
@@ -1154,7 +1154,7 @@ def build_single_model_ui(models, add_promotion_links=False):
         max_output_tokens = gr.Slider(
             minimum=16,
             maximum=4096,
-            value=2048,
+            value=4096,
             step=64,
             interactive=True,
             label="Max output tokens",
