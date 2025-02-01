@@ -1573,17 +1573,8 @@ function (a, b, c, d) {
 
     # Add the feedback submission handler
     feedback_submit_btn.click(
-        fn=lambda states, model_selectors, sandbox_states, feedback_data: [
-            states[0], states[1], 
-            model_selectors[0], model_selectors[1],
-            sandbox_states[0], sandbox_states[1],
-            feedback_data
-        ],
-        inputs=states + model_selectors + sandbox_states + [feedback_state],
-        outputs=states + model_selectors + sandbox_states + [feedback_state]
-    ).then(
         leftvote_last_response,
-        states + model_selectors + sandbox_states + [feedback_state],
+        states + model_selectors + sandbox_states + [feedback_state],  # Use feedback_state
         model_selectors + sandbox_titles + [textbox] + user_buttons,
     ).then(
         clear_history,
