@@ -16,7 +16,7 @@ import warnings
 
 import requests
 
-from fastchat.constants import LOGDIR
+from fastchat.serve.chat_state import LOCAL_LOG_DIR
 
 
 handler = None
@@ -64,9 +64,9 @@ def build_logger(logger_name, logger_filename):
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     # if LOGDIR is empty, then don't try output log to local file
-    if LOGDIR != "":
-        os.makedirs(LOGDIR, exist_ok=True)
-        filename = os.path.join(LOGDIR, logger_filename)
+    if LOCAL_LOG_DIR != "":
+        os.makedirs(LOCAL_LOG_DIR, exist_ok=True)
+        filename = os.path.join(LOCAL_LOG_DIR, logger_filename)
         handler = logging.handlers.TimedRotatingFileHandler(
             filename, when="D", utc=True, encoding="utf-8"
         )

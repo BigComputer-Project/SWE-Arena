@@ -9,7 +9,7 @@ import time
 import numpy as np
 
 from fastchat.serve.api_provider import get_api_provider_stream_iter
-from fastchat.serve.gradio_web_server import State
+from fastchat.serve.chat_state import ModelChatState
 from fastchat.serve.vision.image import Image
 
 
@@ -77,7 +77,7 @@ def run_benchmark(model_name, model_api_dict, random_questions_dict, num_calls=2
     model_results = []
 
     for index in range(num_calls):
-        state = State(model_name)
+        state = ModelChatState(model_name)
         text, image_path = sample_image_and_question(random_questions_dict, index)
         max_image_size_mb = 5 / 1.5
 

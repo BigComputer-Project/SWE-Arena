@@ -19,7 +19,6 @@ import numpy as np
 from gradio_sandboxcomponent import SandboxComponent
 
 from fastchat.constants import (
-    LOGDIR,
     TEXT_MODERATION_MSG,
     IMAGE_MODERATION_MSG,
     MODERATION_MSG,
@@ -31,6 +30,7 @@ from fastchat.constants import (
 from fastchat.model.model_adapter import (
     get_conversation_template,
 )
+from fastchat.serve.chat_state import LOCAL_LOG_DIR, ModelChatState, save_log_to_local
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.gradio_web_server import (
     clear_sandbox_components,
@@ -39,13 +39,11 @@ from fastchat.serve.gradio_web_server import (
     bot_response,
     get_ip,
     disable_btn,
-    State,
-    get_conv_log_filename,
     get_remote_logger,
     set_chat_system_messages,
     update_system_prompt,
 )
-from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, upload_conv_log_to_azure_storage
+from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, save_conv_log_to_azure_storage
 from fastchat.serve.vision.image import ImageFormat, Image
 from fastchat.serve.sandbox.code_runner import SandboxEnvironment, SandboxGradioSandboxComponents, DEFAULT_SANDBOX_INSTRUCTIONS, RUN_CODE_BUTTON_HTML, ChatbotSandboxState, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, update_sandbox_config, update_sandbox_state_system_prompt
 from fastchat.utils import (
@@ -101,22 +99,21 @@ def add_image(textbox):
     return images[0]
 
 
-def vote_last_response(state, vote_type, model_selector, request: gr.Request):
-    filename = get_conv_log_filename(state.is_vision, state.has_csam_image)
-    with open(filename, "a") as fout:
-        data = {
-            "tstamp": round(time.time(), 4),
-            "type": vote_type,
-            "model": model_selector,
-            "state": state.dict(),
-            "ip": get_ip(request),
-        }
-        fout.write(json.dumps(data) + "\n")
-    get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + '\n')
+def vote_last_response(state: ModelChatState, vote_type, model_selector, request: gr.Request):
+    local_filepath = state.get_conv_log_filepath(LOCAL_LOG_DIR)
+    log_data = state.generate_vote_record(
+        vote_type=vote_type, ip=get_ip(request)
+    )
+    get_remote_logger().log(log_data)
+    save_log_to_local(log_data, local_filepath)
+    save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
+    gr.Info(
+        "🎉 Thanks for voting! Your vote shapes the leaderboard, please vote RESPONSIBLY."
+    )
 
-def upvote_last_response(state: State, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
+def upvote_last_response(
+    state: ModelChatState, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
     '''
     Input: [state, model_selector, sandbox_state],
     Output: [textbox] + user_buttons,
@@ -127,7 +124,7 @@ def upvote_last_response(state: State, model_selector: str, sandbox_state: Chatb
     return (None,) + (disable_btn,) * (sandbox_state["btn_list_length"] - 1) + (enable_btn,) # enable clear button
 
 
-def downvote_last_response(state: State, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
+def downvote_last_response(state: ModelChatState, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
     '''
     Input: [state, model_selector, sandbox_state],
     Output: [textbox] + user_buttons,
@@ -138,7 +135,7 @@ def downvote_last_response(state: State, model_selector: str, sandbox_state: Cha
     return (None,) + (disable_btn,) * (sandbox_state["btn_list_length"] - 1) + (enable_btn,) # enable clear button
 
 
-def flag_last_response(state: State, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
+def flag_last_response(state: ModelChatState, model_selector: str, sandbox_state: ChatbotSandboxState, request: gr.Request):
     '''
     Input: [state, model_selector, sandbox_state],
     Output: [textbox] + user_buttons,
@@ -149,7 +146,7 @@ def flag_last_response(state: State, model_selector: str, sandbox_state: Chatbot
     return (None,) + (disable_btn,) * (sandbox_state["btn_list_length"] - 1) + (enable_btn,) # enable clear button
 
 
-def regenerate(state: State, sandbox_state: ChatbotSandboxState, request: gr.Request):
+def regenerate(state: ModelChatState, sandbox_state: ChatbotSandboxState, request: gr.Request):
     '''
     Regenerate the chatbot response.
 
@@ -176,6 +173,7 @@ def regenerate(state: State, sandbox_state: ChatbotSandboxState, request: gr.Req
         return (state, state.to_gradio_chatbot()) + (None,) + (no_change_btn,) * sandbox_state["btn_list_length"]
     else:
         state.conv.update_last_message(None)
+        state.set_response_type("regenerate_single")
         return (state, state.to_gradio_chatbot()) + (None,) + (disable_btn,) * sandbox_state["btn_list_length"]
 
 
@@ -270,7 +268,7 @@ def moderate_input(state, text, all_conv_text, model_list, images, ip):
 
 
 def add_text(
-    state: State,
+    state: ModelChatState,
     model_selector: str, # the selected model name
     sandbox_state: ChatbotSandboxState, # the sandbox state
     multimodal_input: dict, text_input: str,
@@ -313,7 +311,12 @@ def add_text(
 
     # init chatbot state if not exist
     if state is None:
-        state = State(model_selector, is_vision=is_vision)
+        state = ModelChatState(
+            model_name=model_selector,
+            chat_mode="direct",
+            is_vision=is_vision,
+            chat_session_id=None,
+        )
 
     if len(text) == 0:
         # skip empty text
@@ -360,6 +363,7 @@ def add_text(
     text = _prepare_text_with_image(state, text, images, csam_flag=csam_flag)
     state.conv.append_message(state.conv.roles[0], text)
     state.conv.append_message(state.conv.roles[1], None)
+    state.set_response_type("chat_single")
 
     sandbox_state['enabled_round'] += 1 
     # [state, chatbot, sandbox_state] + [multimodal_textbox, textbox] + user_buttons,
@@ -757,6 +761,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         [state, temperature, top_p, max_output_tokens, sandbox_state],
         [state, chatbot] + user_buttons,
     )
+
     clear_btn.click(
       clear_history,
         sandbox_state,
