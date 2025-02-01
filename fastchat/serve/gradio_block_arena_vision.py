@@ -714,18 +714,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
 
     # Notice
     gr.Markdown(notice_markdown, elem_id="notice_markdown")
-    # Model descriptions
-    gr.Markdown("## Supported Models")            
-    with gr.Accordion(
-        f"🔍 Expand to see the descriptions of {len(text_and_vision_models)} models",
-        open=False,
-    ):
-        model_description_md = get_model_description_md(
-            text_and_vision_models
-        )
-        gr.Markdown(
-            model_description_md, elem_id="model_description_markdown"
-        )
+
     # Ack
     gr.Markdown(acknowledgment_md, elem_id="ack_markdown")
 
