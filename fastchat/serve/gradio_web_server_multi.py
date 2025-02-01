@@ -151,9 +151,9 @@ window.__gradio_mode__ = "app";
     <br>
     <br>
     <div style="display: inline-block; text-decoration: none; color: #1E90FF; font-weight: bold; font-size: large; border: 2px solid #1E90FF; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px;">
-        Featuring the top-tier models: DeepSeek's V3, OpenAI's GPT-4o, and Alibaba's Qwen2.5 VL & Coder!
+        Featuring the top-tier models:
         <br>
-        Coming soon: DeepSeek's R1 series, OpenAI's o1 series, Google's Gemini 2.0 series, and Meta's Llama 3.3 series!
+        DeepSeek R1 series, Claude 3.5 series, o3-mini, o1 series, Qwen2.5 VL & Coder and Llama series!
     </div>
     <br>
     <a href="https://forms.gle/md4jQ7VGPMNQUExp9" target="_blank"

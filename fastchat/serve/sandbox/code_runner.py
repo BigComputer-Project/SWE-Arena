@@ -1376,7 +1376,7 @@ def on_run_code(
                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if stderr:
-                yield update_markdown_output("❌ JavaScript Runner failed to run!", clear_output=True)
+                yield update_markdown_output("❌ C Runner failed to run!", clear_output=True)
                 yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
@@ -1401,7 +1401,7 @@ def on_run_code(
                  code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if stderr:
-                yield update_markdown_output("❌ JavaScript Runner failed to run!", clear_output=True)
+                yield update_markdown_output("❌ C++ Runner failed to run!", clear_output=True)
                 yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
@@ -1426,7 +1426,7 @@ def on_run_code(
                  code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if stderr:
-                yield update_markdown_output("❌ JavaScript Runner failed to run!", clear_output=True)
+                yield update_markdown_output("❌ Java Runner failed to run!", clear_output=True)
                 yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
@@ -1451,7 +1451,7 @@ def on_run_code(
                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if stderr:
-                yield update_markdown_output("❌ JavaScript Runner failed to run!", clear_output=True)
+                yield update_markdown_output("❌ Go Runner failed to run!", clear_output=True)
                 yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
@@ -1486,7 +1486,7 @@ def on_run_code(
                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if stderr:
-                yield update_markdown_output("❌ JavaScript Runner failed to run!", clear_output=True)
+                yield update_markdown_output("❌ Rust Runner failed to run!", clear_output=True)
                 yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
