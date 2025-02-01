@@ -185,7 +185,7 @@ class ModelChatState:
             date_str,
             'conv_logs',
             self.chat_mode,
-            f"{self.conv_id}.json"
+            f"conv-log-{self.chat_session_id}.json"
         )
         return filepath
 
