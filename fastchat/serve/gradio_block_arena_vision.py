@@ -467,7 +467,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
             examples = [
                 ["使用SVG绘制春节主题的动态图案，包括：1）一个红色的灯笼，带有金色的流苏 2）一个金色的福字，使用书法字体 3）背景添加一些烟花效果 4）在灯笼和福字周围添加一些祥云图案。确保图案布局美观，颜色搭配符合春节传统风格。"],
                 ["SVGを使用して日本の伝統的な和柄パターンを描画してください。1）波紋（さざなみ）模様 2）市松模様 3）麻の葉模様 4）雷文（らいもん）模様を含めてください。色は伝統的な日本の色（藍色、朱色、金色など）を使用し、レイアウトはバランスよく配置してください。"],
-                ["Write a script for a bouncing yellow ball within a sphere, make sure to handle collision detection properly. make the sphere slowly rotate. make sure ball stays within the sphere. Implement it in p5.js inside HTML."],
+                ["Write HTML with P5.js that simulates 25 particles in a vacuum space of a cylindrical container, bouncing within its boundaries. Use different colors for each ball and ensure they leave a trail showing their movement. Add a slow rotation of the container to give better view of what's going on in the scene. Make sure to create proper collision detection and physic rules to ensure particles remain in the container. Add an external spherical container. Add a slow zoom in and zoom out effect to the whole scene."],
                 ["Write a Python script to scrape NVIDIA's stock price for the past month using the yfinance library. Clean the data and create an interactive visualization using Matplotlib. Include: 1) A candlestick chart showing daily price movements 2) A line chart with 7-day and 30-day moving averages. Add hover tooltips showing exact values and date. Make the layout professional with proper titles and axis labels."],
                 ["Write a Python script that uses the Gradio library to create a functional calculator. The calculator should support basic arithmetic operations: addition, subtraction, multiplication, and division. It should have two input fields for numbers and a dropdown menu to select the operation."],
                 ["Write a Todo list app using React.js. The app should allow users to add, delete, and mark tasks as completed. Include features like filtering tasks by status (completed, active), sorting tasks by priority, and displaying the total number of tasks."],
@@ -497,7 +497,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
             example_labels=[
                 "🏮 春节主题图案",
                 "🎎 日本の伝統的な和柄パターン",
-                "🌐 Bouncing Ball in a Sphere with P5.js",
+                "🌐 Particles in a Spherical Container",
                 "💹 NVIDIA Stock Analysis with Matplotlib",
                 "🧮 Calculator with Gradio",
                 "📝 Todo List App with React.js",
