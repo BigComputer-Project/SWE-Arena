@@ -160,7 +160,12 @@ def get_sandbox_log_filename(sandbox_state: ChatbotSandboxState) -> str:
 
 
 def upsert_sandbox_log(filename: str, data: str) -> None:
-    filepath = os.path.join(LOG_DIR, 'sandbox_logs', filename)
+    filepath = os.path.join(
+        LOG_DIR,
+        datetime.datetime.now().strftime('%Y_%m_%d'), # current date as 2025_02_02
+        'sandbox_logs',
+        filename
+    )
     # create directory if not exists
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "w") as fout:
