@@ -1178,7 +1178,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     ] # 11 buttons, USER_BUTTONS_LENGTH
 
     # Create a feedback state that persists across the chain
-    feedback_state = gr.State("")
+    feedback_state = gr.State("Not a state")
     # The hidden vote button used to trigger the vote submission
     with gr.Group(visible=False):
         feedback_btn = gr.Button(

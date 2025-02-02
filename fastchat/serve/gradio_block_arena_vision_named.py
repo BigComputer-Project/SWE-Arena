@@ -71,7 +71,7 @@ from fastchat.utils import (
 )
 
 # Add feedback popup JavaScript
-feedback_popup_js = """
+feedback_popup_vision_named_js = """
 function() {
     function submitFeedback(selectedFeedback) {
         console.log('Submit function called');
@@ -1088,28 +1088,28 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     )
 
     leftvote_btn.click(
-        lambda: ("leftvote",),
+        lambda: ("vote_left",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_js
+        js=feedback_popup_vision_named_js
     )
     rightvote_btn.click(
-        lambda: ("rightvote",),
+        lambda: ("vote_right",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_js
+        js=feedback_popup_vision_named_js
     )
     tie_btn.click(
-        lambda: ("tievote",),
+        lambda: ("vote_tie",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_js
+        js=feedback_popup_vision_named_js
     )
     bothbad_btn.click(
-        lambda: ("bothbad_vote",),
+        lambda: ("vote_both_bad",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_js
+        js=feedback_popup_vision_named_js
     )
 
     regenerate_btn.click(
