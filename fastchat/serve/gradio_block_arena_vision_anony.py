@@ -104,6 +104,9 @@ function() {
         let feedback_details_div = document.querySelector('#feedback_details');
         let feedback_details_textbox = feedback_details_div.querySelector('textarea');
         feedback_details_textbox.value = JSON.stringify(selectedFeedback);
+        // This is very important!
+        // Trigger the textarea's event for gradio to function normally
+        feedback_details_textbox.dispatchEvent(new Event('input', { bubbles: true }));
         feedback_btn = document.querySelector('#feedback_btn');
 
         feedback_btn.click();
@@ -146,13 +149,13 @@ function() {
 
         // Add categories with 3 buttons (A, Tie, B)
         const options = [
-            'Code quality is better',
-            'UI/UX design is better',
-            'Explanation is clearer',
-            'Solution is more creative',
+            'Code quality',
+            'UI/UX design',
+            'Explanation clarity',
+            'Solution creativity',
             'Implementation is more efficient',
-            'Error handling is better',
-            'Documentation is better'
+            'Error handling',
+            'Documentation'
         ];
 
         const buttonContainer = document.createElement('div');
@@ -301,7 +304,7 @@ def load_demo_side_by_side_vision_anony():
 
     return states + selector_updates
 
-def vote_last_response(state0, state1, vote_type, model_selector0, model_selector1, feedback_details=None, request: gr.Request = None):
+def vote_last_response(state0, state1, vote_type, model_selector0, model_selector1, feedback_details, request: gr.Request = None):
     '''
     Handle voting for a response, including any feedback details provided.
     
@@ -384,45 +387,9 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
         names[0], names[1],  # model selectors (2)
         sandbox_titles[0], sandbox_titles[1],  # sandbox titles (2)
         disable_text,  # textbox (1)
-        *(disable_btn,) * (USER_BUTTONS_LENGTH - 1)  # disable all buttons except clear (10)
+        *(invisible_btn,) * 4, 
+        *(enable_btn,) * (USER_BUTTONS_LENGTH - 1 - 4)  # disable all buttons except clear (10)
     )  # Total: 15 outputs
-
-
-# def leftvote_last_response(
-#     state0, state1,
-#     model_selector0, model_selector1,
-#     sandbox_state0, sandbox_state1,
-#     feedback_data: str = None,
-#     request: gr.Request = None
-# ):
-#     ip = get_ip(request)
-#     logger.info(f"=== Leftvote Start ===")
-#     logger.info(f"IP: {ip}")
-#     logger.info(f"Raw feedback data received in leftvote: {feedback_data}")
-#     print(f"\n=== Feedback Submission ===")
-#     print(f"Vote type: leftvote")
-#     print(f"IP: {ip}")
-    
-#     if feedback_data:
-#         try:
-#             feedback_list = json.loads(feedback_data)
-#             print(f"Selected feedback items: {feedback_list}")
-#             logger.info(f"User feedback for leftvote: {feedback_list}")
-#         except json.JSONDecodeError:
-#             print(f"Error parsing feedback data: {feedback_data}")
-#             logger.error(f"Failed to parse feedback data: {feedback_data}")
-#     else:
-#         print("No feedback data received")
-#         logger.warning("No feedback data received in leftvote")
-
-#     result = vote_last_response(
-#         state0, state1, "leftvote", 
-#         model_selector0, model_selector1,
-#         feedback_data, request
-#     )
-    
-#     logger.info("=== Leftvote End ===")
-#     return result
 
 
 def regenerate_single(state, request: gr.Request):
@@ -1133,7 +1100,6 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     with gr.Row():
         clear_btn = gr.Button(value="🎲 New Round", interactive=False, elem_id="clear_btn")
         share_btn = gr.Button(value="📷  Share")
-        # feedback_submit_btn = gr.Button(value="Submit Feedback", visible=False, elem_id="feedback_submit_btn")
 
     with gr.Accordion("Parameters", open=False, visible=False) as parameter_row:
         temperature = gr.Slider(
@@ -1184,7 +1150,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     # Create a feedback state that persists across the chain
     feedback_state = gr.State("")
     # The hidden vote button used to trigger the vote submission
-    with gr.Group(visible=True):
+    with gr.Group(visible=False):
         feedback_btn = gr.Button(
             elem_id="feedback_btn",
             value="The hidden vote button. The user shoudl not be able to see this", 
@@ -1195,6 +1161,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
             value="",
             interactive=True
         )
+        
     
     # The one and only entry for submitting the vote
     feedback_btn.click(
@@ -1493,25 +1460,5 @@ function (a, b, c, d) {
             inputs=[state, sandbox_state, *sandbox_components],
             outputs=[*sandbox_components],
         )
-
-    # # Add the feedback submission handler
-    # feedback_submit_btn.click(
-    #     vote_last_response,
-    #     states + model_selectors + sandbox_states + [feedback_state],  # Use feedback_state
-    #     model_selectors + sandbox_titles + [textbox] + user_buttons,
-    # ).then(
-    #     clear_history,
-    #     inputs=sandbox_states,
-    #     outputs=(
-    #         sandbox_states
-    #         + states
-    #         + chatbots
-    #         + model_selectors
-    #         + [multimodal_textbox, textbox]
-    #         + user_buttons
-    #         + [slow_warning]
-    #         + sandbox_titles
-    #     )
-    # )
 
     return states + model_selectors
