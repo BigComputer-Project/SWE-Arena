@@ -94,8 +94,6 @@ USER_BUTTONS_LENGTH = 11
 # Add at the top level, before the functions
 feedback_popup_js = """
 function() {
-    // console.log('JavaScript function called with:', {s0, s1, ms0, ms1, ss0, ss1});
-    
     function submitFeedback(selectedFeedback) {
         console.log('Submit function called');
         console.log('User selected feedback:', selectedFeedback);
@@ -103,7 +101,8 @@ function() {
             feedback: selectedFeedback
         });
         
-        feedback_details_textbox = document.querySelector('#feedback_details');
+        let feedback_details_div = document.querySelector('#feedback_details');
+        let feedback_details_textbox = feedback_details_div.querySelector('textarea');
         feedback_details_textbox.value = JSON.stringify(selectedFeedback);
         feedback_btn = document.querySelector('#feedback_btn');
 
@@ -142,7 +141,10 @@ function() {
         `;
         popup.appendChild(title);
 
-        // Add checkboxes
+        // Initialize selectedFeedback object
+        let selectedFeedback = {};
+
+        // Add categories with 3 buttons (A, Tie, B)
         const options = [
             'Code quality is better',
             'UI/UX design is better',
@@ -153,40 +155,76 @@ function() {
             'Documentation is better'
         ];
 
-        const checkboxContainer = document.createElement('div');
-        checkboxContainer.style.marginBottom = '20px';
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.marginBottom = '20px';
         options.forEach(option => {
+            const categoryContainer = document.createElement('div');
+            categoryContainer.style.marginBottom = '15px';
+
             const label = document.createElement('label');
             label.style.cssText = `
                 display: block;
-                margin-bottom: 10px;
+                margin-bottom: 5px;
                 color: ${isDarkMode ? '#ffffff' : '#000000'};
-                cursor: pointer;
-                padding: 5px;
-                border-radius: 4px;
-                transition: background-color 0.2s;
             `;
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = option;
-            checkbox.style.cssText = `
-                margin-right: 10px;
-                cursor: pointer;
-            `;
-            
-            label.onmouseover = () => {
-                label.style.backgroundColor = isDarkMode ? '#333333' : '#f5f5f5';
-            };
-            label.onmouseout = () => {
-                label.style.backgroundColor = 'transparent';
-            };
-            
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(option));
-            checkboxContainer.appendChild(label);
+            label.textContent = option;
+            categoryContainer.appendChild(label);
+
+            const buttonGroup = document.createElement('div');
+            buttonGroup.style.display = 'flex';
+            buttonGroup.style.justifyContent = 'space-between';
+
+            ['A', 'Tie', 'B'].forEach(buttonText => {
+                const button = document.createElement('button');
+                button.textContent = buttonText;
+                button.style.cssText = `
+                    flex: 1;
+                    padding: 10px;
+                    margin: 0 5px;
+                    border: 1px solid ${isDarkMode ? '#444444' : '#ccc'};
+                    background: ${isDarkMode ? '#333333' : '#f9f9f9'};
+                    color: ${isDarkMode ? '#ffffff' : '#000000'};
+                    border-radius: 4px;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                `;
+
+                // Hover effect
+                button.onmouseover = () => {
+                    if (!button.classList.contains('selected')) {  // Only apply hover if it's not selected
+                        button.style.backgroundColor = isDarkMode ? '#555555' : '#e0e0e0';
+                    }
+                };
+
+                button.onmouseout = () => {
+                    if (!button.classList.contains('selected')) {  // Only reset hover if it's not selected
+                        button.style.backgroundColor = isDarkMode ? '#333333' : '#f9f9f9';
+                    }
+                };
+
+                // Click to select
+                button.onclick = () => {
+                    // Save the selection for the current option
+                    selectedFeedback[option] = buttonText;
+
+                    // Reset all buttons' background color to default
+                    Array.from(buttonGroup.children).forEach(b => {
+                        b.style.backgroundColor = isDarkMode ? '#333333' : '#f9f9f9';
+                        b.classList.remove('selected');
+                    });
+
+                    // Set the selected button's background color to blue and mark as selected
+                    button.style.backgroundColor = '#2196F3'; // Blue color for selection
+                    button.classList.add('selected'); // Add 'selected' class to prevent hover override
+                };
+
+                buttonGroup.appendChild(button);
+            });
+
+            categoryContainer.appendChild(buttonGroup);
+            buttonContainer.appendChild(categoryContainer);
         });
-        popup.appendChild(checkboxContainer);
+        popup.appendChild(buttonContainer);
 
         // Add submit button
         const submitBtn = document.createElement('button');
@@ -211,13 +249,11 @@ function() {
 
         submitBtn.onclick = () => {
             console.log('Submit button clicked');
-            const selectedFeedback = Array.from(checkboxContainer.querySelectorAll('input:checked'))
-                .map(cb => cb.value);
-            console.log('Selected checkboxes:', selectedFeedback);
-            
+            console.log('Selected feedback:', selectedFeedback);
+
             document.body.removeChild(popup);
             document.body.removeChild(overlay);
-            
+
             const result = submitFeedback(selectedFeedback);
             console.log('Resolving promise with result:', result);
             resolve(result);
@@ -253,6 +289,7 @@ function() {
         document.addEventListener('keydown', closePopup);
     });
 }
+
 """
 
 def load_demo_side_by_side_vision_anony():
@@ -284,6 +321,8 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
 
     if state0 is None or state1 is None:
         return (None, None) + (disable_text,) + (disable_btn,) * (USER_BUTTONS_LENGTH - 1)
+
+    vote_type = vote_type[0] if isinstance(vote_type, tuple) else vote_type  # Extract the vote type from the tuple
 
     logger.info(f"=== Vote Response Start ===")
     logger.info(f"Vote type: {vote_type}")
@@ -349,41 +388,41 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
     )  # Total: 15 outputs
 
 
-def leftvote_last_response(
-    state0, state1,
-    model_selector0, model_selector1,
-    sandbox_state0, sandbox_state1,
-    feedback_data: str = None,
-    request: gr.Request = None
-):
-    ip = get_ip(request)
-    logger.info(f"=== Leftvote Start ===")
-    logger.info(f"IP: {ip}")
-    logger.info(f"Raw feedback data received in leftvote: {feedback_data}")
-    print(f"\n=== Feedback Submission ===")
-    print(f"Vote type: leftvote")
-    print(f"IP: {ip}")
+# def leftvote_last_response(
+#     state0, state1,
+#     model_selector0, model_selector1,
+#     sandbox_state0, sandbox_state1,
+#     feedback_data: str = None,
+#     request: gr.Request = None
+# ):
+#     ip = get_ip(request)
+#     logger.info(f"=== Leftvote Start ===")
+#     logger.info(f"IP: {ip}")
+#     logger.info(f"Raw feedback data received in leftvote: {feedback_data}")
+#     print(f"\n=== Feedback Submission ===")
+#     print(f"Vote type: leftvote")
+#     print(f"IP: {ip}")
     
-    if feedback_data:
-        try:
-            feedback_list = json.loads(feedback_data)
-            print(f"Selected feedback items: {feedback_list}")
-            logger.info(f"User feedback for leftvote: {feedback_list}")
-        except json.JSONDecodeError:
-            print(f"Error parsing feedback data: {feedback_data}")
-            logger.error(f"Failed to parse feedback data: {feedback_data}")
-    else:
-        print("No feedback data received")
-        logger.warning("No feedback data received in leftvote")
+#     if feedback_data:
+#         try:
+#             feedback_list = json.loads(feedback_data)
+#             print(f"Selected feedback items: {feedback_list}")
+#             logger.info(f"User feedback for leftvote: {feedback_list}")
+#         except json.JSONDecodeError:
+#             print(f"Error parsing feedback data: {feedback_data}")
+#             logger.error(f"Failed to parse feedback data: {feedback_data}")
+#     else:
+#         print("No feedback data received")
+#         logger.warning("No feedback data received in leftvote")
 
-    result = vote_last_response(
-        state0, state1, "leftvote", 
-        model_selector0, model_selector1,
-        feedback_data, request
-    )
+#     result = vote_last_response(
+#         state0, state1, "leftvote", 
+#         model_selector0, model_selector1,
+#         feedback_data, request
+#     )
     
-    logger.info("=== Leftvote End ===")
-    return result
+#     logger.info("=== Leftvote End ===")
+#     return result
 
 
 def regenerate_single(state, request: gr.Request):
@@ -1094,7 +1133,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     with gr.Row():
         clear_btn = gr.Button(value="🎲 New Round", interactive=False, elem_id="clear_btn")
         share_btn = gr.Button(value="📷  Share")
-        feedback_submit_btn = gr.Button(value="Submit Feedback", visible=False, elem_id="feedback_submit_btn")
+        # feedback_submit_btn = gr.Button(value="Submit Feedback", visible=False, elem_id="feedback_submit_btn")
 
     with gr.Accordion("Parameters", open=False, visible=False) as parameter_row:
         temperature = gr.Slider(
@@ -1143,19 +1182,17 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     ] # 11 buttons, USER_BUTTONS_LENGTH
 
     # Create a feedback state that persists across the chain
-    feedback_state = gr.State(None)
+    feedback_state = gr.State("")
     # The hidden vote button used to trigger the vote submission
-    with gr.Group(visible=False):
+    with gr.Group(visible=True):
         feedback_btn = gr.Button(
             elem_id="feedback_btn",
             value="The hidden vote button. The user shoudl not be able to see this", 
-            visible=False, 
             interactive=True
         )
         feedback_details = gr.Textbox(
             elem_id="feedback_details",
             value="",
-            visible=False,
             interactive=True
         )
     
@@ -1175,26 +1212,26 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     )
 
     leftvote_btn.click(
-        lambda: "vote_left",
+        lambda: ("vote_left",),
         inputs=[],
         outputs=[feedback_state],
         js=feedback_popup_js
     )
     rightvote_btn.click(
-        lambda: "vote_right",
+        lambda: ("vote_right",),
         inputs=[],
         outputs=[feedback_state],
         js=feedback_popup_js
 
     )
     tie_btn.click(
-        lambda: "vote_tie",
+        lambda: ("vote_tie",),
         inputs=[],
         outputs=[feedback_state],
         js=feedback_popup_js
     )
     bothbad_btn.click(
-        lambda: "vote_bothbad",
+        lambda: ("vote_both_bad",),
         inputs=[],
         outputs=[feedback_state],
         js=feedback_popup_js
@@ -1457,24 +1494,24 @@ function (a, b, c, d) {
             outputs=[*sandbox_components],
         )
 
-    # Add the feedback submission handler
-    feedback_submit_btn.click(
-        leftvote_last_response,
-        states + model_selectors + sandbox_states + [feedback_state],  # Use feedback_state
-        model_selectors + sandbox_titles + [textbox] + user_buttons,
-    ).then(
-        clear_history,
-        inputs=sandbox_states,
-        outputs=(
-            sandbox_states
-            + states
-            + chatbots
-            + model_selectors
-            + [multimodal_textbox, textbox]
-            + user_buttons
-            + [slow_warning]
-            + sandbox_titles
-        )
-    )
+    # # Add the feedback submission handler
+    # feedback_submit_btn.click(
+    #     vote_last_response,
+    #     states + model_selectors + sandbox_states + [feedback_state],  # Use feedback_state
+    #     model_selectors + sandbox_titles + [textbox] + user_buttons,
+    # ).then(
+    #     clear_history,
+    #     inputs=sandbox_states,
+    #     outputs=(
+    #         sandbox_states
+    #         + states
+    #         + chatbots
+    #         + model_selectors
+    #         + [multimodal_textbox, textbox]
+    #         + user_buttons
+    #         + [slow_warning]
+    #         + sandbox_titles
+    #     )
+    # )
 
     return states + model_selectors
