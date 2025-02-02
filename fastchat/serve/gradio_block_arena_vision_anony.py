@@ -134,6 +134,28 @@ function() {
             width: 90%;
         `;
 
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '✕';
+        closeButton.style.cssText = `
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: none;
+            border: none;
+            color: ${isDarkMode ? '#ffffff' : '#000000'};
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+        `;
+        closeButton.onclick = () => {
+            document.body.removeChild(popup);
+            document.body.removeChild(overlay);
+            submitFeedback({}); // Submit empty feedback
+        };
+        popup.appendChild(closeButton);
+
         // Add title
         const title = document.createElement('h3');
         title.textContent = 'Please provide additional feedback';
@@ -141,6 +163,7 @@ function() {
             margin-bottom: 15px;
             color: ${isDarkMode ? '#ffffff' : '#000000'};
             font-size: 1.2em;
+            padding-right: 20px;
         `;
         popup.appendChild(title);
 
@@ -274,20 +297,25 @@ function() {
             bottom: 0;
             background: ${isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)'};
             z-index: 999;
+            cursor: pointer;
         `;
+        
+        // Make overlay clickable to close
+        overlay.onclick = () => {
+            document.body.removeChild(popup);
+            document.body.removeChild(overlay);
+            submitFeedback({}); // Submit empty feedback
+        };
+
         document.body.appendChild(overlay);
         document.body.appendChild(popup);
 
         // Add event listener for escape key
         const closePopup = (e) => {
             if (e.key === 'Escape') {
-                e.preventDefault();
-                //console.log('Escape key pressed, closing popup');
-                //document.body.removeChild(popup);
-                //document.body.removeChild(overlay);
-                //const result = submitFeedback(selectedFeedback);
-                //console.log('Resolving promise with empty feedback:', result);
-                //resolve(result);
+                document.body.removeChild(popup);
+                document.body.removeChild(overlay);
+                submitFeedback({}); // Submit empty feedback
             }
         };
         document.addEventListener('keydown', closePopup);
@@ -363,6 +391,10 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
 
     logger.info("=== Vote Response End ===")
 
+    gr.Info(
+        "🎉 Thanks for voting! Your vote shapes the leaderboard, please vote RESPONSIBLY."
+    )
+    
     # display model names
     model_name_1 = state0.model_name if state0 else ""
     model_name_2 = state1.model_name if state1 else ""
@@ -385,13 +417,10 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
     # Return exactly the number of outputs expected by the click handler
     # 2 model selectors + 2 sandbox titles + 1 textbox + 10 buttons = 15 outputs
     return (
-        names[0], names[1],  # model selectors (2)
-        sandbox_titles[0], sandbox_titles[1],  # sandbox titles (2)
-        disable_text,  # textbox (1)
-        *(invisible_btn,) * 4, 
-        *(enable_btn,) * (USER_BUTTONS_LENGTH - 1 - 4)  # disable all buttons except clear (10)
-    )  # Total: 15 outputs
-
+        names + sandbox_titles
+        + (disable_text,)
+        + (disable_btn,) * (USER_BUTTONS_LENGTH - 1)
+    )
 
 def regenerate_single(state, request: gr.Request):
     '''
