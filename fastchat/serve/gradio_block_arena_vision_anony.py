@@ -68,8 +68,9 @@ from fastchat.serve.model_sampling import (
     OUTAGE_MODELS,
 )
 from fastchat.serve.remote_logger import get_remote_logger
+from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
 from fastchat.serve.sandbox.sandbox_telemetry import save_conv_log_to_azure_storage
-from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, ChatbotSandboxState, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, update_sandbox_config_multi, update_sandbox_state_system_prompt
+from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, set_sandbox_state_ids, update_sandbox_config_multi, update_sandbox_state_system_prompt
 from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 from fastchat.utils import (
     build_logger,
@@ -488,6 +489,12 @@ def add_text_multi(
             is_vision=is_vision
         )
         states = list(states) # tuple to list
+        for idx in range(2):
+            set_sandbox_state_ids(
+                sandbox_state=sandbox_states[idx],
+                conv_id=states[idx].conv_id,
+                chat_session_id=states[idx].chat_session_id
+            )
 
     if len(text) <= 0:
         # skip if no text

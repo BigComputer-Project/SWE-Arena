@@ -45,10 +45,11 @@ from fastchat.serve.model_sampling import (
 )
 from fastchat.serve.remote_logger import get_remote_logger
 
-from fastchat.serve.sandbox.code_runner import (SUPPORTED_SANDBOX_ENVIRONMENTS, ChatbotSandboxState, SandboxEnvironment, 
+from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
+from fastchat.serve.sandbox.code_runner import (SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, 
                                             DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, 
                                             create_chatbot_sandbox_state, on_click_code_message_run, 
-                                            on_edit_code, reset_sandbox_state, update_sandbox_config_multi, update_sandbox_state_system_prompt,update_visibility, 
+                                            on_edit_code, reset_sandbox_state, set_sandbox_state_ids, update_sandbox_config_multi, update_sandbox_state_system_prompt,update_visibility, 
                                             on_edit_dependency)
 from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, save_conv_log_to_azure_storage
 from fastchat.utils import (
@@ -368,6 +369,12 @@ def add_text_multi(
             is_vision=False
         )
         states = list(states)
+        for idx in range(2):
+            set_sandbox_state_ids(
+                sandbox_state=sandbox_states[idx],
+                conv_id=states[idx].conv_id,
+                chat_session_id=states[idx].chat_session_id
+            )
         logger.info(f"model: {states[0].model_name}, {states[1].model_name}")
 
     if len(text) <= 0:
