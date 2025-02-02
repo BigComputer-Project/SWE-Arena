@@ -6,6 +6,7 @@ dist
 .venv
 
 # Log
+logs
 *.log
 *.log.*
 *-conv.json

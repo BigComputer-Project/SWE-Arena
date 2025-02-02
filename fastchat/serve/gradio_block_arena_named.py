@@ -17,7 +17,7 @@ from fastchat.constants import (
     SURVEY_LINK,
 )
 from fastchat.model.model_adapter import get_conversation_template
-from fastchat.serve.chat_state import LOCAL_LOG_DIR, ModelChatState, save_log_to_local
+from fastchat.serve.chat_state import LOG_DIR, ModelChatState, save_log_to_local
 from fastchat.serve.gradio_web_server import (
     add_text,
     bot_response,
@@ -74,14 +74,14 @@ def vote_last_response(states: list[ModelChatState], vote_type, model_selectors,
     if states[0] is None or states[1] is None:
         return
     for state in states:
-        local_filepath = state.get_conv_log_filepath(LOCAL_LOG_DIR)
+        local_filepath = state.get_conv_log_filepath(LOG_DIR)
         log_data = state.generate_vote_record(
             vote_type=vote_type,
             ip=get_ip(request)
         )
         save_log_to_local(log_data, local_filepath)
         get_remote_logger().log(log_data)
-        save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
+        # save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
 
 def leftvote_last_response(

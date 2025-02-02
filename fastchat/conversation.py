@@ -621,7 +621,7 @@ class Conversation:
 
     def save_new_images(self, has_csam_images=False, use_remote_storage=False):
         import hashlib
-        from fastchat.serve.chat_state import LOCAL_LOG_DIR
+        from fastchat.serve.chat_state import LOG_DIR
         from fastchat.utils import load_image, upload_image_file_to_gcs
         from PIL import Image
 
@@ -644,7 +644,7 @@ class Conversation:
                     # NOTE(chris): If the URL were public, then we set it here so future model uses the link directly
                     # images[i] = image_url
                 else:
-                    filename = os.path.join(LOCAL_LOG_DIR, filename)
+                    filename = os.path.join(LOG_DIR, filename)
                     # TODO: Update the image path
                     if not os.path.isfile(filename):
                         os.makedirs(os.path.dirname(filename), exist_ok=True)

@@ -16,6 +16,10 @@ class ImageFormat(IntEnum):
 
 
 class Image(BaseModel):
+    '''
+    Chat Image.
+    '''
+
     url: str = ""
     filetype: str = ""
     image_format: ImageFormat = ImageFormat.BYTES

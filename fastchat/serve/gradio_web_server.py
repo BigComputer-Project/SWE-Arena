@@ -29,7 +29,7 @@ from fastchat.constants import (
 )
 from fastchat.conversation import Conversation
 from fastchat.model.model_registry import get_model_info, model_info
-from fastchat.serve.chat_state import LOCAL_LOG_DIR, ModelChatState, save_log_to_local
+from fastchat.serve.chat_state import LOG_DIR, ModelChatState, save_log_to_local
 from fastchat.serve.api_provider import get_api_provider_stream_iter
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.remote_logger import get_remote_logger
@@ -209,11 +209,11 @@ def vote_last_response(
     model_selector: str,
     request: gr.Request
 ):
-    local_filepath = state.get_conv_log_filepath(LOCAL_LOG_DIR)
+    local_filepath = state.get_conv_log_filepath(LOG_DIR)
     log_data = state.generate_vote_record(vote_type, get_ip(request))
     get_remote_logger().log(log_data)
     save_log_to_local(log_data, local_filepath)
-    save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
+    # save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
 
 def upvote_last_response(state, model_selector, request: gr.Request):
@@ -605,7 +605,7 @@ def bot_response(
     )
 
     # Log the conversation
-    local_filepath = state.get_conv_log_filepath(LOCAL_LOG_DIR)
+    local_filepath = state.get_conv_log_filepath(LOG_DIR)
     log_data = state.generate_response_record(
         gen_params={
             "temperature": temperature,
@@ -618,7 +618,7 @@ def bot_response(
     )
     get_remote_logger().log(log_data)
     save_log_to_local(log_data, local_filepath)
-    save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
+    # save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
 
 block_css = """

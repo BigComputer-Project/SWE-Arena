@@ -7,7 +7,7 @@ import os
 from typing import Any, Literal
 import datetime
 
-from fastchat.serve.chat_state import LOCAL_LOG_DIR
+from fastchat.serve.chat_state import LOG_DIR
 from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
 
 from azure.storage.blob import BlobServiceClient
@@ -160,7 +160,7 @@ def get_sandbox_log_filename(sandbox_state: ChatbotSandboxState) -> str:
 
 
 def upsert_sandbox_log(filename: str, data: str) -> None:
-    filepath = os.path.join(LOCAL_LOG_DIR, 'sandbox_logs', filename)
+    filepath = os.path.join(LOG_DIR, 'sandbox_logs', filename)
     # create directory if not exists
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, "w") as fout:
@@ -195,14 +195,14 @@ def log_sandbox_telemetry_gradio_fn(
     filename = get_sandbox_log_filename(sandbox_state)
     upsert_sandbox_log(filename=filename, data=log_data)
 
-    # Upload to Azure Blob Storage
-    if AZURE_BLOB_STORAGE_CONNECTION_STRING:
-        try:
-            blob_name = get_sandbox_log_blob_name(filename)
-            upload_data_to_azure_storage(
-                data=str.encode(log_data),
-                blob_name=blob_name,
-                write_mode='overwrite'
-            )
-        except Exception as e:
-            print(f"Error uploading sandbox log to Azure Blob Storage: {e}")
+    # # Upload to Azure Blob Storage
+    # if AZURE_BLOB_STORAGE_CONNECTION_STRING:
+    #     try:
+    #         blob_name = get_sandbox_log_blob_name(filename)
+    #         upload_data_to_azure_storage(
+    #             data=str.encode(log_data),
+    #             blob_name=blob_name,
+    #             write_mode='overwrite'
+    #         )
+    #     except Exception as e:
+    #         print(f"Error uploading sandbox log to Azure Blob Storage: {e}")
