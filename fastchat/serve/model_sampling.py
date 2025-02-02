@@ -7,9 +7,9 @@ SAMPLING_WEIGHTS = {
     'gpt-4o-mini-2024-07-18': 1,
     'gpt-4o-2024-08-06': 1,
     'gpt-4-0125-preview': 1,
-    'o1-2024-12-17 (OpenAI)': 1,
-    'o1-mini-2024-09-12 (OpenAI)': 1,
-    "o3-mini-2025-01-31 (OpenAI)": 1,
+    'o1-2024-12-17': 1,
+    'o1-mini-2024-09-12': 1,
+    "o3-mini-2025-01-31": 1,
     'qwen2.5-coder-32b-instruct': 1,
     'qwen2.5-72b-instruct': 1,
 
