@@ -281,12 +281,13 @@ function() {
         // Add event listener for escape key
         const closePopup = (e) => {
             if (e.key === 'Escape') {
-                console.log('Escape key pressed, closing popup');
-                document.body.removeChild(popup);
-                document.body.removeChild(overlay);
-                const result = submitFeedback([]);
-                console.log('Resolving promise with empty feedback:', result);
-                resolve(result);
+                e.preventDefault();
+                //console.log('Escape key pressed, closing popup');
+                //document.body.removeChild(popup);
+                //document.body.removeChild(overlay);
+                //const result = submitFeedback(selectedFeedback);
+                //console.log('Resolving promise with empty feedback:', result);
+                //resolve(result);
             }
         };
         document.addEventListener('keydown', closePopup);
