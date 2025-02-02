@@ -622,7 +622,7 @@ def build_side_by_side_vision_ui_anony(context: Context, random_questions=None):
 - **Dependency Edit**: You can edit the <u>dependency</u> of the code on any side. Currently, we only support `pypi` and `npm` packages.
 For `pypi` packages, you can use the format `python (use '==', '>=', '<=', '~=', '>', '<' or 'latest') <package_name> <version>`.
 For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_name> <version>`.
-- **Temperature**: All models have the same temperature of `0.2` and `top_p` of `0.9` by default. Low temperature typically works better for code generation.
+- **Temperature**: All models have the same temperature of `0.7` and `top_p` of `1.0` by default. Low temperature typically works better for code generation.
 
 **❗️ For research purposes, we log user prompts, images, and interactions with sandbox, and may release this data to the public in the future. Please do not upload any confidential or personal information.**
 """

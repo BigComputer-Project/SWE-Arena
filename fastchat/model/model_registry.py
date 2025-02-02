@@ -55,8 +55,8 @@ register_model_info(
 
 register_model_info(
     [
-        "o1-2024-12-17 (OpenAI)",
-        "o1-mini-2024-09-12 (OpenAI)",
+        "o1-2024-12-17",
+        "o1-mini-2024-09-12",
     ],
     "GPT-o1 & GPT-o1 mini",
     "https://openai.com/o1/",
@@ -65,7 +65,7 @@ register_model_info(
 
 register_model_info(
     [
-        "o3-mini-2025-01-31 (OpenAI)",
+        "o3-mini-2025-01-31",
     ],
     "GPT-o3 mini",
     "https://openai.com/index/openai-o3-mini/",
