@@ -12,7 +12,7 @@ import datetime
 import uuid
 
 
-LOCAL_LOG_DIR = os.getenv("LOGDIR", "./logs")
+LOG_DIR = os.getenv("LOGDIR", "./logs")
 '''
 The default output dir of log files
 '''

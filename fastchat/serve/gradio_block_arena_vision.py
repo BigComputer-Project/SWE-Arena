@@ -30,7 +30,7 @@ from fastchat.constants import (
 from fastchat.model.model_adapter import (
     get_conversation_template,
 )
-from fastchat.serve.chat_state import LOCAL_LOG_DIR, ModelChatState, save_log_to_local
+from fastchat.serve.chat_state import LOG_DIR, ModelChatState, save_log_to_local
 from fastchat.serve.gradio_global_state import Context
 from fastchat.serve.gradio_web_server import (
     clear_sandbox_components,
@@ -101,13 +101,13 @@ def add_image(textbox):
 
 
 def vote_last_response(state: ModelChatState, vote_type, model_selector, request: gr.Request):
-    local_filepath = state.get_conv_log_filepath(LOCAL_LOG_DIR)
+    local_filepath = state.get_conv_log_filepath(LOG_DIR)
     log_data = state.generate_vote_record(
         vote_type=vote_type, ip=get_ip(request)
     )
     get_remote_logger().log(log_data)
     save_log_to_local(log_data, local_filepath)
-    save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
+    # save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
     gr.Info(
         "🎉 Thanks for voting! Your vote shapes the leaderboard, please vote RESPONSIBLY."
@@ -230,7 +230,7 @@ def _prepare_text_with_image(state, text, images, csam_flag):
 
 
 # NOTE(chris): take multiple images later on
-def convert_images_to_conversation_format(images):
+def convert_images_to_conversation_format(images) -> list[Image]:
     import base64
 
     MAX_NSFW_ENDPOINT_IMAGE_SIZE_IN_MB = 5 / 1.5
