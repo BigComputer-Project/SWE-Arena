@@ -156,7 +156,7 @@
   //   "text-arena": true,
   //   "vision-arena": false
   // },
-  "deepseek-r1-zero (FP8, Hyperbolic)": {
+  "deepseek-r1-zero-fp8-hyperbolic": {
     "model_name": "deepseek-ai/DeepSeek-R1-Zero",
     "api_type": "openai",
     "api_base": "https://api.hyperbolic.xyz/v1",
@@ -169,7 +169,7 @@
     "text-arena": true,
     "vision-arena": false
   },
-  "deepseek-r1 (FP8, Hyperbolic)": {
+  "deepseek-r1-fp8-hyperbolic": {
     "model_name": "deepseek-ai/DeepSeek-R1",
     "api_type": "openai",
     "api_base": "https://api.hyperbolic.xyz/v1",
@@ -183,7 +183,7 @@
     "vision-arena": false
   },
   // Llama models
-  "llama-3.1-8B-Instruct (BF16, Hyperbolic)": {
+  "llama-3.1-8b-instruct-bf16-hyperbolic": {
     "model_name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "api_type": "openai",
     "api_base": "https://api.hyperbolic.xyz/v1",
@@ -196,7 +196,7 @@
     "text-arena": true,
     "vision-arena": false
   },
-  "llama-3.3-70B-Instruct (BF16, Hyperbolic)": {
+  "llama-3.3-70b-instruct-bf16-hyperbolic": {
     "model_name": "meta-llama/Llama-3.3-70B-Instruct",
     "api_type": "openai",
     "api_base": "https://api.hyperbolic.xyz/v1",

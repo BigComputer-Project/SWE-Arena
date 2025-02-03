@@ -23,7 +23,7 @@ SAMPLING_WEIGHTS = {
 
     # llama models
     "llama-3.1-8b-instruct-bf16-hyperbolic": 1,
-    "llama-3.3-70b-Instruct-bp16-hyperbolic": 1,
+    "llama-3.3-70b-instruct-bf16-hyperbolic": 1,
 
     # 'deepseek-v3': 0.5,
     # "deepseek-reasoner": 0.5,

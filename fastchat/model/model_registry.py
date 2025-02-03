@@ -97,7 +97,7 @@ register_model_info(
         "llama-3.1-70b-instruct",
         "llama-3.1-8b-instruct",
         "llama-3.1-8b-instruct-bf16-hyperbolic",
-        "llama-3.3-70b-Instruct-bp16-hyperbolic"
+        "llama-3.3-70b-instruct-bf16-hyperbolic"
     ],
     "Llama 3",
     "https://llama.meta.com/",
