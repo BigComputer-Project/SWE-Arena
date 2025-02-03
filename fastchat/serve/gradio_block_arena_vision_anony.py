@@ -112,6 +112,7 @@ function() {
     }
 
     return new Promise((resolve) => {
+        console.log('Feedback popup opened, vote type:', '{{VOTE_TYPE}}');
         // Create popup container
         const popup = document.createElement('div');
         const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -151,7 +152,9 @@ function() {
         closeButton.onclick = () => {
             document.body.removeChild(popup);
             document.body.removeChild(overlay);
-            submitFeedback({}); // Submit empty feedback
+            submitFeedback({
+                "vote_type": '{{VOTE_TYPE}}'
+            }); // Submit empty feedback
         };
         popup.appendChild(closeButton);
 
@@ -167,7 +170,9 @@ function() {
         popup.appendChild(title);
 
         // Initialize selectedFeedback object
-        let selectedFeedback = {};
+        let selectedFeedback = {
+            "vote_type": '{{VOTE_TYPE}}'
+        };
 
         // Add categories with 3 buttons (A, Tie, B)
         const options = [
@@ -303,7 +308,9 @@ function() {
         overlay.onclick = () => {
             document.body.removeChild(popup);
             document.body.removeChild(overlay);
-            submitFeedback({}); // Submit empty feedback
+            submitFeedback({
+                "vote_type": '{{VOTE_TYPE}}'
+            }); // Submit empty feedback
         };
 
         document.body.appendChild(overlay);
@@ -314,7 +321,9 @@ function() {
             if (e.key === 'Escape') {
                 document.body.removeChild(popup);
                 document.body.removeChild(overlay);
-                submitFeedback({}); // Submit empty feedback
+                submitFeedback({
+                    "vote_type": '{{VOTE_TYPE}}'
+                }); // Submit empty feedback
             }
         };
         document.addEventListener('keydown', closePopup);
@@ -322,6 +331,7 @@ function() {
 }
 
 """
+
 
 def load_demo_side_by_side_vision_anony():
     states = [None] * num_sides
@@ -332,14 +342,14 @@ def load_demo_side_by_side_vision_anony():
 
     return states + selector_updates
 
-def vote_last_response(state0, state1, vote_type, model_selector0, model_selector1, feedback_details, request: gr.Request = None):
+
+def vote_last_response(state0, state1, model_selector0, model_selector1, feedback_details, request: gr.Request = None):
     '''
     Handle voting for a response, including any feedback details provided.
-    
+
     Args:
         state0: First conversation state
         state1: Second conversation state
-        vote_type: Type of vote (left, right, tie, etc)
         model_selector0: First model selector
         model_selector1: Second model selector
         feedback_details: Optional feedback details from the popup
@@ -351,20 +361,19 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
     model_selectors = [model_selector0, model_selector1]
 
     local_filepath = states[0].get_conv_log_filepath(LOG_DIR)
-    vote_type = vote_type[0] if isinstance(vote_type, tuple) else vote_type  # Extract the vote type from the tuple
+    # Extract the vote type from the tuple
 
     logger.info(f"=== Vote Response Start ===")
-    logger.info(f"Vote type: {vote_type}")
     logger.info(f"Feedback data received: {feedback_details}")
-    
+
     log_data = {
         "tstamp": round(time.time(), 4),
-        "type": vote_type,
+        "type": "vote",
         "models": [x for x in model_selectors] if model_selectors else [],
-        "states": [x.dict() for x in states] if states else [],
+        "states": [x.to_dict() for x in states] if states else [],
         "ip": get_ip(request),
     }
-    
+
     # Add feedback data if available
     if feedback_details:
         try:
@@ -386,7 +395,7 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
     gr.Info(
         "🎉 Thanks for voting! Your vote shapes the leaderboard, please vote RESPONSIBLY."
     )
-    
+
     # display model names
     model_name_1 = state0.model_name if state0 else ""
     model_name_2 = state1.model_name if state1 else ""
@@ -405,7 +414,7 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
         f"### Model A Sandbox: {model_name_1}",
         f"### Model B Sandbox: {model_name_2}",
     )
-    
+
     # Return exactly the number of outputs expected by the click handler
     # 2 model selectors + 2 sandbox titles + 1 textbox + 10 buttons = 15 outputs
     return (
@@ -413,6 +422,7 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
         + (disable_text,)
         + (disable_btn,) * (USER_BUTTONS_LENGTH - 1)
     )
+
 
 def regenerate_single(state: ModelChatState, request: gr.Request):
     '''
@@ -428,7 +438,7 @@ def regenerate_single(state: ModelChatState, request: gr.Request):
         state.set_response_type("regenerate_single")
         return (
             [state, state.to_gradio_chatbot()]
-            + [None] # textbox
+            + [None]  # textbox
             + [disable_btn] * USER_BUTTONS_LENGTH
         )
     else:
@@ -436,7 +446,7 @@ def regenerate_single(state: ModelChatState, request: gr.Request):
         state.skip_next = True
         return (
             [state, state.to_gradio_chatbot()]
-            + [None] # textbox
+            + [None]  # textbox
             + [no_change_btn] * USER_BUTTONS_LENGTH
         )
 
@@ -456,7 +466,7 @@ def regenerate_multi(state0: ModelChatState, state1: ModelChatState, request: gr
             states
             + [x.to_gradio_chatbot() for x in states]
             + [None]
-            + [disable_btn] * USER_BUTTONS_LENGTH # Disable user buttons
+            + [disable_btn] * USER_BUTTONS_LENGTH  # Disable user buttons
         )
     else:
         # if not support regen
@@ -465,7 +475,7 @@ def regenerate_multi(state0: ModelChatState, state1: ModelChatState, request: gr
         return (
             states
             + [x.to_gradio_chatbot() for x in states]
-            + [None] # textbox
+            + [None]  # textbox
             + [no_change_btn] * USER_BUTTONS_LENGTH
         )
 
@@ -575,7 +585,7 @@ def add_text_single(
         return (
             [state, state.to_gradio_chatbot(), sandbox_state]
             + [{"text": CONVERSATION_LIMIT_MSG}, ""]
-            + [no_change_btn] * 8 # FIXME: Update the number of buttons
+            + [no_change_btn] * 8  # FIXME: Update the number of buttons
             + [""]
         )
 
@@ -591,7 +601,7 @@ def add_text_single(
                 },
                 "",
             ]
-            + [no_change_btn] * 8 # FIXME: Update the number of buttons
+            + [no_change_btn] * 8  # FIXME: Update the number of buttons
             + [""]
         )
 
@@ -683,7 +693,7 @@ def add_text_multi(
             model_left, model_right, chat_mode="battle_anony",
             is_vision=is_vision
         )
-        states = list(states) # tuple to list
+        states = list(states)  # tuple to list
         for idx in range(2):
             set_sandbox_state_ids(
                 sandbox_state=sandbox_states[idx],
@@ -707,9 +717,9 @@ def add_text_multi(
             states
             + [state.to_gradio_chatbot() for state in states]
             + sandbox_states
-            + [None, ""] # textbox
+            + [None, ""]  # textbox
             + [no_change_btn,] * sandbox_state0['btn_list_length']
-            + [""] # hint
+            + [""]  # hint
         )
 
     model_list = [states[i].model_name for i in range(num_sides)]
@@ -768,7 +778,7 @@ def add_text_multi(
                 "",
             ]
             + [no_change_btn] * USER_BUTTONS_LENGTH
-            + [""] # hint
+            + [""]  # hint
         )
 
     text = text[:BLIND_MODE_INPUT_CHAR_LEN_LIMIT]  # Hard cut-off
@@ -903,7 +913,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
 
     with gr.Row() as examples_row:
         example_prompts = gr.Examples(
-            examples = [
+            examples=[
                 ["使用SVG绘制春节主题的动态图案，包括：1）一个红色的灯笼，带有金色的流苏 2）一个金色的福字，使用书法字体 3）背景添加一些烟花效果 4）在灯笼和福字周围添加一些祥云图案。确保图案布局美观，颜色搭配符合春节传统风格。"],
                 ["SVGを使用して日本の伝統的な和柄パターンを描画してください。1）波紋（さざなみ）模様 2）市松模様 3）麻の葉模様 4）雷文（らいもん）模様を含めてください。色は伝統的な日本の色（藍色、朱色、金色など）を使用し、レイアウトはバランスよく配置してください。"],
                 ["Write HTML with P5.js that simulates 25 particles in a vacuum space of a cylindrical container, bouncing within its boundaries. Use different colors for each ball and ensure they leave a trail showing their movement. Add a slow rotation of the container to give better view of what's going on in the scene. Make sure to create proper collision detection and physic rules to ensure particles remain in the container. Add an external spherical container. Add a slow zoom in and zoom out effect to the whole scene."],
@@ -965,7 +975,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
             ],
             examples_per_page=100,
             label="Example Prompts",
-            inputs = [multimodal_textbox],
+            inputs=[multimodal_textbox],
         )
 
     # sandbox states and components
@@ -1023,7 +1033,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
                                 with gr.Tab(label="Code Editor", visible=True) as sandbox_code_tab:
                                     sandbox_code = gr.Code(
                                         value="",
-                                        interactive=True, # allow user edit
+                                        interactive=True,  # allow user edit
                                         visible=False,
                                         label='Sandbox Code',
                                     )
@@ -1212,7 +1222,8 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     # The one and only entry for submitting the vote
     feedback_btn.click(
         vote_last_response,
-        inputs=[states[0], states[1], feedback_state, model_selectors[0], model_selectors[1], feedback_details],
+        inputs=[states[0], states[1],
+                model_selectors[0], model_selectors[1], feedback_details],
         outputs=model_selectors + sandbox_titles + [
             textbox,
             # vote buttons
@@ -1228,28 +1239,28 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         lambda: ("vote_left",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_js
+        js=feedback_popup_js.replace("{{VOTE_TYPE}}", "vote_left")
     )
     rightvote_btn.click(
         lambda: ("vote_right",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_js
+        js=feedback_popup_js.replace("{{VOTE_TYPE}}", "vote_right")
 
     )
     tie_btn.click(
         lambda: ("vote_tie",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_js
+        js=feedback_popup_js.replace("{{VOTE_TYPE}}", "vote_tie")
     )
     bothbad_btn.click(
         lambda: ("vote_both_bad",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_js
+        js=feedback_popup_js.replace("{{VOTE_TYPE}}", "vote_both_bad")
     )
-    
+
     regenerate_btn.click(
         regenerate_multi,
         states,

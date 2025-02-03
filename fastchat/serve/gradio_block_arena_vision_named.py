@@ -91,6 +91,7 @@ function() {
     }
 
     return new Promise((resolve) => {
+        console.log('Feedback popup opened, vote type:', '{{VOTE_TYPE}}');
         // Create popup container
         const popup = document.createElement('div');
         const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -130,7 +131,9 @@ function() {
         closeButton.onclick = () => {
             document.body.removeChild(popup);
             document.body.removeChild(overlay);
-            submitFeedback({}); // Submit empty feedback
+            submitFeedback({
+                "vote_type": '{{VOTE_TYPE}}'
+            }); // Submit empty feedback
         };
         popup.appendChild(closeButton);
 
@@ -146,7 +149,9 @@ function() {
         popup.appendChild(title);
 
         // Initialize selectedFeedback object
-        let selectedFeedback = {};
+        let selectedFeedback = {
+            "vote_type": '{{VOTE_TYPE}}'
+        };
 
         // Add categories with 3 buttons (A, Tie, B)
         const options = [
@@ -282,7 +287,9 @@ function() {
         overlay.onclick = () => {
             document.body.removeChild(popup);
             document.body.removeChild(overlay);
-            submitFeedback({}); // Submit empty feedback
+            submitFeedback({
+                "vote_type": '{{VOTE_TYPE}}'
+            }); // Submit empty feedback
         };
 
         document.body.appendChild(overlay);
@@ -293,7 +300,9 @@ function() {
             if (e.key === 'Escape') {
                 document.body.removeChild(popup);
                 document.body.removeChild(overlay);
-                submitFeedback({}); // Submit empty feedback
+                submitFeedback({
+                    "vote_type": '{{VOTE_TYPE}}'
+                }); // Submit empty feedback
             }
         };
         document.addEventListener('keydown', closePopup);
@@ -342,24 +351,17 @@ def clear_history_example(request: gr.Request):
     )
 
 
-def vote_last_response(state0, state1, vote_type, model_selector0, model_selector1, named_feedback_details=None, request: gr.Request = None):
-    if state0 is None or state1 is None:
-        return (disable_text,) + (disable_btn,) * (USER_BUTTONS_LENGTH - 1) + (enable_btn,)
-
-    # Extract vote type from tuple if needed
-    vote_type = vote_type[0] if isinstance(vote_type, tuple) else vote_type
-    
+def vote_last_response(state0, state1, model_selector0, model_selector1, named_feedback_details=None, request: gr.Request = None):    
     logger.info(f"=== Vote Response Start ===")
-    logger.info(f"Vote type: {vote_type}")
     logger.info(f"Feedback data received: {named_feedback_details}")
 
     local_filepath = state0.get_conv_log_filepath(LOG_DIR)
 
     log_data = {
         "tstamp": round(time.time(), 4),
-        "type": vote_type,
+        "type": "vote",
         "models": [model_selector0, model_selector1] if model_selector0 and model_selector1 else [],
-        "states": [x.dict() for x in [state0, state1] if x] if state0 and state1 else [],
+        "states": [x.to_dict() for x in [state0, state1] if x] if state0 and state1 else [],
         "ip": get_ip(request),
     }
     
@@ -1094,7 +1096,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     # The one and only entry for submitting the vote
     named_feedback_btn.click(
         vote_last_response,
-        inputs=[states[0], states[1], feedback_state, model_selectors[0], model_selectors[1], named_feedback_details],
+        inputs=[states[0], states[1], model_selectors[0], model_selectors[1], named_feedback_details],
         outputs=[textbox] + user_buttons,
     )
 
@@ -1102,26 +1104,27 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         lambda: ("vote_left",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_vision_named_js
+        js=feedback_popup_vision_named_js.replace("{{VOTE_TYPE}}", "vote_left")
     )
     rightvote_btn.click(
         lambda: ("vote_right",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_vision_named_js
+        js=feedback_popup_vision_named_js.replace("{{VOTE_TYPE}}", "vote_right")
     )
     tie_btn.click(
         lambda: ("vote_tie",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_vision_named_js
+        js=feedback_popup_vision_named_js.replace("{{VOTE_TYPE}}", "vote_tie")
     )
     bothbad_btn.click(
         lambda: ("vote_both_bad",),
         inputs=[],
         outputs=[feedback_state],
-        js=feedback_popup_vision_named_js
+        js=feedback_popup_vision_named_js.replace("{{VOTE_TYPE}}", "vote_both_bad")
     )
+
 
     regenerate_btn.click(
         regenerate_multi,
