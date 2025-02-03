@@ -700,7 +700,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         temperature = gr.Slider(
             minimum=0.0,
             maximum=1.0,
-            value=0.2,
+            value=0.7,
             step=0.1,
             interactive=True,
             label="Temperature",

@@ -302,6 +302,9 @@ def openai_api_stream_iter(
                 {"role": message["role"], "content": filtered_content_list}
             )
 
+    if model_name in ["deepseek-ai/DeepSeek-R1-Zero", "deepseek-ai/DeepSeek-R1"]:
+        max_new_tokens = 64_000
+    
     gen_params = {
         "model": model_name,
         "prompt": text_messages,
