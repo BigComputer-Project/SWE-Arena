@@ -325,7 +325,9 @@ def openai_api_stream_iter(
                 text += chunk.choices[0].delta.content or ""
                 if "deepseek" in model_name:
                     # Support for deepseek <think> tag
-                    text = text.replace('<think>', '<details open><summary style="color: lightgray;">Thinking...</summary>').replace('</think>', '</details>\n\n')
+                    # text = text.replace('<think>', '<details open><summary style="color: lightgray;">Thinking...</summary>').replace('</think>', '</details>\n\n')
+                    # delete <think> tag
+                    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
                 data = {
                     "text": text,
                     "error_code": 0,
