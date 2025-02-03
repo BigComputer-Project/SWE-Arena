@@ -7,8 +7,8 @@
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": true
@@ -20,8 +20,8 @@
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": true
@@ -33,8 +33,8 @@
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": true
@@ -46,47 +46,47 @@
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
   },
-  "o1-2024-12-17 (OpenAI)": {
+  "o1-2024-12-17": {
     "model_name": "o1-2024-12-17",
     "api_type": "openai_o1",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
   },
-  "o1-mini-2024-09-12 (OpenAI)": {
+  "o1-mini-2024-09-12": {
     "model_name": "o1-mini-2024-09-12",
     "api_type": "openai_o1",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
   },
-  "o3-mini-2025-01-31 (OpenAI)": {
+  "o3-mini-2025-01-31": {
     "model_name": "o3-mini-2025-01-31",
     "api_type": "openai_o1",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
@@ -98,8 +98,8 @@
     "api_key": "ENV:QWEN_32B_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
@@ -111,8 +111,8 @@
     "api_key": "ENV:QWEN_72B_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
@@ -124,8 +124,8 @@
     "api_key": "ENV:QWEN_72B_INSTRUCT_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": true
@@ -137,8 +137,8 @@
     "api_key": "ENV:DEEPSEEK_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
@@ -150,8 +150,8 @@
   //   "api_key": "ENV:DEEPSEEK_API_KEY",
   //   "anony_only": true,
   //   "recommended_config": {
-  //     "temperature": 0.2,
-  //     "top_p": 0.9
+  //     "temperature": 0.7,
+  //     "top_p": 1.0
   //   },
   //   "text-arena": true,
   //   "vision-arena": false
@@ -163,8 +163,8 @@
     "api_key": "ENV:HYPERBOLIC_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
@@ -176,8 +176,8 @@
     "api_key": "ENV:HYPERBOLIC_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
@@ -190,8 +190,8 @@
     "api_key": "ENV:HYPERBOLIC_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
@@ -203,8 +203,8 @@
     "api_key": "ENV:HYPERBOLIC_API_KEY",
     "anony_only": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
@@ -217,8 +217,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": false
@@ -230,8 +230,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": true
@@ -243,8 +243,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     }
   },
   "gemini-1.5-pro-exp-0801": {
@@ -254,8 +254,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": true
@@ -267,8 +267,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": true
@@ -280,8 +280,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     }
   },
   "gemini-1.5-pro-002": {
@@ -291,8 +291,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     },
     "text-arena": true,
     "vision-arena": true
@@ -304,8 +304,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     }
   },
   "gemini-exp-1206": {
@@ -315,8 +315,8 @@
     "api_key": "ENV:GEMINI_API_KEY",
     "anony_only": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     }
   },
   "claude-3-5-sonnet-20241022": {
@@ -328,8 +328,8 @@
     "text-arena": true,
     "vision-arena": true,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     }
   },
   "claude-3-5-haiku-20241022": {
@@ -341,8 +341,8 @@
     "text-arena": true,
     "vision-arena": false,
     "recommended_config": {
-      "temperature": 0.2,
-      "top_p": 0.9
+      "temperature": 0.7,
+      "top_p": 1.0
     }
   }
 }

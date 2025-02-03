@@ -54,6 +54,7 @@ from fastchat.serve.gradio_web_server import (
     acknowledgment_md,
     get_ip,
     get_model_description_md,
+    disable_text,
     enable_text,
     set_chat_system_messages,
 )
@@ -68,6 +69,246 @@ from fastchat.utils import (
     image_moderation_filter,
 )
 
+# Add feedback popup JavaScript
+feedback_popup_vision_named_js = """
+function() {
+    function submitFeedback(selectedFeedback) {
+        console.log('Submit function called');
+        console.log('User selected feedback:', selectedFeedback);
+        console.log('Returning data to backend:', {
+            feedback: selectedFeedback
+        });
+        
+        let named_feedback_details_div = document.querySelector('#named_feedback_details');
+        let named_feedback_details_textbox = named_feedback_details_div.querySelector('textarea');
+        named_feedback_details_textbox.value = JSON.stringify(selectedFeedback);
+        // This is very important!
+        // Trigger the textarea's event for gradio to function normally
+        named_feedback_details_textbox.dispatchEvent(new Event('input', { bubbles: true }));
+        named_feedback_btn = document.querySelector('#named_feedback_btn');
+
+        named_feedback_btn.click();
+    }
+
+    return new Promise((resolve) => {
+        console.log('Feedback popup opened, vote type:', '{{VOTE_TYPE}}');
+        // Create popup container
+        const popup = document.createElement('div');
+        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        console.log('Created popup, dark mode:', isDarkMode);
+        
+        popup.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: ${isDarkMode ? '#1a1a1a' : 'white'};
+            color: ${isDarkMode ? '#ffffff' : '#000000'};
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid ${isDarkMode ? '#404040' : '#e0e0e0'};
+            box-shadow: 0 2px 10px ${isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)'};
+            z-index: 1000;
+            max-width: 500px;
+            width: 90%;
+        `;
+
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '✕';
+        closeButton.style.cssText = `
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: none;
+            border: none;
+            color: ${isDarkMode ? '#ffffff' : '#000000'};
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+        `;
+        closeButton.onclick = () => {
+            document.body.removeChild(popup);
+            document.body.removeChild(overlay);
+            submitFeedback({
+                "vote_type": '{{VOTE_TYPE}}'
+            }); // Submit empty feedback
+        };
+        popup.appendChild(closeButton);
+
+        // Add title
+        const title = document.createElement('h3');
+        title.textContent = 'Please provide additional feedback';
+        title.style.cssText = `
+            margin-bottom: 15px;
+            color: ${isDarkMode ? '#ffffff' : '#000000'};
+            font-size: 1.2em;
+            padding-right: 20px;
+        `;
+        popup.appendChild(title);
+
+        // Initialize selectedFeedback object
+        let selectedFeedback = {
+            "vote_type": '{{VOTE_TYPE}}'
+        };
+
+        // Add categories with 3 buttons (A, Tie, B)
+        const options = [
+            'Code quality',
+            'UI/UX design',
+            'Explanation clarity',
+            'Solution creativity',
+            'Implementation is more efficient',
+            'Error handling',
+            'Documentation'
+        ];
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.marginBottom = '20px';
+        options.forEach(option => {
+            const categoryContainer = document.createElement('div');
+            categoryContainer.style.marginBottom = '15px';
+
+            const label = document.createElement('label');
+            label.style.cssText = `
+                display: block;
+                margin-bottom: 5px;
+                color: ${isDarkMode ? '#ffffff' : '#000000'};
+            `;
+            label.textContent = option;
+            categoryContainer.appendChild(label);
+
+            const buttonGroup = document.createElement('div');
+            buttonGroup.style.display = 'flex';
+            buttonGroup.style.justifyContent = 'space-between';
+
+            ['A', 'Tie', 'B'].forEach(buttonText => {
+                const button = document.createElement('button');
+                button.textContent = buttonText;
+                button.style.cssText = `
+                    flex: 1;
+                    padding: 10px;
+                    margin: 0 5px;
+                    border: 1px solid ${isDarkMode ? '#444444' : '#ccc'};
+                    background: ${isDarkMode ? '#333333' : '#f9f9f9'};
+                    color: ${isDarkMode ? '#ffffff' : '#000000'};
+                    border-radius: 4px;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                `;
+
+                // Hover effect
+                button.onmouseover = () => {
+                    if (!button.classList.contains('selected')) {  // Only apply hover if it's not selected
+                        button.style.backgroundColor = isDarkMode ? '#555555' : '#e0e0e0';
+                    }
+                };
+
+                button.onmouseout = () => {
+                    if (!button.classList.contains('selected')) {  // Only reset hover if it's not selected
+                        button.style.backgroundColor = isDarkMode ? '#333333' : '#f9f9f9';
+                    }
+                };
+
+                // Click to select
+                button.onclick = () => {
+                    // Save the selection for the current option
+                    selectedFeedback[option] = buttonText;
+
+                    // Reset all buttons' background color to default
+                    Array.from(buttonGroup.children).forEach(b => {
+                        b.style.backgroundColor = isDarkMode ? '#333333' : '#f9f9f9';
+                        b.classList.remove('selected');
+                    });
+
+                    // Set the selected button's background color to blue and mark as selected
+                    button.style.backgroundColor = '#2196F3'; // Blue color for selection
+                    button.classList.add('selected'); // Add 'selected' class to prevent hover override
+                };
+
+                buttonGroup.appendChild(button);
+            });
+
+            categoryContainer.appendChild(buttonGroup);
+            buttonContainer.appendChild(categoryContainer);
+        });
+        popup.appendChild(buttonContainer);
+
+        // Add submit button
+        const submitBtn = document.createElement('button');
+        submitBtn.textContent = 'Submit Feedback';
+        submitBtn.style.cssText = `
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: opacity 0.2s;
+        `;
+        
+        submitBtn.onmouseover = () => {
+            submitBtn.style.opacity = '0.9';
+        };
+        submitBtn.onmouseout = () => {
+            submitBtn.style.opacity = '1';
+        };
+
+        submitBtn.onclick = () => {
+            console.log('Submit button clicked');
+            console.log('Selected feedback:', selectedFeedback);
+
+            document.body.removeChild(popup);
+            document.body.removeChild(overlay);
+
+            const result = submitFeedback(selectedFeedback);
+            console.log('Resolving promise with result:', result);
+            resolve(result);
+        };
+
+        popup.appendChild(submitBtn);
+
+        // Add overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: ${isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)'};
+            z-index: 999;
+            cursor: pointer;
+        `;
+        
+        // Make overlay clickable to close
+        overlay.onclick = () => {
+            document.body.removeChild(popup);
+            document.body.removeChild(overlay);
+            submitFeedback({
+                "vote_type": '{{VOTE_TYPE}}'
+            }); // Submit empty feedback
+        };
+
+        document.body.appendChild(overlay);
+        document.body.appendChild(popup);
+
+        // Add event listener for escape key
+        const closePopup = (e) => {
+            if (e.key === 'Escape') {
+                document.body.removeChild(popup);
+                document.body.removeChild(overlay);
+                submitFeedback({
+                    "vote_type": '{{VOTE_TYPE}}'
+                }); // Submit empty feedback
+            }
+        };
+        document.addEventListener('keydown', closePopup);
+    });
+}
+"""
 
 logger = build_logger("gradio_web_server_multi", "gradio_web_server_multi.log")
 
@@ -110,60 +351,44 @@ def clear_history_example(request: gr.Request):
     )
 
 
-def vote_last_response(states: list[ModelChatState], vote_type, model_selectors, request: gr.Request):
-    for state in states:
-        local_filepath = state.get_conv_log_filepath(LOG_DIR)
-        log_data = state.generate_vote_record(
-            vote_type=vote_type,
-            ip=get_ip(request),
-        )
-        save_log_to_local(log_data, local_filepath)
-        get_remote_logger().log(log_data)
-        # save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
+def vote_last_response(state0, state1, model_selector0, model_selector1, named_feedback_details=None, request: gr.Request = None):    
+    logger.info(f"=== Vote Response Start ===")
+    logger.info(f"Feedback data received: {named_feedback_details}")
+
+    local_filepath = state0.get_conv_log_filepath(LOG_DIR)
+
+    log_data = {
+        "tstamp": round(time.time(), 4),
+        "type": "vote",
+        "models": [model_selector0, model_selector1] if model_selector0 and model_selector1 else [],
+        "states": [x.to_dict() for x in [state0, state1] if x] if state0 and state1 else [],
+        "ip": get_ip(request),
+    }
+    
+    # Add feedback data if available
+    if named_feedback_details:
+        try:
+            feedback_list = json.loads(named_feedback_details)
+            log_data["feedback"] = feedback_list
+            logger.info(f"Processed feedback: {feedback_list}")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse feedback data: {named_feedback_details}")
+            logger.error(f"JSON decode error: {str(e)}")
+    else:
+        logger.warning("No feedback data received")
+
+    save_log_to_local(log_data, local_filepath)
+    get_remote_logger().log(log_data)
+    logger.info(f"Data written to file: {local_filepath}")
+
+    logger.info("=== Vote Response End ===")
 
     gr.Info(
         "🎉 Thanks for voting! Your vote shapes the leaderboard, please vote RESPONSIBLY."
     )
 
-
-def leftvote_last_response(
-    state0, state1, model_selector0, model_selector1, sandbox_state0, sandbox_state1, request: gr.Request
-):
-    logger.info(f"leftvote (named). ip: {get_ip(request)}")
-    vote_last_response(
-        [state0, state1], "leftvote", [model_selector0, model_selector1], request
-    )
-    return (None,) + (disable_btn,) * (sandbox_state0['btn_list_length'] - 1) + (enable_btn,) # enable clear button
-
-
-def rightvote_last_response(
-    state0, state1, model_selector0, model_selector1, sandbox_state0, sandbox_state1, request: gr.Request
-):
-    logger.info(f"rightvote (named). ip: {get_ip(request)}")
-    vote_last_response(
-        [state0, state1], "rightvote", [model_selector0, model_selector1], request
-    )
-    return (None,) + (disable_btn,) * (sandbox_state0['btn_list_length'] - 1) + (enable_btn,) # enable clear button
-
-
-def tievote_last_response(
-    state0, state1, model_selector0, model_selector1, sandbox_state0, sandbox_state1, request: gr.Request
-):
-    logger.info(f"tievote (named). ip: {get_ip(request)}")
-    vote_last_response(
-        [state0, state1], "tievote", [model_selector0, model_selector1], request
-    )
-    return (None,) + (disable_btn,) * (sandbox_state0['btn_list_length'] - 1) + (enable_btn,) # enable clear button
-
-
-def bothbad_vote_last_response(
-    state0, state1, model_selector0, model_selector1, sandbox_state0, sandbox_state1, request: gr.Request
-):
-    logger.info(f"bothbad_vote (named). ip: {get_ip(request)}")
-    vote_last_response(
-        [state0, state1], "bothbad_vote", [model_selector0, model_selector1], request
-    )
-    return (None,) + (disable_btn,) * (sandbox_state0['btn_list_length'] - 1) + (enable_btn,) # enable clear button
+    # Return model names, disable textbox and buttons except clear
+    return (disable_text,) + (disable_btn,) * (USER_BUTTONS_LENGTH - 1) + (enable_btn,)
 
 
 def regenerate_single(state: ModelChatState, sandbox_state, request: gr.Request):
@@ -472,7 +697,7 @@ def build_side_by_side_vision_ui_named(context: Context, random_questions=None):
 - **Dependency Edit**: You can edit the <u>dependency</u> of the code on any side. Currently, we only support `pypi` and `npm` packages.
 For `pypi` packages, you can use the format `python (use '==', '>=', '<=', '~=', '>', '<' or 'latest') <package_name> <version>`.
 For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_name> <version>`.
-- **Temperature**: All models have the same temperature of `0.2` and `top_p` of `0.9` by default. You can adjust the hyperparameters in the `Parameters` section. Low temperature typically works better for code generation.
+- **Temperature**: All models have the same temperature of `0.7` and `top_p` of `1.0` by default. You can adjust the hyperparameters in the `Parameters` section. Low temperature typically works better for code generation.
 
 **❗️ For research purposes, we log user prompts, images, and interactions with sandbox, and may release this data to the public in the future. Please do not upload any confidential or personal information.**
 """
@@ -853,26 +1078,53 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         clear_btn,
     ] # 11 buttons, USER_BUTTONS_LENGTH
 
+    # Create a feedback state that persists across the chain
+    feedback_state = gr.State("")
+    # The hidden vote button used to trigger the vote submission
+    with gr.Group(visible=False):
+        named_feedback_btn = gr.Button(
+            elem_id="named_feedback_btn",
+            value="The hidden vote button. The user should not be able to see this", 
+            interactive=True
+        )
+        named_feedback_details = gr.Textbox(
+            elem_id="named_feedback_details",
+            value="",
+            interactive=True
+        )
+
+    # The one and only entry for submitting the vote
+    named_feedback_btn.click(
+        vote_last_response,
+        inputs=[states[0], states[1], model_selectors[0], model_selectors[1], named_feedback_details],
+        outputs=[textbox] + user_buttons,
+    )
+
     leftvote_btn.click(
-        leftvote_last_response,
-        states + model_selectors + sandbox_states,
-        [textbox] + user_buttons,
+        lambda: ("vote_left",),
+        inputs=[],
+        outputs=[feedback_state],
+        js=feedback_popup_vision_named_js.replace("{{VOTE_TYPE}}", "vote_left")
     )
     rightvote_btn.click(
-        rightvote_last_response,
-        states + model_selectors + sandbox_states,
-        [textbox] + user_buttons,
+        lambda: ("vote_right",),
+        inputs=[],
+        outputs=[feedback_state],
+        js=feedback_popup_vision_named_js.replace("{{VOTE_TYPE}}", "vote_right")
     )
     tie_btn.click(
-        tievote_last_response,
-        states + model_selectors + sandbox_states,
-        [textbox] + user_buttons,
+        lambda: ("vote_tie",),
+        inputs=[],
+        outputs=[feedback_state],
+        js=feedback_popup_vision_named_js.replace("{{VOTE_TYPE}}", "vote_tie")
     )
     bothbad_btn.click(
-        bothbad_vote_last_response,
-        states + model_selectors + sandbox_states,
-        [textbox] + user_buttons,
+        lambda: ("vote_both_bad",),
+        inputs=[],
+        outputs=[feedback_state],
+        js=feedback_popup_vision_named_js.replace("{{VOTE_TYPE}}", "vote_both_bad")
     )
+
 
     regenerate_btn.click(
         regenerate_multi,
