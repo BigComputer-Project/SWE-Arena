@@ -14,16 +14,16 @@ SAMPLING_WEIGHTS = {
     'qwen2.5-72b-instruct': 1,
 
     # deepseek models
-    "deepseek-r1-zero (FP8, Hyperbolic)": 1,
-    "deepseek-r1 (FP8, Hyperbolic)": 1,
+    "deepseek-r1-zero-fp8-hyperbolic": 1,
+    "deepseek-r1-fp8-hyperbolic": 1,
 
     # 'qwen2.5-vl-72b-instruct': 1,
     'claude-3-5-sonnet-20241022': 1,
     'claude-3-5-haiku-20241022': 1,
 
     # llama models
-    "llama-3.1-8B-Instruct (BF16, Hyperbolic)": 1,
-    "llama-3.3-70B-Instruct (BF16, Hyperbolic)": 1,
+    "llama-3.1-8b-instruct-bf16-hyperbolic": 1,
+    "llama-3.3-70b-Instruct-bp16-hyperbolic": 1,
 
     # 'deepseek-v3': 0.5,
     # "deepseek-reasoner": 0.5,

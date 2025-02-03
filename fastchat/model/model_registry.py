@@ -57,19 +57,11 @@ register_model_info(
     [
         "o1-2024-12-17",
         "o1-mini-2024-09-12",
-    ],
-    "GPT-o1 & GPT-o1 mini",
-    "https://openai.com/o1/",
-    "The flagship model across audio, vision, and text by OpenAI",
-)
-
-register_model_info(
-    [
         "o3-mini-2025-01-31",
     ],
-    "GPT-o3 mini",
-    "https://openai.com/index/openai-o3-mini/",
-    "OpenAI o3-mini, the newest, most cost-efficient model in OpenAI reasoning series",
+    "o series",
+    "https://openai.com/o1/",
+    "The reasoning models by OpenAI",
 )
 
 register_model_info(
@@ -88,7 +80,7 @@ register_model_info(
         "claude-3-5-sonnet-20241022",
         "claude-3-5-haiku-20241022",
     ],
-    "Claude 3.5",
+    "Claude",
     "https://www.anthropic.com/news/claude-3-5-sonnet",
     "Claude by Anthropic",
 )
@@ -104,8 +96,10 @@ register_model_info(
         "llama-3.1-405b-instruct",
         "llama-3.1-70b-instruct",
         "llama-3.1-8b-instruct",
+        "llama-3.1-8b-instruct-bf16-hyperbolic",
+        "llama-3.3-70b-Instruct-bp16-hyperbolic"
     ],
-    "Llama 3.1",
+    "Llama 3",
     "https://llama.meta.com/",
     "Open foundation and chat models by Meta",
 )
@@ -226,9 +220,9 @@ register_model_info(
         "qwen-vl-max-0809",
         "qwen2.5-vl-72b-instruct",
     ],
-    "Qwen Series",
+    "Qwen",
     "https://help.aliyun.com/zh/dashscope/developer-reference/model-introduction",
-    "The Frontier Qwen Model by Alibaba",
+    "Large language models by Alibaba Qwen",
 )
 
 register_model_info(
@@ -528,7 +522,7 @@ register_model_info(
 
 register_model_info(
     ["deepseek-llm-67b-chat"],
-    "DeepSeek LLM",
+    "DeepSeek",
     "https://huggingface.co/deepseek-ai/deepseek-llm-67b-chat",
     "An advanced language model by DeepSeek",
 )
@@ -539,10 +533,10 @@ register_model_info(
         "deepseek-v3",
         "deepseek-reasoner",
         "deepseek-r1",
-        "deepseek-r1-zero (FP8, Hyperbolic)",
-        "deepseek-r1 (FP8, Hyperbolic)",
+        "deepseek-r1-zero-fp8-hyperbolic",
+        "deepseek-r1-fp8-hyperbolic",
     ],
-    "DeepSeek LLM API",
+    "DeepSeek",
     "https://www.deepseek.com/",
     "Large language model API by DeepSeek",
 )
@@ -890,8 +884,6 @@ register_model_info(
     [
         "Meta-Llama-3-8B-Instruct",
         "Meta-Llama-3-70B-Instruct",
-        "llama-3.1-8B-Instruct (BF16, Hyperbolic)",
-        "llama-3.3-70B-Instruct (BF16, Hyperbolic)"
     ],
     "llama-3",
     "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct",
@@ -1039,13 +1031,4 @@ register_model_info(
     "consistency-llm",
     "https://huggingface.co/cllm",
     "consistency-llm is a new generation of parallel decoder LLMs with fast generation speed.",
-)
-
-register_model_info(
-    [
-        "qwen2.5-coder-32b-instruct",
-    ],
-    "Qwen 2.5 Coder",
-    "https://qwenlm.ai/blog/qwen2.5/",
-    "Code-specialized version of Qwen 2.5 by Alibaba",
 )
