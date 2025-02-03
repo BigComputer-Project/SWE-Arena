@@ -122,7 +122,7 @@
     "api_type": "openai",
     "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
     "api_key": "ENV:QWEN_72B_INSTRUCT_API_KEY",
-    "anony_only": false,
+    "anony_only": true,
     "recommended_config": {
       "temperature": 0.7,
       "top_p": 1.0
