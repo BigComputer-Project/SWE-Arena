@@ -143,25 +143,25 @@
     "text-arena": true,
     "vision-arena": false
   },
-  // "deepseek-reasoner": {
-  //   "model_name": "deepseek-reasoner",
-  //   "api_type": "openai",
-  //   "api_base": "https://api.deepseek.com",
-  //   "api_key": "ENV:DEEPSEEK_API_KEY",
-  //   "anony_only": true,
-  //   "recommended_config": {
-  //     "temperature": 0.7,
-  //     "top_p": 1.0
-  //   },
-  //   "text-arena": true,
-  //   "vision-arena": false
-  // },
+  "deepseek-r1": {
+    "model_name": "deepseek-reasoner",
+    "api_type": "openai",
+    "api_base": "https://api.deepseek.com",
+    "api_key": "ENV:DEEPSEEK_API_KEY",
+    "anony_only": true,
+    "recommended_config": {
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "text-arena": true,
+    "vision-arena": false
+  },
   "deepseek-r1-zero-fp8-hyperbolic": {
     "model_name": "deepseek-ai/DeepSeek-R1-Zero",
     "api_type": "openai",
     "api_base": "https://api.hyperbolic.xyz/v1",
     "api_key": "ENV:HYPERBOLIC_API_KEY",
-    "anony_only": true,
+    "anony_only": false,
     "recommended_config": {
       "temperature": 0.7,
       "top_p": 1.0
@@ -174,7 +174,7 @@
     "api_type": "openai",
     "api_base": "https://api.hyperbolic.xyz/v1",
     "api_key": "ENV:HYPERBOLIC_API_KEY",
-    "anony_only": true,
+    "anony_only": false,
     "recommended_config": {
       "temperature": 0.7,
       "top_p": 1.0
