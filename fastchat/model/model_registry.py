@@ -55,6 +55,25 @@ register_model_info(
 
 register_model_info(
     [
+        "o1-2024-12-17",
+        "o1-mini-2024-09-12",
+    ],
+    "GPT-o1 & GPT-o1 mini",
+    "https://openai.com/o1/",
+    "The flagship model across audio, vision, and text by OpenAI",
+)
+
+register_model_info(
+    [
+        "o3-mini-2025-01-31",
+    ],
+    "GPT-o3 mini",
+    "https://openai.com/index/openai-o3-mini/",
+    "OpenAI o3-mini, the newest, most cost-efficient model in OpenAI reasoning series",
+)
+
+register_model_info(
+    [
         "grok-2-2024-08-13",
         "grok-2-mini-2024-08-13",
     ],
@@ -515,7 +534,14 @@ register_model_info(
 )
 
 register_model_info(
-    ["deepseek-chat", "deepseek-reasoner"],
+    [
+        "deepseek-chat",
+        "deepseek-v3",
+        "deepseek-reasoner",
+        "deepseek-r1",
+        "deepseek-r1-zero (FP8, Hyperbolic)",
+        "deepseek-r1 (FP8, Hyperbolic)",
+    ],
     "DeepSeek LLM API",
     "https://www.deepseek.com/",
     "Large language model API by DeepSeek",
@@ -861,7 +887,12 @@ register_model_info(
 )
 
 register_model_info(
-    ["Meta-Llama-3-8B-Instruct", "Meta-Llama-3-70B-Instruct"],
+    [
+        "Meta-Llama-3-8B-Instruct",
+        "Meta-Llama-3-70B-Instruct",
+        "llama-3.1-8B-Instruct (BF16, Hyperbolic)",
+        "llama-3.3-70B-Instruct (BF16, Hyperbolic)"
+    ],
     "llama-3",
     "https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct",
     "Meta developed and released the Meta Llama 3 family of large language models (LLMs), a collection of pretrained and instruction tuned generative text models in 8 and 70B sizes.",

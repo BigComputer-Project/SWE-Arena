@@ -3,7 +3,6 @@ Chatbot Arena (battle) tab.
 Users chat with two anonymous models.
 """
 
-import json
 import time
 import re
 
@@ -12,7 +11,6 @@ from gradio_sandboxcomponent import SandboxComponent
 import numpy as np
 
 from fastchat.constants import (
-    LOGDIR,
     MODERATION_MSG,
     CONVERSATION_LIMIT_MSG,
     SLOW_MODEL_MSG,
@@ -22,11 +20,10 @@ from fastchat.constants import (
     SURVEY_LINK,
 )
 from fastchat.model.model_adapter import get_conversation_template
+from fastchat.serve.chat_state import LOG_DIR, ModelChatState, save_log_to_local
 from fastchat.serve.gradio_block_arena_named import flash_buttons, set_chat_system_messages_multi
 from fastchat.serve.gradio_web_server import (
-    State,
     bot_response,
-    get_conv_log_filename,
     no_change_btn,
     enable_btn,
     disable_btn,
@@ -48,12 +45,13 @@ from fastchat.serve.model_sampling import (
 )
 from fastchat.serve.remote_logger import get_remote_logger
 
-from fastchat.serve.sandbox.code_runner import (SUPPORTED_SANDBOX_ENVIRONMENTS, ChatbotSandboxState, SandboxEnvironment, 
+from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
+from fastchat.serve.sandbox.code_runner import (SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, 
                                             DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, 
                                             create_chatbot_sandbox_state, on_click_code_message_run, 
-                                            on_edit_code, reset_sandbox_state, update_sandbox_config_multi, update_sandbox_state_system_prompt,update_visibility, 
+                                            on_edit_code, reset_sandbox_state, set_sandbox_state_ids, update_sandbox_config_multi, update_sandbox_state_system_prompt,update_visibility, 
                                             on_edit_dependency)
-from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, upload_conv_log_to_azure_storage
+from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, save_conv_log_to_azure_storage
 from fastchat.utils import (
     build_logger,
     moderation_filter,
@@ -86,23 +84,20 @@ def load_demo_side_by_side_anony(models_, url_params):
     return states + selector_updates
 
 
-def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
+def vote_last_response(states: list[ModelChatState], vote_type, model_selectors, request: gr.Request):
     if states[0] is None or states[1] is None:
         yield (None, None) + (disable_text,) + (disable_btn,) * 7
         return
 
-    filename = get_conv_log_filename()
-    with open(filename, "a") as fout:
-        data = {
-            "tstamp": round(time.time(), 4),
-            "type": vote_type,
-            "models": [x for x in model_selectors],
-            "states": [x.dict() for x in states],
-            "ip": get_ip(request),
-        }
-        fout.write(json.dumps(data) + "\n")
-    get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data))
+    for state in states:
+        local_filepath = state.get_conv_log_filepath(LOG_DIR)
+        log_data = state.generate_vote_record(
+            vote_type=vote_type,
+            ip=get_ip(request),
+        )
+        save_log_to_local(log_data, local_filepath)
+        get_remote_logger().log(log_data)
+        # save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
     gr.Info(
         "🎉 Thanks for voting! Your vote shapes the leaderboard, please vote RESPONSIBLY."
@@ -339,7 +334,7 @@ def get_battle_pair(
 
 
 def add_text_multi(
-    state0: State, state1: State,
+    state0: ModelChatState, state1: ModelChatState,
     model_selector0: str, model_selector1: str,
     sandbox_state0: ChatbotSandboxState, sandbox_state1: ChatbotSandboxState,
     text: str,
@@ -359,8 +354,8 @@ def add_text_multi(
     sandbox_state1['enabled_round'] += 1
 
     # Init states if necessary
-    if states[0] is None or states[1] is None:
-        # assert states[1] is None
+    if states[0] is None:
+        assert states[1] is None
 
         model_left, model_right = get_battle_pair(
             models,
@@ -369,10 +364,17 @@ def add_text_multi(
             SAMPLING_WEIGHTS,
             SAMPLING_BOOST_MODELS,
         )
-        if states[0] is None:
-            states[0] = State(model_left)
-        if states[1] is None:
-            states[1] = State(model_right)
+        states = ModelChatState.create_battle_chat_states(
+            model_left, model_right, chat_mode="battle_anony",
+            is_vision=False
+        )
+        states = list(states)
+        for idx in range(2):
+            set_sandbox_state_ids(
+                sandbox_state=sandbox_states[idx],
+                conv_id=states[idx].conv_id,
+                chat_session_id=states[idx].chat_session_id
+            )
         logger.info(f"model: {states[0].model_name}, {states[1].model_name}")
 
     if len(text) <= 0:
@@ -428,7 +430,7 @@ def add_text_multi(
     )
 
 def add_text_single(
-    state: State,
+    state: ModelChatState,
     model_selector: str,
     sandbox_state: ChatbotSandboxState,
     text: str,
@@ -442,7 +444,7 @@ def add_text_single(
 
     # TODO: We should skip this as we should not allow send to one side initially
     if state is None:
-        state = State(model_selector)
+        state = ModelChatState(model_selector)
 
     if state.model_name == "":
         model_left, model_right = get_battle_pair(
@@ -452,7 +454,7 @@ def add_text_single(
             SAMPLING_WEIGHTS,
             SAMPLING_BOOST_MODELS,
         )
-        state = State(model_left)
+        state = ModelChatState(model_left)
         logger.info(f"model: {state.model_name}")
 
     # skip if text is empty

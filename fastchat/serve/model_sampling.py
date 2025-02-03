@@ -7,13 +7,25 @@ SAMPLING_WEIGHTS = {
     'gpt-4o-mini-2024-07-18': 1,
     'gpt-4o-2024-08-06': 1,
     'gpt-4-0125-preview': 1,
+    'o1-2024-12-17': 1,
+    'o1-mini-2024-09-12': 1,
+    "o3-mini-2025-01-31": 1,
     'qwen2.5-coder-32b-instruct': 1,
     'qwen2.5-72b-instruct': 1,
+
+    # deepseek models
+    "deepseek-r1-zero (FP8, Hyperbolic)": 1,
+    "deepseek-r1 (FP8, Hyperbolic)": 1,
+
     # 'qwen2.5-vl-72b-instruct': 1,
     'claude-3-5-sonnet-20241022': 1,
     'claude-3-5-haiku-20241022': 1,
 
-    # 'deepseek-chat': 0.5,
+    # llama models
+    "llama-3.1-8B-Instruct (BF16, Hyperbolic)": 1,
+    "llama-3.3-70B-Instruct (BF16, Hyperbolic)": 1,
+
+    # 'deepseek-v3': 0.5,
     # "deepseek-reasoner": 0.5,
     # 'gemini-2.0-flash-exp': 0.5,
     # 'gemini-1.5-pro': 0.5,

@@ -13,7 +13,6 @@ from typing import Union
 
 from fastchat.constants import (
     INPUT_CHAR_LEN_LIMIT,
-    LOGDIR,
     TEXT_MODERATION_MSG,
     IMAGE_MODERATION_MSG,
     MODERATION_MSG,
@@ -24,11 +23,10 @@ from fastchat.constants import (
     SURVEY_LINK,
 )
 from fastchat.model.model_adapter import get_conversation_template
+from fastchat.serve.chat_state import LOG_DIR, ModelChatState, save_log_to_local
 from fastchat.serve.gradio_block_arena_named import flash_buttons, set_chat_system_messages_multi
 from fastchat.serve.gradio_web_server import (
-    State,
     bot_response,
-    get_conv_log_filename,
     no_change_btn,
     enable_btn,
     disable_btn,
@@ -71,8 +69,9 @@ from fastchat.serve.model_sampling import (
     OUTAGE_MODELS,
 )
 from fastchat.serve.remote_logger import get_remote_logger
-from fastchat.serve.sandbox.sandbox_telemetry import upload_conv_log_to_azure_storage
-from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, ChatbotSandboxState, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, update_sandbox_config_multi, update_sandbox_state_system_prompt
+from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
+from fastchat.serve.sandbox.sandbox_telemetry import save_conv_log_to_azure_storage
+from fastchat.serve.sandbox.code_runner import SUPPORTED_SANDBOX_ENVIRONMENTS, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SandboxGradioSandboxComponents, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, on_edit_dependency, reset_sandbox_state, set_sandbox_state_ids, update_sandbox_config_multi, update_sandbox_state_system_prompt
 from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn
 from fastchat.utils import (
     build_logger,
@@ -351,43 +350,36 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
     states = [state0, state1]
     model_selectors = [model_selector0, model_selector1]
 
-    if state0 is None or state1 is None:
-        return (None, None) + (disable_text,) + (disable_btn,) * (USER_BUTTONS_LENGTH - 1)
-
+    local_filepath = states[0].get_conv_log_filepath(LOG_DIR)
     vote_type = vote_type[0] if isinstance(vote_type, tuple) else vote_type  # Extract the vote type from the tuple
 
     logger.info(f"=== Vote Response Start ===")
     logger.info(f"Vote type: {vote_type}")
     logger.info(f"Feedback data received: {feedback_details}")
     
-    filename = get_conv_log_filename(state0.is_vision, state0.has_csam_image)
-
-    with open(filename, "a") as fout:
-        data = {
-            "tstamp": round(time.time(), 4),
-            "type": vote_type,
-            "models": [x for x in model_selectors] if model_selectors else [],
-            "states": [x.dict() for x in states] if states else [],
-            "ip": get_ip(request),
-        }
-        
-        # Add feedback data if available
-        if feedback_details:
-            try:
-                feedback_list = json.loads(feedback_details)
-                data["feedback"] = feedback_list
-                logger.info(f"Processed feedback: {feedback_list}")
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse feedback data: {feedback_details}")
-                logger.error(f"JSON decode error: {str(e)}")
-        else:
-            logger.warning("No feedback data received")
-        
-        fout.write(json.dumps(data) + "\n")
-        logger.info(f"Data written to file: {filename}")
+    log_data = {
+        "tstamp": round(time.time(), 4),
+        "type": vote_type,
+        "models": [x for x in model_selectors] if model_selectors else [],
+        "states": [x.dict() for x in states] if states else [],
+        "ip": get_ip(request),
+    }
     
-    get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + "\n")
+    # Add feedback data if available
+    if feedback_details:
+        try:
+            feedback_list = json.loads(feedback_details)
+            log_data["feedback"] = feedback_list
+            logger.info(f"Processed feedback: {feedback_list}")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse feedback data: {feedback_details}")
+            logger.error(f"JSON decode error: {str(e)}")
+    else:
+        logger.warning("No feedback data received")
+
+    save_log_to_local(log_data, local_filepath)
+    get_remote_logger().log(log_data)
+    logger.info(f"Data written to file: {local_filepath}")
 
     logger.info("=== Vote Response End ===")
 
@@ -422,7 +414,7 @@ def vote_last_response(state0, state1, vote_type, model_selector0, model_selecto
         + (disable_btn,) * (USER_BUTTONS_LENGTH - 1)
     )
 
-def regenerate_single(state, request: gr.Request):
+def regenerate_single(state: ModelChatState, request: gr.Request):
     '''
     Regenerate message for one side.
 
@@ -430,12 +422,26 @@ def regenerate_single(state, request: gr.Request):
         [state, chatbot, textbox] + user_buttons
     '''
     logger.info(f"regenerate. ip: {get_ip(request)}")
-    if state is None:
-        # if not init yet
-        return [None, None] + [None] + [no_change_btn] * USER_BUTTONS_LENGTH
+
+    if state.regen_support:
+        state.conv.update_last_message(None)
+        state.set_response_type("regenerate_single")
+        return (
+            [state, state.to_gradio_chatbot()]
+            + [None] # textbox
+            + [disable_btn] * USER_BUTTONS_LENGTH
+        )
+    else:
+        # if not support regen
+        state.skip_next = True
+        return (
+            [state, state.to_gradio_chatbot()]
+            + [None] # textbox
+            + [no_change_btn] * USER_BUTTONS_LENGTH
+        )
 
 
-def regenerate_multi(state0, state1, request: gr.Request):
+def regenerate_multi(state0: ModelChatState, state1: ModelChatState, request: gr.Request):
     '''
     Regenerate message for both sides.
     '''
@@ -445,6 +451,7 @@ def regenerate_multi(state0, state1, request: gr.Request):
     if state0.regen_support and state1.regen_support:
         for i in range(num_sides):
             states[i].conv.update_last_message(None)
+            states[i].set_response_type("regenerate_multi")
         return (
             states
             + [x.to_gradio_chatbot() for x in states]
@@ -502,7 +509,7 @@ def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
 
 
 def add_text_single(
-    state: State,
+    state: ModelChatState,
     model_selector: str,
     sandbox_state: ChatbotSandboxState,
     multimodal_input: dict, text_input: str,
@@ -596,6 +603,7 @@ def add_text_single(
     state.conv.append_message(state.conv.roles[0], post_processed_text)
     state.conv.append_message(state.conv.roles[1], None)
     state.skip_next = False
+    state.set_response_type("chat_single")
 
     hint_msg = ""
     if "deluxe" in state.model_name:
@@ -671,10 +679,17 @@ def add_text_multi(
             SAMPLING_BOOST_MODELS,
         )
 
-        states = [
-            State(model_left, is_vision=is_vision),
-            State(model_right, is_vision=is_vision),
-        ]
+        states = ModelChatState.create_battle_chat_states(
+            model_left, model_right, chat_mode="battle_anony",
+            is_vision=is_vision
+        )
+        states = list(states) # tuple to list
+        for idx in range(2):
+            set_sandbox_state_ids(
+                sandbox_state=sandbox_states[idx],
+                conv_id=states[idx].conv_id,
+                chat_session_id=states[idx].chat_session_id
+            )
 
     if len(text) <= 0:
         # skip if no text
@@ -764,6 +779,7 @@ def add_text_multi(
         states[i].conv.append_message(states[i].conv.roles[0], post_processed_text)
         states[i].conv.append_message(states[i].conv.roles[1], None)
         states[i].skip_next = False
+        states[i].set_response_type("chat_multi")
 
     hint_msg = ""
     for i in range(num_sides):
@@ -801,7 +817,7 @@ def build_side_by_side_vision_ui_anony(context: Context, random_questions=None):
 - **Dependency Edit**: You can edit the <u>dependency</u> of the code on any side. Currently, we only support `pypi` and `npm` packages.
 For `pypi` packages, you can use the format `python (use '==', '>=', '<=', '~=', '>', '<' or 'latest') <package_name> <version>`.
 For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_name> <version>`.
-- **Temperature**: All models have the same temperature of `0.2` and `top_p` of `0.9` by default. Low temperature typically works better for code generation.
+- **Temperature**: All models have the same temperature of `0.7` and `top_p` of `1.0` by default. Low temperature typically works better for code generation.
 
 **❗️ For research purposes, we log user prompts, images, and interactions with sandbox, and may release this data to the public in the future. Please do not upload any confidential or personal information.**
 """

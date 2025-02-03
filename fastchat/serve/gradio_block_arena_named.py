@@ -3,7 +3,6 @@ Chatbot Arena (side-by-side) tab.
 Users chat with two chosen models.
 """
 
-import json
 import time
 
 import gradio as gr
@@ -11,7 +10,6 @@ from gradio_sandboxcomponent import SandboxComponent
 import numpy as np
 
 from fastchat.constants import (
-    LOGDIR,
     MODERATION_MSG,
     CONVERSATION_LIMIT_MSG,
     INPUT_CHAR_LEN_LIMIT,
@@ -19,11 +17,10 @@ from fastchat.constants import (
     SURVEY_LINK,
 )
 from fastchat.model.model_adapter import get_conversation_template
+from fastchat.serve.chat_state import LOG_DIR, ModelChatState, save_log_to_local
 from fastchat.serve.gradio_web_server import (
-    State,
     add_text,
     bot_response,
-    get_conv_log_filename,
     no_change_btn,
     enable_btn,
     disable_btn,
@@ -34,8 +31,9 @@ from fastchat.serve.gradio_web_server import (
     set_chat_system_messages
 )
 from fastchat.serve.remote_logger import get_remote_logger
-from fastchat.serve.sandbox.code_runner import SandboxGradioSandboxComponents, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SUPPORTED_SANDBOX_ENVIRONMENTS, ChatbotSandboxState, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, reset_sandbox_state, update_sandbox_config_multi, update_sandbox_state_system_prompt, update_visibility, on_edit_dependency
-from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, upload_conv_log_to_azure_storage
+from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
+from fastchat.serve.sandbox.code_runner import SandboxGradioSandboxComponents, SandboxEnvironment, DEFAULT_SANDBOX_INSTRUCTIONS, SUPPORTED_SANDBOX_ENVIRONMENTS, create_chatbot_sandbox_state, on_click_code_message_run, on_edit_code, reset_sandbox_state, set_sandbox_state_ids, update_sandbox_config_multi, update_sandbox_state_system_prompt, update_visibility, on_edit_dependency
+from fastchat.serve.sandbox.sandbox_telemetry import log_sandbox_telemetry_gradio_fn, save_conv_log_to_azure_storage
 from fastchat.utils import (
     build_logger,
     moderation_filter,
@@ -72,21 +70,18 @@ def load_demo_side_by_side_named(models, url_params):
     return states + selector_updates
 
 
-def vote_last_response(states, vote_type, model_selectors, request: gr.Request):
+def vote_last_response(states: list[ModelChatState], vote_type, model_selectors, request: gr.Request):
     if states[0] is None or states[1] is None:
         return
-    filename = get_conv_log_filename()
-    with open(filename, "a") as fout:
-        data = {
-            "tstamp": round(time.time(), 4),
-            "type": vote_type,
-            "models": [x for x in model_selectors],
-            "states": [x.dict() for x in states],
-            "ip": get_ip(request),
-        }
-        fout.write(json.dumps(data) + "\n")
-    get_remote_logger().log(data)
-    upload_conv_log_to_azure_storage(filename.lstrip(LOGDIR), json.dumps(data) + "\n")
+    for state in states:
+        local_filepath = state.get_conv_log_filepath(LOG_DIR)
+        log_data = state.generate_vote_record(
+            vote_type=vote_type,
+            ip=get_ip(request)
+        )
+        save_log_to_local(log_data, local_filepath)
+        get_remote_logger().log(log_data)
+        # save_conv_log_to_azure_storage(local_filepath.lstrip(LOCAL_LOG_DIR), log_data)
 
 
 def leftvote_last_response(
@@ -211,12 +206,8 @@ def set_chat_system_messages_multi(state0, state1, sandbox_state0, sandbox_state
 
     # Init states if necessary
     for i in range(num_sides):
-        if states[i] is None:
-            states[i] = State(model_selectors[i])
+        assert states[i] is not None # should not be None
         sandbox_state = sandbox_states[i]
-        # if sandbox_state is None or sandbox_state['enable_sandbox'] is False or sandbox_state["enabled_round"] > 0:
-        #     continue
-        # sandbox_state['enabled_round'] += 1 # avoid dup
         environment_instruction = sandbox_state['sandbox_instruction']
         current_system_message = states[i].conv.get_system_message(states[i].is_vision)
         states[i].conv.set_system_message(environment_instruction)
@@ -239,9 +230,20 @@ def add_text_multi(
     sandbox_state1['enabled_round'] += 1
 
     # Init states if necessary
-    for i in range(num_sides):
-        if states[i] is None:
-            states[i] = State(model_selectors[i])
+    if states[0] is None:
+        assert states[1] is None
+        states = ModelChatState.create_battle_chat_states(
+            model_selectors[0], model_selectors[1],
+            chat_mode="battle_named",
+            is_vision=False
+        )
+        states = list(states)
+        for idx in range(2):
+            set_sandbox_state_ids(
+                sandbox_state=sandbox_states[idx],
+                conv_id=states[idx].conv_id,
+                chat_session_id=states[idx].chat_session_id
+            )
 
     if len(text) <= 0:
         for i in range(num_sides):
@@ -642,7 +644,7 @@ def build_side_by_side_ui_named(models):
         max_output_tokens = gr.Slider(
             minimum=16,
             maximum=4096,
-            value=2048,
+            value=4096,
             step=64,
             interactive=True,
             label="Max output tokens",
