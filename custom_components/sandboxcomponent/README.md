@@ -32,9 +32,6 @@ with gr.Blocks() as demo:
                 placeholder="Enter sandbox URL",
                 lines=1,
                 show_label=True,
-                elem_id=None,
-                elem_classes=None,
-                key=None,
             )
             sandboxInteractions = gr.Textbox(
                 label="Sandbox Interactions",
@@ -42,9 +39,6 @@ with gr.Blocks() as demo:
                 placeholder="Enter sandbox interactions",
                 lines=1,
                 show_label=True,
-                elem_id=None,
-                elem_classes=None,
-                key=None,
             )
         with gr.Row():
             sandbox = SandboxComponent(
@@ -64,6 +58,16 @@ with gr.Blocks() as demo:
             update_outputs,
             inputs=[sandbox],
             outputs=[sandboxUrl, sandboxInteractions]
+        )
+
+        def update_sandbox_url(url: str):
+            sandbox.value = (url, True, [])
+            return sandbox.value
+
+        sandboxUrl.change(
+            update_sandbox_url,
+            inputs=[sandboxUrl],
+            outputs=[sandbox]
         )
 
 if __name__ == "__main__":

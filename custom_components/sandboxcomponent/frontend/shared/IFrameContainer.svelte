@@ -7,17 +7,22 @@
   export let visible = true;
   export let min_height = false;
   export let isDarkMode = false;
-  export let updateUserInteractions: (newInteraction: UserInteraction) => void; // Function to update user interactions
+  export let updateUserInteractions: (newInteraction: UserInteraction) => void;
 
   function getCurrentTimeInISO() {
     return new Date().toISOString();
   }
 
   onMount(() => {
-    // Handler for messages from the child iframe
+    // Get the iframe element and its contentWindow
+    const iframeElement = document.getElementById("sandboxIframe") as HTMLIFrameElement;
+    const expectedSource = iframeElement ? iframeElement.contentWindow : null;
+
     function handleMessage(event: MessageEvent) {
-      // Optional: check event.origin to ensure messages come from a trusted domain
-      // if (event.origin !== "https://your-react-site.com") return;
+      // Only process messages coming from the expected iframe
+      if (expectedSource && event.source !== expectedSource) {
+        return;
+      }
 
       const data = event.data;
       console.log("Received message from iframe", data);
