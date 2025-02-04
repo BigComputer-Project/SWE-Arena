@@ -18,7 +18,7 @@ SAMPLING_WEIGHTS = {
     # "deepseek-r1-zero-fp8-hyperbolic": 1,
     # "deepseek-r1-fp8-hyperbolic": 1,
 
-    # 'qwen2.5-vl-72b-instruct': 1,
+    'qwen2.5-vl-72b-instruct': 1,
     'claude-3-5-sonnet-20241022': 1,
     'claude-3-5-haiku-20241022': 1,
 
