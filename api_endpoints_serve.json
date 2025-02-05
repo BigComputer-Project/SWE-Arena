@@ -57,7 +57,7 @@
     "api_type": "openai_o1",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
-    "anony_only": false,
+    "anony_only": true,
     "recommended_config": {
       "temperature": 0.7,
       "top_p": 1.0
@@ -70,7 +70,7 @@
     "api_type": "openai_o1",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
-    "anony_only": false,
+    "anony_only": true,
     "recommended_config": {
       "temperature": 0.7,
       "top_p": 1.0
