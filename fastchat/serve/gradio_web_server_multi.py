@@ -151,7 +151,7 @@ window.__gradio_mode__ = "app";
     <br>
     <br>
     <div style="display: inline-block; text-decoration: none; color: #1E90FF; font-weight: bold; font-size: large; border: 2px solid #1E90FF; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px;">
-        Featuring the top-tier models:
+        Featuring the top-tier models in Battle Mode:
         <br>
         DeepSeek R1 series, Claude 3.5 series, o3-mini, o1 series, Qwen2.5 VL & Coder and Llama series!
     </div>
