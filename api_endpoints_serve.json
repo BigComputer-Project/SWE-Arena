@@ -324,7 +324,7 @@
     "api_type": "anthropic_message",
     "api_base": "",
     "api_key": "ENV:ANTHROPIC_API_KEY",
-    "anony_only": false,
+    "anony_only": true,
     "text-arena": true,
     "vision-arena": true,
     "recommended_config": {
