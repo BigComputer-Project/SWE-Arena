@@ -104,7 +104,8 @@ We would like to thank the following projects for their contributions to SWE Are
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for more details.
+This project is licensed under the Apache 2.0 License. See [LICENSE](LICENSE) for more details.
+Any data collected from SWE Arena and open-sourced will be under the Apache 2.0 License.
 
 ## Citation
 
