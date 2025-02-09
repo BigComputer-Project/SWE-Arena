@@ -1,5 +1,5 @@
 # SWE Arena
-| [**Live Demo**](https://swe-arena.com) | [**X**](https://x.com/BigComProject) | [**Discord**](https://discord.gg/6GXcFg3TH8) | [**GitHub**](https://github.com/BigComputer-Project/SWE-Arena) |
+| [**Live Demo**](https://swe-arena.com) | [**X**](https://x.com/BigComProject) | [**Discord**](https://discord.gg/auCweVA9hB) | [**GitHub**](https://github.com/BigComputer-Project/SWE-Arena) |
 
 SWE Arena is an open-source platform that extends [FastChat](https://github.com/lm-sys/FastChat) with powerful code execution capabilities, enabling direct evaluation of LLM-generated programs across a wide range of outputs - from simple computations to complex visual interfaces. Building upon the FastChat project, it provides a secure sandbox environment for running and evaluating AI-generated visual interfaces.
 
