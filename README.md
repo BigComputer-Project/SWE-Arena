@@ -75,7 +75,7 @@ pip install -e ".[model_worker,webui]"
 1. Start the server:
 ```bash
 # text mode
-python -m fastchat.serve.gradio_web_server_multi --controller "" --register api_endpoints_serve.json --vision-arena
+python -m fastchat.serve.gradio_web_server_multi --controller "" --register api_endpoints_serve.json
 
 # enable image mode
 python -m fastchat.serve.gradio_web_server_multi --controller "" --register api_endpoints_serve.json --vision-arena
