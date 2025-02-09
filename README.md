@@ -7,7 +7,7 @@ SWE Arena is an open-source platform that extends [FastChat](https://github.com/
 SWE Arena belongs to [Big Computer Project](https://bigcomputer-project.github.io/), an [AI Alliance](https://thealliance.ai/) project focused on building the next generation of large language models for software engineering.
 
 ## News
-[2025/02] We have partnered with [Hugging Face](https://huggingface.co/) to shape the future of dynamic evaluation in AI coding.
+[2025/02] We have partnered with [Hugging Face](https://huggingface.co/) to shape the future of dynamic evaluation in automated software engineering.
 [2025/02] We released SWE Arena and the mode of Chat2Prototype.
 
 <a href="https://swe-arena.com"><img src="assets/demo.gif"></a>
