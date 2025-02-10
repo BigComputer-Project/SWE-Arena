@@ -70,7 +70,7 @@ use_remote_storage = False
 acknowledgment_md = """
 
 ## Found an Issue?
-Please report any bugs or issues to the [feedback form](https://forms.gle/md4jQ7VGPMNQUExp9) or join our [Discord](https://discord.gg/auCweVA9hB).
+Please report any bugs or issues to the [GitHub](https://github.com/BigComputer-Project/SWE-Arena) or join our [Discord](https://discord.gg/auCweVA9hB).
 
 ## Terms of Service
 
@@ -854,7 +854,7 @@ SWE Arena provides:
 - **Advisors**: [Banghua Zhu](https://people.eecs.berkeley.edu/~banghua/), [Torsten Scholak](https://www.servicenow.com/research/author/torsten-scholak.html), [Atin Sood](https://atinsood.com/about/), [Julian McAuley](https://cseweb.ucsd.edu/~jmcauley/), [Zhenchang Xing](https://people.csiro.au/X/Z/Zhenchang-Xing/), [Xiaoning Du](https://xiaoningdu.github.io/)
 
 ## Contact
-[Email](mailto:computer.intelligence.project@gmail.com) | [X](https://x.com/BigComProject) | [Discord](https://discord.gg/auCweVA9hB)
+[Email](mailto:computer.intelligence.project@gmail.com) | [GitHub](https://github.com/BigComputer-Project/SWE-Arena) | [X](https://x.com/BigComProject) | [Discord](https://discord.gg/auCweVA9hB)
 
 ## Acknowledgments
 We thank [E2B](https://e2b.dev/), [Hyperbolic](https://hyperbolic.xyz/), [Hugging Face](https://huggingface.co/), [Alibaba Qwen](https://qwenlm.ai/) and [CSIRO's Data61](http://data61.csiro.au) for their support and sponsorship:

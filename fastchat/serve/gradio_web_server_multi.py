@@ -147,7 +147,7 @@ window.__gradio_mode__ = "app";
 <h2 style="text-align:center;">
     ⚔️ SWE Arena: Compare & Test Best AI Chatbots for Code
     <br>
-    <a href="https://bigcomputer-project.github.io/blog/swe-arena.html" target="_blank"><u>Website</u></a> | <a href="https://x.com/BigComProject" target="_blank"><u>X</u></a> | <a href="https://discord.gg/auCweVA9hB" target="_blank"><u>Discord</u></a>
+    <a href="https://github.com/BigComputer-Project/SWE-Arena" target="_blank"><u>Github</u></a> | <a href="https://bigcomputer-project.github.io/blog/swe-arena.html" target="_blank"><u>Website</u></a> | <a href="https://x.com/BigComProject" target="_blank"><u>X</u></a> | <a href="https://discord.gg/auCweVA9hB" target="_blank"><u>Discord</u></a>
     <br>
     <br>
     <div style="display: inline-block; text-decoration: none; color: #1E90FF; font-weight: bold; font-size: large; border: 2px solid #1E90FF; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px;">
@@ -156,22 +156,18 @@ window.__gradio_mode__ = "app";
         DeepSeek R1 series, Claude 3.5 series, o3-mini, o1 series, Qwen2.5 VL & Coder and Llama series!
     </div>
     <br>
-    <a href="https://forms.gle/md4jQ7VGPMNQUExp9" target="_blank"
-    style="display: inline-block; text-decoration: none; color: #DE3163; font-weight: bold; font-size: large; border: 2px solid #DE3163; padding: 4px 8px; border-radius: 4px;">
-    Please fill out this survey to help us improve the arena! 📝
-    </a>
 </h2>
                     """)
         with gr.Tabs() as inner_tabs:
             if args.vision_arena:
-                with gr.Tab("⚔️ Arena (battle)", id=0) as arena_tab:
+                with gr.Tab("⚔️ Chat2Prototype (battle)", id=0) as arena_tab:
                     arena_tab.select(None, None, None, js=load_js)
                     side_by_side_anony_list = build_side_by_side_vision_ui_anony(
                         context,
                         random_questions=args.random_questions,
                     )
 
-                with gr.Tab("⚔️ Arena (side-by-side)", id=1) as side_by_side_tab:
+                with gr.Tab("⚔️ Chat2Prototype (side-by-side)", id=1) as side_by_side_tab:
                     side_by_side_tab.select(None, None, None)
                     side_by_side_named_list = build_side_by_side_vision_ui_named(
                         context, random_questions=args.random_questions
@@ -185,19 +181,19 @@ window.__gradio_mode__ = "app";
                         random_questions=args.random_questions,
                     )
             else:
-                with gr.Tab("⚔️ Arena (battle)", id=0) as arena_tab:
+                with gr.Tab("⚔️ Chat2Prototype (battle)", id=0) as arena_tab:
                     arena_tab.select(None, None, None, js=load_js)
                     side_by_side_anony_list = build_side_by_side_ui_anony(
                         context.all_text_models
                     )
 
-                with gr.Tab("⚔️ Arena (side-by-side)", id=1) as side_by_side_tab:
+                with gr.Tab("⚔️ Chat2Prototype (side-by-side)", id=1) as side_by_side_tab:
                     side_by_side_tab.select(None, None, None)
                     side_by_side_named_list = build_side_by_side_ui_named(
                         context.text_models
                     )
 
-                with gr.Tab("💬 Direct Chat", id=2) as direct_tab:
+                with gr.Tab("💬 Direct Chat2Prototype", id=2) as direct_tab:
                     direct_tab.select(None, None, None)
                     single_model_list = build_single_model_ui(
                         context.text_models, add_promotion_links=True
