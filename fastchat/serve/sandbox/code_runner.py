@@ -128,6 +128,7 @@ def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxStat
         'sandbox_id': None,
         'chat_session_id': None,
         'conv_id': None,
+        "sandbox_error": None,
     }
 
 
@@ -160,6 +161,7 @@ def reset_sandbox_state(state: ChatbotSandboxState) -> ChatbotSandboxState:
     state['code_to_execute'] = ""
     state['code_language'] = None
     state['code_dependencies'] = ([], [])
+    state['sandbox_error'] = None
 
     # reset ids
     state['sandbox_id'] = None
@@ -1136,19 +1138,20 @@ def on_run_code(
             gr.skip()  # Always include dependencies update
         )
 
-    sandbox_id = None
+    sandbox_id: str | None = None  # the sandbox id
+    sandbox_error: str = ""  # stderr from sandbox
     print(f"sandbox_env: {sandbox_env}")
     match sandbox_env:
         case SandboxEnvironment.HTML:
             yield update_markdown_output("🔄 Setting up HTML sandbox...")
-            sandbox_url, sandbox_id, stderr = run_html_sandbox(
+            sandbox_url, sandbox_id, sandbox_error = run_html_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ HTML sandbox failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ HTML sandbox is ready!", clear_output=True)
                 yield (
@@ -1169,10 +1172,10 @@ def on_run_code(
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            sandbox_id = code_run_result['sandbox_id']
-            if code_run_result['is_run_success'] is False and code_run_result['stderr']:
+            sandbox_id, sandbox_error = code_run_result['sandbox_id'], code_run_result['stderr']
+            if code_run_result['is_run_success'] is False and sandbox_error:
                 yield update_markdown_output("❌ React sandbox failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{code_run_result['stderr']}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ React sandbox is ready!", clear_output=True)
                 yield (
@@ -1193,7 +1196,7 @@ def on_run_code(
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            sandbox_id = code_run_result['sandbox_id']
+            sandbox_id, sandbox_error = code_run_result['sandbox_id'], code_run_result['stderr']
             if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_markdown_output("❌ Vue sandbox failed to run!", clear_output=True)
                 yield update_markdown_output(f"### Stderr:\n```markdown\n{code_run_result['stderr']}\n```\n\n")
@@ -1217,7 +1220,7 @@ def on_run_code(
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            sandbox_id = code_run_result['sandbox_id']
+            sandbox_id, sandbox_error = code_run_result['sandbox_id'], code_run_result['stderr']
             if code_run_result['is_run_success'] is False and code_run_result['stderr']:
                 yield update_markdown_output("❌ PyGame sandbox failed to run!", clear_output=True)
                 yield update_markdown_output(f"### Stderr:\n```markdown\n{code_run_result['stderr']}\n```\n\n")
@@ -1236,14 +1239,14 @@ def on_run_code(
                 )
         case SandboxEnvironment.GRADIO:
             yield update_markdown_output("🔄 Setting up Gradio sandbox...")
-            sandbox_url, sandbox_id, stderr = run_gradio_sandbox(
+            sandbox_url, sandbox_id, sandbox_error = run_gradio_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ Gradio sandbox failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Gradio sandbox is ready!", clear_output=True)
                 yield (
@@ -1259,14 +1262,14 @@ def on_run_code(
                 )
         case SandboxEnvironment.STREAMLIT:
             yield update_markdown_output("🔄 Setting up Streamlit sandbox...")
-            sandbox_url, sandbox_id, stderr = run_streamlit_sandbox(
+            sandbox_url, sandbox_id, sandbox_error = run_streamlit_sandbox(
                 code=code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ Streamlit sandbox failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Streamlit sandbox is ready!", clear_output=True)
                 yield (
@@ -1284,14 +1287,14 @@ def on_run_code(
             yield update_markdown_output("🔄 Setting up Mermaid visualization...")
             # Convert Mermaid to HTML at execution time
             html_code = mermaid_to_html(code, theme='light')
-            sandbox_url, sandbox_id, stderr = run_html_sandbox(
+            sandbox_url, sandbox_id, sandbox_error = run_html_sandbox(
                 code=html_code,
                 code_dependencies=code_dependencies,
                 existing_sandbox_id=sandbox_state['sandbox_id'],
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ Mermaid visualization failed to render!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Mermaid visualization is ready!", clear_output=True)
                 yield (
@@ -1307,12 +1310,12 @@ def on_run_code(
                 )
         case SandboxEnvironment.PYTHON_RUNNER:
             yield update_markdown_output("🔄 Running Python Runner...", clear_output=True)
-            output, stderr = run_code_interpreter(
+            output, sandbox_error = run_code_interpreter(
                 code=code, code_language='python', code_dependencies=code_dependencies
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ Python Runner failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
@@ -1332,12 +1335,12 @@ def on_run_code(
                 )
         case SandboxEnvironment.JAVASCRIPT_RUNNER:
             yield update_markdown_output("🔄 Running JavaScript Runner...", clear_output=True)
-            output, stderr = run_code_interpreter(
+            output, sandbox_error = run_code_interpreter(
                 code=code, code_language='javascript', code_dependencies=code_dependencies
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ JavaScript Runner failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
@@ -1357,12 +1360,12 @@ def on_run_code(
                 )
         case SandboxEnvironment.C_RUNNER:
             yield update_markdown_output("🔄 Running C Runner...", clear_output=True)
-            output, stderr = run_c_code(
+            output, sandbox_error = run_c_code(
                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ C Runner failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
@@ -1382,12 +1385,12 @@ def on_run_code(
                 )
         case SandboxEnvironment.CPP_RUNNER:
             yield update_markdown_output("🔄 Running C++ Runner...", clear_output=True)
-            output, stderr = run_cpp_code(
+            output, sandbox_error = run_cpp_code(
                  code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ C++ Runner failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
@@ -1407,12 +1410,12 @@ def on_run_code(
                 )
         case SandboxEnvironment.JAVA_RUNNER:
             yield update_markdown_output("🔄 Running Java Runner...", clear_output=True)
-            output, stderr = run_java_code(
+            output, sandbox_error = run_java_code(
                  code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ Java Runner failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
@@ -1432,12 +1435,12 @@ def on_run_code(
                 )
         case SandboxEnvironment.GOLANG_RUNNER:
             yield update_markdown_output("🔄 Running Go Runner...", clear_output=True)
-            output, stderr = run_golang_code(
+            output, sandbox_error = run_golang_code(
                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ Go Runner failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
@@ -1467,12 +1470,12 @@ def on_run_code(
         #         yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
         case SandboxEnvironment.RUST_RUNNER:
             yield update_markdown_output("🔄 Running Rust Runner...", clear_output=True)
-            output, stderr = run_rust_code(
+            output, sandbox_error = run_rust_code(
                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
-            if stderr:
+            if sandbox_error:
                 yield update_markdown_output("❌ Rust Runner failed to run!", clear_output=True)
-                yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
+                yield update_markdown_output(f"### Stderr:\n```markdown\n{sandbox_error}\n```\n\n")
             else:
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
@@ -1504,6 +1507,7 @@ def on_run_code(
             )
 
     sandbox_state['sandbox_run_round'] += 1
+    sandbox_state["sandbox_error"] = sandbox_error  # record sandbox error if exists
     if sandbox_id:
         sandbox_state['sandbox_id'] = sandbox_id
         log_sandbox_telemetry_gradio_fn(
