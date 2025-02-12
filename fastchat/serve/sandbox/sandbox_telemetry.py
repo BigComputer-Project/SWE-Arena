@@ -187,9 +187,9 @@ def log_sandbox_telemetry_gradio_fn(
         return
     sandbox_id = sandbox_state['sandbox_id']
     user_interaction_records = sandbox_ui_value[2] if sandbox_ui_value else None
-    if sandbox_id is None or user_interaction_records is None or len(user_interaction_records) == 0:
+    if sandbox_id is None:
         return
-    
+
     log_json = create_sandbox_log(sandbox_state, user_interaction_records)
     log_data = json.dumps(
         log_json,
