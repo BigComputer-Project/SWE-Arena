@@ -176,13 +176,11 @@ function() {
 
         // Add categories with 3 buttons (A, Tie, B)
         const options = [
-            'Code quality',
-            'UI/UX design',
-            'Explanation clarity',
-            'Solution creativity',
-            'Implementation is more efficient',
-            'Error handling',
-            'Documentation'
+            'Efficiency',
+            'Explanation',
+            'Readability & Maintainability',
+            'Correctness',
+            'UI & UX',
         ];
 
         const buttonContainer = document.createElement('div');
