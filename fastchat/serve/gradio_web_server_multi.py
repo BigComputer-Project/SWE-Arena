@@ -89,25 +89,25 @@ def load_demo(context: Context, request: gr.Request):
     if args.vision_arena:
         side_by_side_anony_updates = load_demo_side_by_side_vision_anony()
 
-        side_by_side_named_updates = load_demo_side_by_side_vision_named(
-            context,
-        )
+        # side_by_side_named_updates = load_demo_side_by_side_vision_named(
+        #     context,
+        # )
 
-        direct_chat_updates = load_demo_single(context, request.query_params)
+        # direct_chat_updates = load_demo_single(context, request.query_params)
     else:
-        direct_chat_updates = load_demo_single(context, request.query_params)
+        # direct_chat_updates = load_demo_single(context, request.query_params)
         side_by_side_anony_updates = load_demo_side_by_side_anony(
             context.all_text_models, request.query_params
         )
-        side_by_side_named_updates = load_demo_side_by_side_named(
-            context.text_models, request.query_params
-        )
+        # side_by_side_named_updates = load_demo_side_by_side_named(
+        #     context.text_models, request.query_params
+        # )
 
     tabs_list = (
         [gr.Tabs(selected=inner_selected)]
         + side_by_side_anony_updates
-        + side_by_side_named_updates
-        + direct_chat_updates
+        # + side_by_side_named_updates
+        # + direct_chat_updates
     )
 
     return tabs_list
@@ -147,7 +147,7 @@ window.__gradio_mode__ = "app";
 <h2 style="text-align:center;">
     ⚔️ SWE Arena: Compare & Test Best AI Chatbots for Code
     <br>
-    <a href="https://github.com/BigComputer-Project/SWE-Arena" target="_blank"><u>Github</u></a> | <a href="https://bigcomputer-project.github.io/blog/swe-arena.html" target="_blank"><u>Website</u></a> | <a href="https://x.com/BigComProject" target="_blank"><u>X</u></a> | <a href="https://discord.gg/auCweVA9hB" target="_blank"><u>Discord</u></a>
+    <a href="https://github.com/BigComputer-Project/SWE-Arena" target="_blank"><u>GitHub</u></a> | <a href="https://bigcomputer-project.github.io/blog/swe-arena.html" target="_blank"><u>Website</u></a> | <a href="https://x.com/BigComProject" target="_blank"><u>X</u></a> | <a href="https://discord.gg/auCweVA9hB" target="_blank"><u>Discord</u></a>
     <br>
     <br>
     <div style="display: inline-block; text-decoration: none; color: #1E90FF; font-weight: bold; font-size: large; border: 2px solid #1E90FF; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px;">
@@ -160,50 +160,50 @@ window.__gradio_mode__ = "app";
                     """)
         with gr.Tabs() as inner_tabs:
             if args.vision_arena:
-                with gr.Tab("⚔️ Chat2Prototype (battle)", id=0) as arena_tab:
+                with gr.Tab("⚔️ Chat2Prototype", id=0) as arena_tab:
                     arena_tab.select(None, None, None, js=load_js)
                     side_by_side_anony_list = build_side_by_side_vision_ui_anony(
                         context,
                         random_questions=args.random_questions,
                     )
 
-                with gr.Tab("⚔️ Chat2Prototype (side-by-side)", id=1) as side_by_side_tab:
-                    side_by_side_tab.select(None, None, None)
-                    side_by_side_named_list = build_side_by_side_vision_ui_named(
-                        context, random_questions=args.random_questions
-                    )
+                # with gr.Tab("⚔️ Chat2Prototype (side-by-side)", id=1) as side_by_side_tab:
+                #     side_by_side_tab.select(None, None, None)
+                #     side_by_side_named_list = build_side_by_side_vision_ui_named(
+                #         context, random_questions=args.random_questions
+                #     )
 
-                with gr.Tab("💬 Direct Chat", id=2) as direct_tab:
-                    direct_tab.select(None, None, None)
-                    single_model_list = build_single_vision_language_model_ui(
-                        context,
-                        add_promotion_links=True,
-                        random_questions=args.random_questions,
-                    )
+                # with gr.Tab("💬 Direct Chat", id=2) as direct_tab:
+                #     direct_tab.select(None, None, None)
+                #     single_model_list = build_single_vision_language_model_ui(
+                #         context,
+                #         add_promotion_links=True,
+                #         random_questions=args.random_questions,
+                #     )
             else:
-                with gr.Tab("⚔️ Chat2Prototype (battle)", id=0) as arena_tab:
+                with gr.Tab("⚔️ Chat2Prototype", id=0) as arena_tab:
                     arena_tab.select(None, None, None, js=load_js)
                     side_by_side_anony_list = build_side_by_side_ui_anony(
                         context.all_text_models
                     )
 
-                with gr.Tab("⚔️ Chat2Prototype (side-by-side)", id=1) as side_by_side_tab:
-                    side_by_side_tab.select(None, None, None)
-                    side_by_side_named_list = build_side_by_side_ui_named(
-                        context.text_models
-                    )
+                # with gr.Tab("⚔️ Chat2Prototype (side-by-side)", id=1) as side_by_side_tab:
+                #     side_by_side_tab.select(None, None, None)
+                #     side_by_side_named_list = build_side_by_side_ui_named(
+                #         context.text_models
+                #     )
 
-                with gr.Tab("💬 Direct Chat2Prototype", id=2) as direct_tab:
-                    direct_tab.select(None, None, None)
-                    single_model_list = build_single_model_ui(
-                        context.text_models, add_promotion_links=True
-                    )
+                # with gr.Tab("💬 Direct Chat2Prototype", id=2) as direct_tab:
+                #     direct_tab.select(None, None, None)
+                #     single_model_list = build_single_model_ui(
+                #         context.text_models, add_promotion_links=True
+                #     )
 
             demo_tabs = (
                 [inner_tabs]
                 + side_by_side_anony_list
-                + side_by_side_named_list
-                + single_model_list
+                # + side_by_side_named_list
+                # + single_model_list
             )
 
             if elo_results_file:
