@@ -176,10 +176,10 @@ function() {
 
         // Add categories with 3 buttons (A, Tie, B)
         const options = [
-            'Efficiency',
-            'Explanation',
-            'Readability & Maintainability',
-            'Correctness',
+            'Code Efficiency',
+            'Code Explanation',
+            'Code Readability & Maintainability',
+            'Code Correctness',
             'UI & UX',
         ];
 
