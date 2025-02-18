@@ -31,6 +31,11 @@ from fastchat.serve.gradio_block_arena_vision_named import (
     build_side_by_side_vision_ui_named,
     load_demo_side_by_side_vision_named,
 )
+from fastchat.serve.gradio_block_arena_jupyter import (
+    build_side_by_side_jupyter_ui,
+    load_demo_side_by_side_jupyter,
+    set_global_vars_jupyter,
+)
 from fastchat.serve.gradio_global_state import Context
 
 from fastchat.serve.gradio_web_server import (
@@ -63,14 +68,16 @@ def load_demo(context: Context, request: gr.Request):
         inner_selected = 0
     elif "vision" in request.query_params:
         inner_selected = 0
-    elif "compare" in request.query_params:
+    elif "jupyter" in request.query_params:
         inner_selected = 1
-    elif "direct" in request.query_params or "model" in request.query_params:
+    elif "compare" in request.query_params:
         inner_selected = 2
-    elif "leaderboard" in request.query_params:
+    elif "direct" in request.query_params or "model" in request.query_params:
         inner_selected = 3
-    elif "about" in request.query_params:
+    elif "leaderboard" in request.query_params:
         inner_selected = 4
+    elif "about" in request.query_params:
+        inner_selected = 5
 
     if args.model_list_mode == "reload":
         context.text_models, context.all_text_models = get_model_list(
@@ -88,26 +95,19 @@ def load_demo(context: Context, request: gr.Request):
     # Text models
     if args.vision_arena:
         side_by_side_anony_updates = load_demo_side_by_side_vision_anony()
-
-        # side_by_side_named_updates = load_demo_side_by_side_vision_named(
-        #     context,
-        # )
-
-        # direct_chat_updates = load_demo_single(context, request.query_params)
     else:
-        # direct_chat_updates = load_demo_single(context, request.query_params)
         side_by_side_anony_updates = load_demo_side_by_side_anony(
             context.all_text_models, request.query_params
         )
-        # side_by_side_named_updates = load_demo_side_by_side_named(
-        #     context.text_models, request.query_params
-        # )
+
+    # Jupyter models
+    set_global_vars_jupyter(args.moderate, context.all_text_models)
+    side_by_side_jupyter_updates = load_demo_side_by_side_jupyter()
 
     tabs_list = (
         [gr.Tabs(selected=inner_selected)]
         + side_by_side_anony_updates
-        # + side_by_side_named_updates
-        # + direct_chat_updates
+        + side_by_side_jupyter_updates
     )
 
     return tabs_list
@@ -199,9 +199,14 @@ window.__gradio_mode__ = "app";
                 #         context.text_models, add_promotion_links=True
                 #     )
 
+            with gr.Tab("📊 Jupyter Battle", id=1) as jupyter_tab:
+                jupyter_tab.select(None, None, None)
+                side_by_side_jupyter_list = build_side_by_side_jupyter_ui(context)
+
             demo_tabs = (
                 [inner_tabs]
                 + side_by_side_anony_list
+                + side_by_side_jupyter_list
                 # + side_by_side_named_list
                 # + single_model_list
             )
