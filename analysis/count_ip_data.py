@@ -7,6 +7,7 @@ from collections import defaultdict
 import smbclient
 import shutil
 import re
+import argparse
 
 logging.basicConfig(level=logging.WARNING)
 log = logging.getLogger(__name__)
@@ -111,8 +112,14 @@ def count_files_per_ip(smb_url, start_date_str="2025_02_18"):
     
     return dict(ip_counts)
 
-def download_files_by_ip(smb_url, start_date_str="2025_02_18"):
-    """Download files and organize them by IP address"""
+def download_files_by_ip(smb_url, start_date_str="2025_02_18", check_sandbox=True):
+    """Download files and organize them by IP address
+    
+    Args:
+        smb_url (str): The SMB URL to connect to
+        start_date_str (str): The start date in YYYY_MM_DD format
+        check_sandbox (bool): Whether to check for matching sandbox logs
+    """
     # Remove 'smb://' prefix and parse URL components
     url = smb_url[6:]
     creds_server, share = url.split('/', 1)
@@ -140,7 +147,7 @@ def download_files_by_ip(smb_url, start_date_str="2025_02_18"):
             folder_path = f"\\\\{server}\\{share}\\{date_str}\\conv_logs\\battle_anony"
             
             # Get all sandbox session IDs for this date
-            sandbox_session_ids = get_sandbox_session_ids(server, share, date_str)
+            sandbox_session_ids = get_sandbox_session_ids(server, share, date_str) if check_sandbox else set()
             try:
                 # List all JSON files in the battle_anony folder
                 if smbclient.path.exists(folder_path):
@@ -157,11 +164,13 @@ def download_files_by_ip(smb_url, start_date_str="2025_02_18"):
                                 os.makedirs(invalid_dir, exist_ok=True)
                                 
                                 # Check if chat_session_id exists in sandbox logs
-                                chat_session_id = get_chat_session_id(file_path)
-                                has_sandbox = chat_session_id in sandbox_session_ids if chat_session_id else False
-                                print(chat_session_id, has_sandbox)
-                                # Determine target directory based on sandbox log existence
-                                target_dir = valid_dir if has_sandbox else invalid_dir
+                                if check_sandbox:
+                                    chat_session_id = get_chat_session_id(file_path)
+                                    has_sandbox = chat_session_id in sandbox_session_ids if chat_session_id else False
+                                    target_dir = valid_dir if has_sandbox else invalid_dir
+                                else:
+                                    # When sandbox checking is disabled, put everything in valid
+                                    target_dir = valid_dir
                                 
                                 # Download the file
                                 local_file_path = os.path.join(target_dir, file_info.name)
@@ -187,7 +196,12 @@ def main():
     
     # Download files organized by IP
     print("\nDownloading files and organizing by IP address...")
-    download_files_by_ip(smb_url)
+    # Add argument parser for optional parameters
+    parser = argparse.ArgumentParser(description='Download and organize conversation files by IP')
+    parser.add_argument('--sandbox-check', action='store_true', help='Check for matching sandbox logs')
+    args = parser.parse_args()
+    
+    download_files_by_ip(smb_url, check_sandbox=args.sandbox_check)
     
     # Count and display statistics
     ip_counts = count_files_per_ip(smb_url)
