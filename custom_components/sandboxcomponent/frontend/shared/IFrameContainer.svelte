@@ -13,6 +13,8 @@
     return new Date().toISOString();
   }
 
+  const SUPPORTED_EVENT_TYPES = ["load", "resize", "keydown", "click", "scroll", "captureError"];
+
   onMount(() => {
     // Get the iframe element and its contentWindow
     const iframeElement = document.getElementById("sandboxIframe") as HTMLIFrameElement;
@@ -25,8 +27,9 @@
       }
 
       const data = event.data;
-      console.log("Received message from iframe", data);
-      if (typeof data !== "object" || !data.type) {
+      // console.log("Received message from iframe", data);
+      // Only record if type is one of the supported types.
+      if (typeof data !== "object" || !data.type|| !SUPPORTED_EVENT_TYPES.includes(data.type?.toLowerCase())) {
         return;
       }
 
