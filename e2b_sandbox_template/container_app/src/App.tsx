@@ -1,17 +1,25 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { debounce } from 'lodash';
 
+type SupportedUserEvent =
+  | "load"
+  | "resize"
+  | "keydown"
+  | "click"
+  | "scroll"
+  | "captureError";
+
 /**
  * A helper that posts a standardized message to the parent window.
  * Here, we include a timestamp in ISO format automatically.
  */
 function postInteractionMessage(
-  type: string,
+  userEventType: SupportedUserEvent,
   payload: Record<string, unknown> = {}
 ) {
   window.parent.postMessage(
     {
-      type,
+      type: userEventType,
       time: new Date().toISOString(),
       ...payload,
     },

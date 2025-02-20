@@ -4,7 +4,7 @@ Module for logging the sandbox interactions and state.
 from concurrent.futures import ThreadPoolExecutor
 import json
 import os
-from typing import Any, Literal
+from typing import Any, List, Literal, Optional, TypedDict
 import datetime
 
 from fastchat.serve.chat_state import LOG_DIR
@@ -13,6 +13,14 @@ from fastchat.serve.sandbox.sandbox_state import ChatbotSandboxState
 from azure.storage.blob import BlobServiceClient
 
 from fastchat.serve.sandbox.constants import AZURE_BLOB_STORAGE_CONNECTION_STRING, AZURE_BLOB_STORAGE_CONTAINER_NAME
+
+
+class SandboxLog(TypedDict):
+    '''
+    The schema of the sandbox log stored.
+    '''
+    sandbox_state: ChatbotSandboxState
+    user_interaction_records: Optional[List[Any]]
 
 
 def upload_data_to_azure_storage(
@@ -172,7 +180,7 @@ def upsert_sandbox_log(filename: str, data: str) -> None:
         fout.write(data)
 
 
-def create_sandbox_log(sandbox_state: ChatbotSandboxState, user_interaction_records: list[Any] | None) -> dict:
+def create_sandbox_log(sandbox_state: ChatbotSandboxState, user_interaction_records: list[Any] | None) -> SandboxLog:
     return {
         "sandbox_state": sandbox_state,
         "user_interaction_records": user_interaction_records,
