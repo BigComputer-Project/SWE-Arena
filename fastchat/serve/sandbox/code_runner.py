@@ -5,6 +5,7 @@ Gradio will interact with this module.
 '''
 
 from typing import Any, Generator, Literal, TypeAlias, TypedDict, Set
+import uuid
 import gradio as gr
 
 import base64
@@ -1140,7 +1141,7 @@ def on_run_code(
             gr.skip()  # Always include dependencies update
         )
 
-    sandbox_id: str | None = None  # the sandbox id
+    sandbox_id: str | None = sandbox_state["sandbox_id"]  # the sandbox id
     sandbox_output: str = "" # stdout from sandbox
     sandbox_error: str = ""  # stderr from sandbox
     print(f"sandbox_env: {sandbox_env}")
@@ -1512,9 +1513,9 @@ def on_run_code(
     sandbox_state['sandbox_run_round'] += 1
     sandbox_state["sandbox_output"] = sandbox_output  # record sandbox output if exists
     sandbox_state["sandbox_error"] = sandbox_error  # record sandbox error if exists
-    if sandbox_id:
-        sandbox_state['sandbox_id'] = sandbox_id
-        log_sandbox_telemetry_gradio_fn(
-            sandbox_state=sandbox_state,
-            sandbox_ui_value=None,
-        )
+    # generate a random sandbox id if not exists as some code runners might not return sandbox id
+    sandbox_state['sandbox_id'] = sandbox_id if sandbox_id else str(uuid.uuid4())
+    log_sandbox_telemetry_gradio_fn(
+        sandbox_state=sandbox_state,
+        sandbox_ui_value=None,
+    )

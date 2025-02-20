@@ -665,7 +665,7 @@ def extract_code_from_markdown(message: str, enable_auto_env: bool = False) -> t
         npm_packages = extract_js_imports(main_code)
         sandbox_env_name = SandboxEnvironment.REACT
         main_code_lang = detect_js_ts_code_lang(main_code)
-    elif ('<!DOCTYPE html>' in main_code and ('<head' in main_code or '<body' in main_code)) or (main_code.strip().startswith('<svg')) or (not any(matches_prefix(main_code_lang, [*react_prefixes, *vue_prefixes, *js_prefixes, *ts_prefixes])) and ('<html' in main_code or '<!DOCTYPE html>' in main_code)):
+    elif ('<!DOCTYPE html>' in main_code and ('<head' in main_code or '<body' in main_code)) or (main_code.strip().startswith('<svg')) or (not matches_prefix(main_code_lang, [*react_prefixes, *vue_prefixes, *js_prefixes, *ts_prefixes]) and ('<html' in main_code or '<!DOCTYPE html>' in main_code)):
         npm_packages = extract_js_from_html_script_tags(main_code)
         sandbox_env_name = SandboxEnvironment.HTML
         main_code_lang = 'html'
