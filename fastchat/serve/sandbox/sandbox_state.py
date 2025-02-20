@@ -53,6 +53,11 @@ class ChatbotSandboxState(TypedDict):
     '''
     The code dependencies for the sandbox (python, npm).
     '''
+
+    sandbox_output: str | None
+    '''
+    The sandbox output.
+    '''
     sandbox_error: str | None
     '''
     The sandbox error.

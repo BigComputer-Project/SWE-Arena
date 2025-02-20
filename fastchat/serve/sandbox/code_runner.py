@@ -78,7 +78,7 @@ DEFAULT_SANDBOX_INSTRUCTIONS: dict[SandboxEnvironment, str] = {
 
 
 SandboxGradioSandboxComponents: TypeAlias =  tuple[
-    gr.Markdown | Any,  # sandbox_output
+    gr.Markdown | Any,  # sandbox_output_md
     SandboxComponent | Any,  # sandbox_ui
     gr.Code | Any,  # sandbox_code
     Any
@@ -128,6 +128,7 @@ def create_chatbot_sandbox_state(btn_list_length: int = 5) -> ChatbotSandboxStat
         'sandbox_id': None,
         'chat_session_id': None,
         'conv_id': None,
+        "sandbox_output": None,
         "sandbox_error": None,
     }
 
@@ -162,6 +163,7 @@ def reset_sandbox_state(state: ChatbotSandboxState) -> ChatbotSandboxState:
     state['code_language'] = None
     state['code_dependencies'] = ([], [])
     state['sandbox_error'] = None
+    state['sandbox_output'] = None
 
     # reset ids
     state['sandbox_id'] = None
@@ -723,7 +725,7 @@ def run_rust_code(code: str, existing_sandbox_id: str | None = None) -> tuple[st
 def on_edit_code(
     state,
     sandbox_state: ChatbotSandboxState,
-    sandbox_output: gr.Markdown,
+    sandbox_output_md: gr.Markdown,
     sandbox_ui: SandboxComponent,
     sandbox_code: str,
     sandbox_dependency: gr.Dataframe,
@@ -805,7 +807,7 @@ def on_edit_code(
     )
 
     yield (
-        gr.skip(),  # sandbox_output
+        gr.skip(),  # sandbox_output_md
         gr.skip(),  # sandbox_ui
         gr.skip(),  # sandbox_code
         gr.update(value=dependencies),  # sandbox_dependency
@@ -813,7 +815,7 @@ def on_edit_code(
     yield from on_run_code(
         state,
         sandbox_state,
-        sandbox_output,
+        sandbox_output_md,
         sandbox_ui,
         sandbox_code,
         sandbox_dependency,
@@ -824,7 +826,7 @@ def on_edit_dependency(
     state,
     sandbox_state: ChatbotSandboxState,
     sandbox_dependency: gr.Dataframe,
-    sandbox_output: gr.Markdown,
+    sandbox_output_md: gr.Markdown,
     sandbox_ui: SandboxComponent,
     sandbox_code: str,
 ) -> Generator[tuple[Any, Any, Any, Any], None, None]:
@@ -896,7 +898,7 @@ def on_edit_dependency(
     yield from on_run_code(
         state,
         sandbox_state,
-        sandbox_output,
+        sandbox_output_md,
         sandbox_ui,
         sandbox_code,
         sandbox_dependency,
@@ -906,7 +908,7 @@ def on_edit_dependency(
 def on_click_code_message_run(
     state,
     sandbox_state: ChatbotSandboxState,
-    sandbox_output: gr.Markdown,
+    sandbox_output_md: gr.Markdown,
     sandbox_ui: SandboxComponent,
     sandbox_code: str,
     sandbox_dependency: gr.Dataframe,
@@ -990,7 +992,7 @@ def on_click_code_message_run(
     sandbox_state['edit_round'] = 0
 
     yield (
-        gr.skip(),  # sandbox_output
+        gr.skip(),  # sandbox_output_md
         gr.skip(),  # sandbox_ui
         gr.update(value=code, language=gradio_code_language),  # sandbox_code
         gr.update(value=dependencies)  # sandbox_dependency
@@ -999,7 +1001,7 @@ def on_click_code_message_run(
     yield from on_run_code(
         state,
         sandbox_state,
-        sandbox_output,
+        sandbox_output_md,
         sandbox_ui,
         sandbox_code,
         sandbox_dependency,
@@ -1009,7 +1011,7 @@ def on_click_code_message_run(
 def on_run_code(
     state,
     sandbox_state: ChatbotSandboxState,
-    sandbox_output: gr.Markdown,
+    sandbox_output_md: gr.Markdown,
     sandbox_ui: SandboxComponent,
     sandbox_code: str,
     sandbox_dependency: gr.Dataframe,
@@ -1139,6 +1141,7 @@ def on_run_code(
         )
 
     sandbox_id: str | None = None  # the sandbox id
+    sandbox_output: str = "" # stdout from sandbox
     sandbox_error: str = ""  # stderr from sandbox
     print(f"sandbox_env: {sandbox_env}")
     match sandbox_env:
@@ -1310,7 +1313,7 @@ def on_run_code(
                 )
         case SandboxEnvironment.PYTHON_RUNNER:
             yield update_markdown_output("🔄 Running Python Runner...", clear_output=True)
-            output, sandbox_error = run_code_interpreter(
+            sandbox_output, sandbox_error = run_code_interpreter(
                 code=code, code_language='python', code_dependencies=code_dependencies
             )
             if sandbox_error:
@@ -1320,7 +1323,7 @@ def on_run_code(
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
                     gr.Markdown(
-                        value=markdown_output_text + "\n\n" + output,
+                        value=markdown_output_text + "\n\n" + sandbox_output,
                         sanitize_html=False,
                         visible=True,
                     ),
@@ -1335,7 +1338,7 @@ def on_run_code(
                 )
         case SandboxEnvironment.JAVASCRIPT_RUNNER:
             yield update_markdown_output("🔄 Running JavaScript Runner...", clear_output=True)
-            output, sandbox_error = run_code_interpreter(
+            sandbox_output, sandbox_error = run_code_interpreter(
                 code=code, code_language='javascript', code_dependencies=code_dependencies
             )
             if sandbox_error:
@@ -1345,7 +1348,7 @@ def on_run_code(
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
                     gr.Markdown(
-                        value=markdown_output_text + "\n\n" + output,
+                        value=markdown_output_text + "\n\n" + sandbox_output,
                         sanitize_html=False,
                         visible=True,
                     ),
@@ -1360,7 +1363,7 @@ def on_run_code(
                 )
         case SandboxEnvironment.C_RUNNER:
             yield update_markdown_output("🔄 Running C Runner...", clear_output=True)
-            output, sandbox_error = run_c_code(
+            sandbox_output, sandbox_error = run_c_code(
                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if sandbox_error:
@@ -1370,7 +1373,7 @@ def on_run_code(
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
                     gr.Markdown(
-                        value=markdown_output_text + "\n\n" + f"```markdown\n{output}\n```",
+                        value=markdown_output_text + "\n\n" + f"```markdown\n{sandbox_output}\n```",
                         sanitize_html=False,
                         visible=True,
                     ),
@@ -1385,7 +1388,7 @@ def on_run_code(
                 )
         case SandboxEnvironment.CPP_RUNNER:
             yield update_markdown_output("🔄 Running C++ Runner...", clear_output=True)
-            output, sandbox_error = run_cpp_code(
+            sandbox_output, sandbox_error = run_cpp_code(
                  code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if sandbox_error:
@@ -1395,7 +1398,7 @@ def on_run_code(
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
                     gr.Markdown(
-                        value=markdown_output_text + "\n\n" + f"```markdown\n{output}\n```",
+                        value=markdown_output_text + "\n\n" + f"```markdown\n{sandbox_output}\n```",
                         sanitize_html=False,
                         visible=True,
                     ),
@@ -1410,7 +1413,7 @@ def on_run_code(
                 )
         case SandboxEnvironment.JAVA_RUNNER:
             yield update_markdown_output("🔄 Running Java Runner...", clear_output=True)
-            output, sandbox_error = run_java_code(
+            sandbox_output, sandbox_error = run_java_code(
                  code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if sandbox_error:
@@ -1420,7 +1423,7 @@ def on_run_code(
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
                     gr.Markdown(
-                        value=markdown_output_text + "\n\n" + f"```markdown\n{output}\n```",
+                        value=markdown_output_text + "\n\n" + f"```markdown\n{sandbox_output}\n```",
                         sanitize_html=False,
                         visible=True,
                     ),
@@ -1435,7 +1438,7 @@ def on_run_code(
                 )
         case SandboxEnvironment.GOLANG_RUNNER:
             yield update_markdown_output("🔄 Running Go Runner...", clear_output=True)
-            output, sandbox_error = run_golang_code(
+            sandbox_output, sandbox_error = run_golang_code(
                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if sandbox_error:
@@ -1445,7 +1448,7 @@ def on_run_code(
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
                     gr.Markdown(
-                        value=markdown_output_text + "\n\n" + f"```markdown\n{output}\n```",
+                        value=markdown_output_text + "\n\n" + f"```markdown\n{sandbox_output}\n```",
                         sanitize_html=False,
                         visible=True,
                     ),
@@ -1470,7 +1473,7 @@ def on_run_code(
         #         yield update_markdown_output(f"### Stderr:\n```markdown\n{stderr}\n```\n\n")
         case SandboxEnvironment.RUST_RUNNER:
             yield update_markdown_output("🔄 Running Rust Runner...", clear_output=True)
-            output, sandbox_error = run_rust_code(
+            sandbox_output, sandbox_error = run_rust_code(
                 code=code, existing_sandbox_id=sandbox_state['sandbox_id']
             )
             if sandbox_error:
@@ -1480,7 +1483,7 @@ def on_run_code(
                 yield update_markdown_output("✅ Code execution is ready!", clear_output=True)
                 yield (
                     gr.Markdown(
-                        value=markdown_output_text + "\n\n" + f"```markdown\n{output}\n```",
+                        value=markdown_output_text + "\n\n" + f"```markdown\n{sandbox_output}\n```",
                         sanitize_html=False,
                         visible=True,
                     ),
@@ -1507,6 +1510,7 @@ def on_run_code(
             )
 
     sandbox_state['sandbox_run_round'] += 1
+    sandbox_state["sandbox_output"] = sandbox_output  # record sandbox output if exists
     sandbox_state["sandbox_error"] = sandbox_error  # record sandbox error if exists
     if sandbox_id:
         sandbox_state['sandbox_id'] = sandbox_id
