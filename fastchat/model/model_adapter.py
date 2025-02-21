@@ -27,19 +27,6 @@ from transformers import (
 
 from fastchat.constants import CPU_ISA
 from fastchat.conversation import Conversation, get_conv_template
-from fastchat.model.compression import load_compress_model
-from fastchat.model.llama_condense_monkey_patch import replace_llama_with_condense
-from fastchat.model.model_chatglm import generate_stream_chatglm
-from fastchat.model.model_codet5p import generate_stream_codet5p
-from fastchat.model.model_falcon import generate_stream_falcon
-from fastchat.model.model_yuan2 import generate_stream_yuan2
-from fastchat.model.model_exllama import generate_stream_exllama
-from fastchat.model.model_xfastertransformer import generate_stream_xft
-from fastchat.model.model_cllm import generate_stream_cllm
-
-from fastchat.model.monkey_patch_non_inplace import (
-    replace_llama_attn_with_non_inplace_operations,
-)
 from fastchat.modules.awq import AWQConfig, load_awq_quantized
 from fastchat.modules.exllama import ExllamaConfig, load_exllama_model
 from fastchat.modules.xfastertransformer import load_xft_model, XftConfig
@@ -132,14 +119,6 @@ class BaseModelAdapter:
             )
         return model, tokenizer
 
-    def load_compress_model(self, model_path, device, torch_dtype, revision="main"):
-        return load_compress_model(
-            model_path,
-            device,
-            torch_dtype,
-            use_fast=self.use_fast_tokenizer,
-            revision=revision,
-        )
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("zero_shot")
@@ -255,13 +234,6 @@ def load_model(
         import transformers
 
         version = tuple(int(v) for v in transformers.__version__.split("."))
-        if version < (4, 35, 0):
-            # NOTE: Recent transformers library seems to fix the mps issue, also
-            # it has made some changes causing compatibility issues with our
-            # original patch. So we only apply the patch for older versions.
-
-            # Avoid bugs in mps backend by not using in-place operations.
-            replace_llama_attn_with_non_inplace_operations()
     elif device == "xpu":
         kwargs = {"torch_dtype": torch.bfloat16}
         # Try to load ipex, while it looks unused, it links into torch for xpu support
@@ -298,16 +270,16 @@ def load_model(
             warnings.warn(
                 "8-bit quantization is not supported for multi-gpu inference."
             )
-        else:
-            model, tokenizer = adapter.load_compress_model(
-                model_path=model_path,
-                device=device,
-                torch_dtype=kwargs["torch_dtype"],
-                revision=revision,
-            )
-            if debug:
-                print(model)
-            return model, tokenizer
+        # else:
+        #     model, tokenizer = adapter.load_compress_model(
+        #         model_path=model_path,
+        #         device=device,
+        #         torch_dtype=kwargs["torch_dtype"],
+        #         revision=revision,
+        #     )
+        #     if debug:
+        #         print(model)
+        #     return model, tokenizer
     elif awq_config and awq_config.wbits < 16:
         assert (
             awq_config.wbits == 4
@@ -402,88 +374,6 @@ def get_conversation_template(model_path: str) -> Conversation:
     return adapter.get_default_conv_template(model_path)
 
 
-def get_generate_stream_function(model: torch.nn.Module, model_path: str):
-    """Get the generate_stream function for inference."""
-    from fastchat.serve.inference import generate_stream
-
-    model_type = str(type(model)).lower()
-    is_peft = "peft" in model_type
-    is_chatglm = "chatglm" in model_type
-    is_falcon = "rwforcausallm" in model_type
-    is_codet5p = "codet5p" in model_type
-    is_exllama = "exllama" in model_type
-    is_xft = "xft" in model_type
-    is_yuan = "yuan" in model_type
-    is_cllm = "consistency-llm" in model_path.lower()
-
-    if is_chatglm:
-        return generate_stream_chatglm
-    elif is_falcon:
-        return generate_stream_falcon
-    elif is_codet5p:
-        return generate_stream_codet5p
-    elif is_exllama:
-        return generate_stream_exllama
-    elif is_xft:
-        return generate_stream_xft
-    elif is_yuan:
-        return generate_stream_yuan2
-    elif is_cllm:
-        return generate_stream_cllm
-
-    elif peft_share_base_weights and is_peft:
-        # Return a curried stream function that loads the right adapter
-        # according to the model_name available in this context.  This ensures
-        # the right weights are available.
-        @torch.inference_mode()
-        def generate_stream_peft(
-            model,
-            tokenizer,
-            params: Dict,
-            device: str,
-            context_len: int,
-            stream_interval: int = 2,
-            judge_sent_end: bool = False,
-        ):
-            model.set_adapter(model_path)
-            base_model_type = str(type(model.base_model.model))
-            is_chatglm = "chatglm" in base_model_type
-            is_falcon = "rwforcausallm" in base_model_type
-            is_codet5p = "codet5p" in base_model_type
-            is_exllama = "exllama" in base_model_type
-            is_xft = "xft" in base_model_type
-            is_yuan = "yuan" in base_model_type
-            is_cllm = "consistency-llm" in model_path.lower()
-
-            generate_stream_function = generate_stream
-            if is_chatglm:
-                generate_stream_function = generate_stream_chatglm
-            elif is_falcon:
-                generate_stream_function = generate_stream_falcon
-            elif is_codet5p:
-                generate_stream_function = generate_stream_codet5p
-            elif is_exllama:
-                generate_stream_function = generate_stream_exllama
-            elif is_xft:
-                generate_stream_function = generate_stream_xft
-            elif is_yuan:
-                generate_stream_function = generate_stream_yuan2
-            elif is_cllm:
-                generate_stream_function = generate_stream_cllm
-            for x in generate_stream_function(
-                model,
-                tokenizer,
-                params,
-                device,
-                context_len,
-                stream_interval,
-                judge_sent_end,
-            ):
-                yield x
-
-        return generate_stream_peft
-    else:
-        return generate_stream
 
 
 def add_model_args(parser):

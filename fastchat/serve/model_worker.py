@@ -22,7 +22,6 @@ from fastchat.model.model_adapter import (
 )
 from fastchat.modules.awq import AWQConfig
 from fastchat.modules.exllama import ExllamaConfig
-from fastchat.modules.xfastertransformer import XftConfig
 from fastchat.modules.gptq import GptqConfig
 from fastchat.serve.base_model_worker import BaseModelWorker, app
 from fastchat.utils import (
