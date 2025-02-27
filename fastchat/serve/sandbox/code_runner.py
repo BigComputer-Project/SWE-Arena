@@ -918,6 +918,8 @@ def on_click_code_message_run(
     '''
     Gradio Handler when run code button in message is clicked. Update Sandbox components.
     '''
+    print("on_click_code_message_run")
+
     if sandbox_state['enable_sandbox'] is False:
         yield None, None, None, None
         return
@@ -1020,6 +1022,8 @@ def on_run_code(
     '''
     gradio fn when run code button is clicked. Update Sandbox components.
     '''
+    print("on_run_code")
+
     if sandbox_state['enable_sandbox'] is False:
         yield None, None, None, None
         return
@@ -1519,3 +1523,5 @@ def on_run_code(
         sandbox_state=sandbox_state,
         sandbox_ui_value=None,
     )
+
+    print("on_run_code done")
