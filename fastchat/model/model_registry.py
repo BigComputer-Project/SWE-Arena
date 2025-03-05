@@ -46,6 +46,7 @@ register_model_info(
         "chatgpt-4o-latest-20240903",
         "gpt-4o-mini-2024-07-18",
         "gpt-4o-2024-08-06",
+        "gpt-4o-2024-11-20",
         "gpt-4o-2024-05-13",
     ],
     "GPT-4o",

@@ -13,8 +13,8 @@
     "text-arena": true,
     "vision-arena": true
   },
-  "gpt-4o-2024-08-06": {
-    "model_name": "gpt-4o-2024-08-06",
+  "gpt-4o-2024-11-20": {
+    "model_name": "gpt-4o-2024-11-20",
     "api_type": "openai",
     "api_base": "https://api.openai.com/v1",
     "api_key": "ENV:OPENAI_API_KEY",
