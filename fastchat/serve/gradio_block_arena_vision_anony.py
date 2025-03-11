@@ -24,7 +24,7 @@ from fastchat.constants import (
 )
 from fastchat.model.model_adapter import get_conversation_template
 from fastchat.serve.chat_state import LOG_DIR, ModelChatState, save_log_to_local
-from fastchat.serve.gradio_block_arena_named import flash_buttons, set_chat_system_messages_multi
+from fastchat.serve.gradio_block_arena_named import set_chat_system_messages_multi
 from fastchat.serve.gradio_web_server import (
     bot_response,
     no_change_btn,
@@ -88,247 +88,7 @@ text_models = []
 vl_models = []
 
 # Number of user buttons
-USER_BUTTONS_LENGTH = 11
-
-# Add at the top level, before the functions
-feedback_popup_js = """
-function() {
-    function submitFeedback(selectedFeedback) {
-        console.log('Submit function called');
-        console.log('User selected feedback:', selectedFeedback);
-        console.log('Returning data to backend:', {
-            feedback: selectedFeedback
-        });
-        
-        let feedback_details_div = document.querySelector('#feedback_details');
-        let feedback_details_textbox = feedback_details_div.querySelector('textarea');
-        feedback_details_textbox.value = JSON.stringify(selectedFeedback);
-        // This is very important!
-        // Trigger the textarea's event for gradio to function normally
-        feedback_details_textbox.dispatchEvent(new Event('input', { bubbles: true }));
-        feedback_btn = document.querySelector('#feedback_btn');
-
-        feedback_btn.click();
-    }
-
-    return new Promise((resolve) => {
-        console.log('Feedback popup opened, vote type:', '{{VOTE_TYPE}}');
-        // Create popup container
-        const popup = document.createElement('div');
-        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        console.log('Created popup, dark mode:', isDarkMode);
-        
-        popup.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: ${isDarkMode ? '#1a1a1a' : 'white'};
-            color: ${isDarkMode ? '#ffffff' : '#000000'};
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid ${isDarkMode ? '#404040' : '#e0e0e0'};
-            box-shadow: 0 2px 10px ${isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)'};
-            z-index: 1000;
-            max-width: 500px;
-            width: 90%;
-        `;
-
-        // Add close button
-        const closeButton = document.createElement('button');
-        closeButton.innerHTML = '✕';
-        closeButton.style.cssText = `
-            position: absolute;
-            right: 10px;
-            top: 10px;
-            background: none;
-            border: none;
-            color: ${isDarkMode ? '#ffffff' : '#000000'};
-            font-size: 18px;
-            cursor: pointer;
-            padding: 5px;
-            line-height: 1;
-        `;
-        closeButton.onclick = () => {
-            document.body.removeChild(popup);
-            document.body.removeChild(overlay);
-            submitFeedback({
-                "vote_type": '{{VOTE_TYPE}}'
-            }); // Submit empty feedback
-        };
-        popup.appendChild(closeButton);
-
-        // Add title
-        const title = document.createElement('h3');
-        title.textContent = 'Please provide additional feedback';
-        title.style.cssText = `
-            margin-bottom: 15px;
-            color: ${isDarkMode ? '#ffffff' : '#000000'};
-            font-size: 1.2em;
-            padding-right: 20px;
-        `;
-        popup.appendChild(title);
-
-        // Initialize selectedFeedback object
-        let selectedFeedback = {
-            "vote_type": '{{VOTE_TYPE}}'
-        };
-
-        // Add categories with 3 buttons (A, Tie, B)
-        const options = [
-            'Code Efficiency',
-            'Code Explanation',
-            'Code Readability & Maintainability',
-            'Code Correctness',
-            'UI & UX',
-        ];
-
-        const buttonContainer = document.createElement('div');
-        buttonContainer.style.marginBottom = '20px';
-        options.forEach(option => {
-            const categoryContainer = document.createElement('div');
-            categoryContainer.style.marginBottom = '15px';
-
-            const label = document.createElement('label');
-            label.style.cssText = `
-                display: block;
-                margin-bottom: 5px;
-                color: ${isDarkMode ? '#ffffff' : '#000000'};
-            `;
-            label.textContent = option;
-            categoryContainer.appendChild(label);
-
-            const buttonGroup = document.createElement('div');
-            buttonGroup.style.display = 'flex';
-            buttonGroup.style.justifyContent = 'space-between';
-
-            ['A', 'Tie', 'B'].forEach(buttonText => {
-                const button = document.createElement('button');
-                button.textContent = buttonText;
-                button.style.cssText = `
-                    flex: 1;
-                    padding: 10px;
-                    margin: 0 5px;
-                    border: 1px solid ${isDarkMode ? '#444444' : '#ccc'};
-                    background: ${isDarkMode ? '#333333' : '#f9f9f9'};
-                    color: ${isDarkMode ? '#ffffff' : '#000000'};
-                    border-radius: 4px;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                `;
-
-                // Hover effect
-                button.onmouseover = () => {
-                    if (!button.classList.contains('selected')) {  // Only apply hover if it's not selected
-                        button.style.backgroundColor = isDarkMode ? '#555555' : '#e0e0e0';
-                    }
-                };
-
-                button.onmouseout = () => {
-                    if (!button.classList.contains('selected')) {  // Only reset hover if it's not selected
-                        button.style.backgroundColor = isDarkMode ? '#333333' : '#f9f9f9';
-                    }
-                };
-
-                // Click to select
-                button.onclick = () => {
-                    // Save the selection for the current option
-                    selectedFeedback[option] = buttonText;
-
-                    // Reset all buttons' background color to default
-                    Array.from(buttonGroup.children).forEach(b => {
-                        b.style.backgroundColor = isDarkMode ? '#333333' : '#f9f9f9';
-                        b.classList.remove('selected');
-                    });
-
-                    // Set the selected button's background color to blue and mark as selected
-                    button.style.backgroundColor = '#2196F3'; // Blue color for selection
-                    button.classList.add('selected'); // Add 'selected' class to prevent hover override
-                };
-
-                buttonGroup.appendChild(button);
-            });
-
-            categoryContainer.appendChild(buttonGroup);
-            buttonContainer.appendChild(categoryContainer);
-        });
-        popup.appendChild(buttonContainer);
-
-        // Add submit button
-        const submitBtn = document.createElement('button');
-        submitBtn.textContent = 'Submit Feedback';
-        submitBtn.style.cssText = `
-            background: #2196F3;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: opacity 0.2s;
-        `;
-        
-        submitBtn.onmouseover = () => {
-            submitBtn.style.opacity = '0.9';
-        };
-        submitBtn.onmouseout = () => {
-            submitBtn.style.opacity = '1';
-        };
-
-        submitBtn.onclick = () => {
-            console.log('Submit button clicked');
-            console.log('Selected feedback:', selectedFeedback);
-
-            document.body.removeChild(popup);
-            document.body.removeChild(overlay);
-
-            const result = submitFeedback(selectedFeedback);
-            console.log('Resolving promise with result:', result);
-            resolve(result);
-        };
-
-        popup.appendChild(submitBtn);
-
-        // Add overlay
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: ${isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)'};
-            z-index: 999;
-            cursor: pointer;
-        `;
-        
-        // Make overlay clickable to close
-        overlay.onclick = () => {
-            document.body.removeChild(popup);
-            document.body.removeChild(overlay);
-            submitFeedback({
-                "vote_type": '{{VOTE_TYPE}}'
-            }); // Submit empty feedback
-        };
-
-        document.body.appendChild(overlay);
-        document.body.appendChild(popup);
-
-        // Add event listener for escape key
-        const closePopup = (e) => {
-            if (e.key === 'Escape') {
-                document.body.removeChild(popup);
-                document.body.removeChild(overlay);
-                submitFeedback({
-                    "vote_type": '{{VOTE_TYPE}}'
-                }); // Submit empty feedback
-            }
-        };
-        document.addEventListener('keydown', closePopup);
-    });
-}
-
-"""
+USER_BUTTONS_LENGTH = 15
 
 
 def load_demo_side_by_side_vision_anony():
@@ -354,7 +114,7 @@ def vote_last_response(state0, state1, model_selector0, model_selector1, feedbac
         username: Username input from the user
         request: Gradio request object
     Returns:
-        Tuple of (model_selectors[2] + sandbox_titles[2] + textbox[1] + user_buttons[10])
+        Tuple of (model_selectors[2] + sandbox_titles[2] + textbox[1] + user_buttons[USER_BUTTONS_LENGTH])
     '''
     states = [state0, state1]
     model_selectors = [model_selector0, model_selector1]
@@ -388,7 +148,7 @@ def vote_last_response(state0, state1, model_selector0, model_selector1, feedbac
         logger.warning("No feedback data received")
 
     save_log_to_local(log_data, local_filepath)
-    get_remote_logger().log(log_data)
+    # get_remote_logger().log(log_data)
     logger.info(f"Data written to file: {local_filepath}")
 
     logger.info("=== Vote Response End ===")
@@ -416,8 +176,7 @@ def vote_last_response(state0, state1, model_selector0, model_selector1, feedbac
         f"### Model B Sandbox: {model_name_2}",
     )
 
-    # Return exactly the number of outputs expected by the click handler
-    # 2 model selectors + 2 sandbox titles + 1 textbox + 10 buttons = 15 outputs
+    # Return the UI elements but don't disable them to allow continuing the conversation
     return (
         names + sandbox_titles
         + (disable_text,)
@@ -527,7 +286,14 @@ def clear_history(sandbox_state0, sandbox_state1, username: str, request: gr.Req
         + [enable_multimodal, invisible_text]
         + [enable_btn, invisible_btn, invisible_btn]  # send_btn, send_btn_left, send_btn_right
         + [invisible_btn] * 3  # regenerate, regenerate left/right
-        + [invisible_btn] * 4  # vote buttons
+        + [gr.update(value=None, visible=False, interactive=False),  # vote_radio
+            gr.update(value=None, visible=False, interactive=False),  # code_efficiency
+            gr.update(value=None, visible=False, interactive=False),  # code_explanation
+            gr.update(value=None, visible=False, interactive=False),  # code_readability
+            gr.update(value=None, visible=False, interactive=False),  # code_correctness
+            gr.update(value=None, visible=False, interactive=False),  # ui_ux
+        ]  # vote buttons
+        + [invisible_btn] * 2  # submit, exit buttons
         + [disable_btn]  # clear
         + [""]  # slow_warning
         + [gr.update(value="### Model A Sandbox"), gr.update(value="### Model B Sandbox")]  # Reset sandbox titles
@@ -1168,22 +934,35 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         regenerate_one_side_btns = [left_regenerate_btn, right_regenerate_btn]
 
     with gr.Row():
-        leftvote_btn = gr.Button(
-            value="👈  A is better", visible=False, interactive=False
+        vote_radio = gr.Radio(
+            label="Overall Vote",
+            choices=["👈  A is better", "👉  B is better", "🤝  Tie", "👎  Both are bad"],
+            value=None,
+            visible=False
         )
-        tie_btn = gr.Button(
-            value="🤝  Tie", visible=False, interactive=False
-        )
-        rightvote_btn = gr.Button(
-            value="👉  B is better", visible=False, interactive=False
-        )
-        bothbad_btn = gr.Button(
-            value="👎  Both are bad", visible=False, interactive=False
-        )
+        # Keep these variables for compatibility with existing code
+        # leftvote_btn = gr.Button(visible=False)
+        # rightvote_btn = gr.Button(visible=False)
+        # tie_btn = gr.Button(visible=False)
+        # bothbad_btn = gr.Button(visible=False)
+
+
+    with gr.Row():
+        code_efficiency = gr.Radio(label="Code Efficiency", choices=["A", "B", "Tie"], value=None, visible=False)
+        code_explanation = gr.Radio(label="Code Explanation", choices=["A", "B", "Tie"], value=None, visible=False)
+        code_readability = gr.Radio(label="Code Readability & Maintainability", choices=["A", "B", "Tie"], value=None, visible=False)
+        code_correctness = gr.Radio(label="Code Correctness", choices=["A", "B", "Tie"], value=None, visible=False)
+        ui_ux = gr.Radio(label="UI/UX", choices=["A", "B", "Tie"], value=None, visible=False)
+    
+    # Add submit and exit buttons for detailed feedback
+    with gr.Row() as feedback_buttons_row:
+        submit_feedback_btn = gr.Button(value="Submit Feedback", interactive=True, visible=False)
+        exit_feedback_btn = gr.Button(value="Exit With Only Overall Vote", interactive=True, visible=False)
 
     with gr.Row():
         clear_btn = gr.Button(value="🎲 New Round", interactive=False, elem_id="clear_btn")
         share_btn = gr.Button(value="📷  Share")
+
 
     with gr.Accordion("Parameters", open=False, visible=False) as parameter_row:
         temperature = gr.Slider(
@@ -1226,10 +1005,13 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         # regenerate buttons
         regenerate_btn, left_regenerate_btn, right_regenerate_btn,
         # vote buttons
-        leftvote_btn, rightvote_btn, tie_btn, bothbad_btn,
+        vote_radio, #leftvote_btn, rightvote_btn, tie_btn, bothbad_btn,
+        # feedback buttons
+        code_efficiency, code_explanation, code_readability, code_correctness, ui_ux,
+        submit_feedback_btn, exit_feedback_btn,
         # clear button
         clear_btn,
-    ] # 11 buttons, USER_BUTTONS_LENGTH
+    ] # 19 buttons, USER_BUTTONS_LENGTH
 
     # Create a feedback state that persists across the chain
     feedback_state = gr.State("Not a state")
@@ -1247,6 +1029,19 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         )
         
     
+    # Add handlers for submit and exit feedback buttons
+    def collect_feedback(vote_type, efficiency, explanation, readability, correctness, ui):
+        feedback = {
+            "vote_type": vote_type,
+            "Code Efficiency": efficiency,
+            "Code Explanation": explanation,
+            "Code Readability & Maintainability": readability,
+            "Code Correctness": correctness,
+            "UI & UX": ui
+        }
+        return json.dumps(feedback)
+    
+    
     # The one and only entry for submitting the vote
     feedback_btn.click(
         vote_last_response,
@@ -1255,39 +1050,82 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         outputs=model_selectors + sandbox_titles + [
             textbox,
             # vote buttons
-            leftvote_btn, rightvote_btn, tie_btn, bothbad_btn,
+            vote_radio, # leftvote_btn, rightvote_btn, tie_btn, bothbad_btn,
+            code_efficiency, code_explanation, code_readability, code_correctness, ui_ux,
             # send buttons
             send_btn, send_btn_left, send_btn_right,
             # regenerate buttons
             regenerate_btn, left_regenerate_btn, right_regenerate_btn,
+            # feedback buttons
+            submit_feedback_btn, exit_feedback_btn,
         ]
     )
+    
+    submit_feedback_btn.click(
+        collect_feedback,
+        inputs=[feedback_state, code_efficiency, code_explanation, code_readability, code_correctness, ui_ux],
+        outputs=[feedback_details]
+    ).then(
+        lambda: None,
+        inputs=[],
+        outputs=[],
+        js="() => document.getElementById('feedback_btn').click()"
+    )
 
-    leftvote_btn.click(
-        lambda: ("vote_left",),
+    exit_feedback_btn.click(
+        lambda vote_type: json.dumps({"vote_type": vote_type}),
+        inputs=[feedback_state],
+        outputs=[feedback_details]
+    ).then(
+        lambda: None,
         inputs=[],
-        outputs=[feedback_state],
-        js=feedback_popup_js.replace("{{VOTE_TYPE}}", "vote_left")
+        outputs=[],
+        js="() => document.getElementById('feedback_btn').click()"
     )
-    rightvote_btn.click(
-        lambda: ("vote_right",),
-        inputs=[],
-        outputs=[feedback_state],
-        js=feedback_popup_js.replace("{{VOTE_TYPE}}", "vote_right")
 
-    )
-    tie_btn.click(
-        lambda: ("vote_tie",),
-        inputs=[],
-        outputs=[feedback_state],
-        js=feedback_popup_js.replace("{{VOTE_TYPE}}", "vote_tie")
-    )
-    bothbad_btn.click(
-        lambda: ("vote_both_bad",),
-        inputs=[],
-        outputs=[feedback_state],
-        js=feedback_popup_js.replace("{{VOTE_TYPE}}", "vote_both_bad")
-    )
+    # leftvote_btn.click(
+    #     lambda: ("vote_left",),
+    #     inputs=[],
+    #     outputs=[feedback_state]
+    # ).then(
+    #     lambda: (gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), 
+    #             gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)),
+    #     inputs=[],
+    #     outputs=[code_efficiency, code_explanation, code_readability, code_correctness, ui_ux, submit_feedback_btn, exit_feedback_btn]
+    # )
+    
+    # rightvote_btn.click(
+    #     lambda: ("vote_right",),
+    #     inputs=[],
+    #     outputs=[feedback_state]
+    # ).then(
+    #     lambda: (gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), 
+    #             gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)),
+    #     inputs=[],
+    #     outputs=[code_efficiency, code_explanation, code_readability, code_correctness, ui_ux, submit_feedback_btn, exit_feedback_btn]
+    # )
+    
+    # tie_btn.click(
+    #     lambda: ("vote_tie",),
+    #     inputs=[],
+    #     outputs=[feedback_state]
+    # ).then(
+    #     lambda: (gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), 
+    #             gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)),
+    #     inputs=[],
+    #     outputs=[code_efficiency, code_explanation, code_readability, code_correctness, ui_ux, submit_feedback_btn, exit_feedback_btn]
+    # )
+    
+    # bothbad_btn.click(
+    #     lambda: ("vote_both_bad",),
+    #     inputs=[],
+    #     outputs=[feedback_state]
+    # ).then(
+    #     lambda: (gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), 
+    #             gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)),
+    #     inputs=[],
+    #     outputs=[code_efficiency, code_explanation, code_readability, code_correctness, ui_ux, submit_feedback_btn, exit_feedback_btn]
+    # )
 
     # Regenerate button
     regenerate_btn.click(
@@ -1486,6 +1324,29 @@ function (a, b, c, d) {
         ],
         inputs=[system_prompt_textbox, sandbox_states[0], sandbox_states[1]],
         outputs=[sandbox_states[0], sandbox_states[1]]
+    )
+
+    # Add handler for vote radio button
+    def vote_radio_handler(choice):
+        if choice == "👈  A is better":
+            return "vote_left"
+        elif choice == "👉  B is better":
+            return "vote_right"
+        elif choice == "🤝  Tie":
+            return "vote_tie"
+        elif choice == "👎  Both are bad":
+            return "vote_both_bad"
+        return "Not a vote"
+    
+    vote_radio.change(
+        vote_radio_handler,
+        inputs=[vote_radio],
+        outputs=[feedback_state]
+    ).then(
+        lambda: (gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), 
+                gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)),
+        inputs=[],
+        outputs=[code_efficiency, code_explanation, code_readability, code_correctness, ui_ux, submit_feedback_btn, exit_feedback_btn]
     )
 
     for chatbotIdx in range(num_sides):
