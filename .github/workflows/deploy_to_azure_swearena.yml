@@ -8,10 +8,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout annotation branch
+      - name: Checkout main branch
         uses: actions/checkout@v3
         with:
-          ref: annotation
+          ref: main
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
