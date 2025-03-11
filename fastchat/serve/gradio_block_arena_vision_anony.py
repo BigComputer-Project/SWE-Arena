@@ -341,7 +341,7 @@ def load_demo_side_by_side_vision_anony():
     return states + selector_updates
 
 
-def vote_last_response(state0, state1, model_selector0, model_selector1, feedback_details, request: gr.Request = None):
+def vote_last_response(state0, state1, model_selector0, model_selector1, feedback_details, username, request: gr.Request = None):
     '''
     Handle voting for a response, including any feedback details provided.
 
@@ -351,6 +351,7 @@ def vote_last_response(state0, state1, model_selector0, model_selector1, feedbac
         model_selector0: First model selector
         model_selector1: Second model selector
         feedback_details: Optional feedback details from the popup
+        username: Username input from the user
         request: Gradio request object
     Returns:
         Tuple of (model_selectors[2] + sandbox_titles[2] + textbox[1] + user_buttons[10])
@@ -363,6 +364,7 @@ def vote_last_response(state0, state1, model_selector0, model_selector1, feedbac
 
     logger.info(f"=== Vote Response Start ===")
     logger.info(f"Feedback data received: {feedback_details}")
+    logger.info(f"Username: {username}")
 
     log_data = {
         "tstamp": round(time.time(), 4),
@@ -370,6 +372,7 @@ def vote_last_response(state0, state1, model_selector0, model_selector1, feedbac
         "models": [x for x in model_selectors] if model_selectors else [],
         "states": [x.to_dict() for x in states] if states else [],
         "ip": get_ip(request),
+        "username": username
     }
 
     # Add feedback data if available
@@ -422,14 +425,14 @@ def vote_last_response(state0, state1, model_selector0, model_selector1, feedbac
     )
 
 
-def regenerate_single(state: ModelChatState, request: gr.Request):
+def regenerate_single(state: ModelChatState, username: str, request: gr.Request):
     '''
     Regenerate message for one side.
 
     Return
         [state, chatbot, textbox] + user_buttons
     '''
-    logger.info(f"regenerate. ip: {get_ip(request)}")
+    logger.info(f"regenerate. ip: {get_ip(request)}. username: {username}")
 
     if state.regen_support:
         state.conv.update_last_message(None)
@@ -445,15 +448,19 @@ def regenerate_single(state: ModelChatState, request: gr.Request):
         return (
             [state, state.to_gradio_chatbot()]
             + [None]  # textbox
-            + [no_change_btn] * USER_BUTTONS_LENGTH
+            + [disable_btn] * USER_BUTTONS_LENGTH
         )
 
 
-def regenerate_multi(state0: ModelChatState, state1: ModelChatState, request: gr.Request):
+def regenerate_multi(state0: ModelChatState, state1: ModelChatState, username: str, request: gr.Request):
     '''
     Regenerate message for both sides.
+
+    Return
+        states + chatbots + [textbox] + user_buttons
     '''
-    logger.info(f"regenerate. ip: {get_ip(request)}")
+    logger.info(f"regenerate. ip: {get_ip(request)}. username: {username}")
+
     states = [state0, state1]
 
     if state0.regen_support and state1.regen_support:
@@ -478,11 +485,22 @@ def regenerate_multi(state0: ModelChatState, state1: ModelChatState, request: gr
         )
 
 
-def clear_history(sandbox_state0, sandbox_state1, request: gr.Request):
+def clear_history(sandbox_state0, sandbox_state1, username: str, request: gr.Request):
     '''
-    Clear chat history for both sides.
+    Clear history for both sides.
+
+    Return
+        states
+        + chatbots
+        + sandbox_states
+        + [multimodal_textbox, textbox]
+        + user_buttons
+        + [multimodal_textbox, textbox]
+        + user_buttons
+        + [slow_warning]
+        + sandbox_titles
     '''
-    logger.info(f"clear_history (anony). ip: {get_ip(request)}")
+    logger.info(f"clear_history. ip: {get_ip(request)}. username: {username}")
 
     # reset sandbox state
     sandbox_states = [
@@ -522,15 +540,17 @@ def add_text_single(
     sandbox_state: ChatbotSandboxState,
     multimodal_input: dict, text_input: str,
     context: Context,
+    username: str,
     request: gr.Request,
 ):
     '''
-    Add text for one side.
+    Add text for a single chatbot.
 
-
-    Return:
-        [state, chatbot, sandbox_state]
-        + [textbox, multimodal_textbox]
+    return 
+        state
+        + chatbot
+        + sandbox_state
+        + [multimodal_textbox, textbox]
         + user_buttons
         + [slow_warning]
     '''
@@ -544,7 +564,7 @@ def add_text_single(
     is_vision = len(images) > 0
 
     ip = get_ip(request)
-    logger.info(f"add_text (anony). ip: {ip}. len: {len(text)}")
+    logger.info(f"add_text_single (anony). ip: {ip}. username: {username}. len: {len(text)}")
 
     # increase sandbox state
     sandbox_state['enabled_round'] += 1
@@ -637,6 +657,7 @@ def add_text_multi(
     sandbox_state0, sandbox_state1,
     multimodal_input: dict, text_input: str,
     context: Context,
+    username: str,
     request: gr.Request,
 ):
     '''
@@ -660,7 +681,7 @@ def add_text_multi(
     is_vision = len(images) > 0
 
     ip = get_ip(request)
-    logger.info(f"add_text (anony). ip: {ip}. len: {len(text)}")
+    logger.info(f"add_text (anony). ip: {ip}. username: {username}. len: {len(text)}")
     states = [state0, state1]
     model_selectors = [model_selector0, model_selector1]
     sandbox_states = [sandbox_state0, sandbox_state1]
@@ -884,6 +905,15 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
                             )
     with gr.Row():
         slow_warning = gr.Markdown("")
+
+    with gr.Row():
+        username_textbox = gr.Textbox(
+            show_label=True,
+            label="Your Username",
+            placeholder="Enter your username (optional)",
+            elem_id="username_box",
+            scale=1,
+        )
 
     with gr.Row(elem_id="user-input-region"):
         textbox = gr.Textbox(
@@ -1221,7 +1251,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
     feedback_btn.click(
         vote_last_response,
         inputs=[states[0], states[1],
-                model_selectors[0], model_selectors[1], feedback_details],
+                model_selectors[0], model_selectors[1], feedback_details, username_textbox],
         outputs=model_selectors + sandbox_titles + [
             textbox,
             # vote buttons
@@ -1259,10 +1289,11 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
         js=feedback_popup_js.replace("{{VOTE_TYPE}}", "vote_both_bad")
     )
 
+    # Regenerate button
     regenerate_btn.click(
         regenerate_multi,
-        states,
-        states + chatbots + [textbox] + user_buttons
+        inputs=states + [username_textbox],
+        outputs=states + chatbots + [textbox] + user_buttons,
     ).then(
         bot_response_multi,
         states + [temperature, top_p, max_output_tokens] + sandbox_states,
@@ -1273,7 +1304,7 @@ For `npm` packages, you can use the format `npm (use '@' or 'latest') <package_n
 
     clear_btn.click(
         clear_history,
-        inputs=sandbox_states,
+        inputs=sandbox_states + [username_textbox],
         outputs=(
             sandbox_states
             + states
@@ -1326,7 +1357,7 @@ function (a, b, c, d) {
 
     multimodal_textbox.submit( # update the system prompt
         add_text_multi,
-        inputs=states + model_selectors + sandbox_states + [multimodal_textbox, textbox] + [context_state],
+        inputs=states + model_selectors + sandbox_states + [multimodal_textbox, textbox] + [context_state, username_textbox],
         outputs=(
             states
             + chatbots
@@ -1363,7 +1394,7 @@ function (a, b, c, d) {
 
     textbox.submit(
         add_text_multi,
-        inputs=states + model_selectors + sandbox_states + [multimodal_textbox, textbox] + [context_state],
+        inputs=states + model_selectors + sandbox_states + [multimodal_textbox, textbox] + [context_state, username_textbox],
         outputs=states
         + chatbots
         + sandbox_states
@@ -1397,7 +1428,7 @@ function (a, b, c, d) {
 
     send_btn.click(
         add_text_multi,
-        inputs=states + model_selectors + sandbox_states + [multimodal_textbox, textbox] + [context_state],
+        inputs=states + model_selectors + sandbox_states + [multimodal_textbox, textbox] + [context_state, username_textbox],
         outputs=(
             states
             + chatbots
@@ -1467,7 +1498,7 @@ function (a, b, c, d) {
         send_btns_one_side[chatbotIdx].click(
             add_text_single,
             inputs=(
-                [state, model_selector, sandbox_state] + [multimodal_textbox, textbox] + [context_state]
+                [state, model_selector, sandbox_state] + [multimodal_textbox, textbox] + [context_state, username_textbox]
             ),
             outputs=(
                 [state, chatbot, sandbox_state]
