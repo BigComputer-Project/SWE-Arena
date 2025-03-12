@@ -391,8 +391,8 @@ def bot_response_multi(
 
 def flash_buttons():
     btn_updates = [
-        [disable_btn] * 15,
-        [enable_btn] * 15,
+        [disable_btn] * 11,
+        [enable_btn] * 11,
     ]
     for i in range(4):
         yield btn_updates[i % 2]
