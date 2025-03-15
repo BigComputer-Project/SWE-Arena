@@ -4,7 +4,7 @@ Model sampling configuration.
 
 SAMPLING_WEIGHTS = {
     'gpt-4o-mini-2024-07-18': 1,
-    'gpt-4o-2024-11-20': 10,
+    'gpt-4o-2024-11-20': 1,
     'o1-2024-12-17': 1,
     'o1-mini-2024-09-12': 1,
     "o3-mini-2025-01-31": 1,
