@@ -148,7 +148,7 @@ def vote_last_response(state0, state1, model_selector0, model_selector1, feedbac
         logger.warning("No feedback data received")
 
     save_log_to_local(log_data, local_filepath)
-    # get_remote_logger().log(log_data)
+    get_remote_logger().log(log_data)
     logger.info(f"Data written to file: {local_filepath}")
 
     logger.info("=== Vote Response End ===")
