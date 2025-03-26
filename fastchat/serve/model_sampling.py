@@ -4,7 +4,7 @@ Model sampling configuration.
 
 SAMPLING_WEIGHTS = {
     'gpt-4o-mini-2024-07-18': 1,
-    'gpt-4o-2024-11-20': 0.2,
+    'gpt-4o-2024-11-20': 1,
     'o1-2024-12-17': 1,
     'o1-mini-2024-09-12': 1,
     "o3-mini-2025-01-31": 1,
@@ -12,7 +12,7 @@ SAMPLING_WEIGHTS = {
     'qwen2.5-72b-instruct': 1,
     'claude-3-5-sonnet-20241022': 1,
     'claude-3-5-haiku-20241022': 1,
-    "llama-3.3-70b-instruct-bf16-hyperbolic": 1,
+    # "llama-3.3-70b-instruct-bf16-hyperbolic": 1,
     "gemini-2.0-pro-exp-02-05": 1,
     "gemini-2.0-flash-001": 1,
     # "deepseek-v3": 1,
