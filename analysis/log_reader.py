@@ -44,7 +44,7 @@ class RemoteLogReader:
 
         self.share_service = ShareServiceClient.from_connection_string(
             conn_str=connection_string)
-        self.share_client = share_service.get_share_client(share=share_name)
+        self.share_client = self.share_service.get_share_client(share=share_name)
 
     def is_conv_log(self, file_name: str) -> bool:
         return file_name.startswith("conv-log") and file_name.endswith(".json")
