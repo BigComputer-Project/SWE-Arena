@@ -1,4 +1,4 @@
-name: Deploy to Azure swearenadev (swearena.com)
+name: Deploy to Azure swearenadev (swe-arena.com)
 
 on:
   workflow_dispatch
