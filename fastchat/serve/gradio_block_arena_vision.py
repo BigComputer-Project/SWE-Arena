@@ -3,7 +3,6 @@ The gradio demo server for chatting with a large multimodal model.
 
 Usage:
 python3 -m fastchat.serve.controller
-python3 -m fastchat.serve.sglang_worker --model-path liuhaotian/llava-v1.5-7b --tokenizer-path llava-hf/llava-1.5-7b-hf
 python3 -m fastchat.serve.gradio_web_server_multi --share --vision-arena
 """
 
