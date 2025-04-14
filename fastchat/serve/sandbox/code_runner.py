@@ -366,7 +366,7 @@ def run_html_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], 
     code = replace_placeholder_urls(code)
 
     file_path = f"{project_root}/index.html"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     sandbox_url = get_sandbox_app_url(sandbox, 'html')
     return (sandbox_url, sandbox.sandbox_id, '')
@@ -400,7 +400,7 @@ def run_react_sandbox(code: str, code_dependencies: tuple[list[str], list[str]],
     # set up the sandbox
     print("Setting up sandbox directory structure...")
     file_path = "~/react_app/src/App.tsx"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
     print("Code files written successfully.")
 
     is_run_success, _, build_stderrs = run_command_in_sandbox(
@@ -439,7 +439,7 @@ def run_vue_sandbox(code: str, code_dependencies: tuple[list[str], list[str]], e
 
     # Set up the sandbox
     file_path = "~/vue_app/src/App.vue"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     _, npm_dependencies = code_dependencies
     if npm_dependencies:
@@ -480,7 +480,7 @@ def run_pygame_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
 
     stderrs = []
 
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     python_dependencies, _ = code_dependencies
     install_errs = install_pip_dependencies(sandbox, python_dependencies)
@@ -515,7 +515,7 @@ def run_gradio_sandbox(code: str, code_dependencies: tuple[list[str], list[str]]
     sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
 
     file_path = "~/gradio_app/main.py"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     stderrs = []
 
@@ -542,7 +542,7 @@ def run_streamlit_sandbox(code: str, code_dependencies: tuple[list[str], list[st
 
     sandbox.files.make_dir('mystreamlit')
     file_path = "~/mystreamlit/app.py"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     python_dependencies, _ = code_dependencies
     install_stderr = install_pip_dependencies(sandbox, python_dependencies)
@@ -573,7 +573,7 @@ def run_c_code(code: str, existing_sandbox_id: str | None = None) -> tuple[str, 
     sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
 
     file_path = "~/main.c"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     is_success, stdouts, stderrs = run_command_in_sandbox(
         sandbox=sandbox,
@@ -600,7 +600,7 @@ def run_cpp_code(code: str, existing_sandbox_id: str | None = None) -> tuple[str
     sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
 
     file_path = "~/main.cpp"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     is_success, stdouts, stderrs = run_command_in_sandbox(
         sandbox=sandbox,
@@ -628,7 +628,7 @@ def run_java_code(code: str, existing_sandbox_id: str | None = None) -> tuple[st
 
     class_name = extract_java_class_name(code)
     file_path = f"~/{class_name}.java"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     is_success, stdouts, stderrs = run_command_in_sandbox(
         sandbox=sandbox,
@@ -655,7 +655,7 @@ def run_golang_code(code: str, existing_sandbox_id: str | None = None) -> tuple[
     sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
 
     file_path = "~/main.go"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     is_success, stdouts, stderrs = run_command_in_sandbox(
         sandbox=sandbox,
@@ -682,7 +682,7 @@ def run_golang_code(code: str, existing_sandbox_id: str | None = None) -> tuple[
 #     sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
 
 #     file_path = "~/main.cs"
-#     sandbox.files.write(path=file_path, data=code, request_timeout=60)
+#     sandbox.files.write(file_path, code, "user", 60)
 
 #     is_success, stdouts, stderrs = run_command_in_sandbox(
 #         sandbox=sandbox,
@@ -709,7 +709,7 @@ def run_rust_code(code: str, existing_sandbox_id: str | None = None) -> tuple[st
     sandbox = reuse_or_create_sandbox(sandbox_id=existing_sandbox_id)
 
     file_path = "~/main.rs"
-    sandbox.files.write(path=file_path, data=code, request_timeout=60)
+    sandbox.files.write(file_path, code, "user", 60)
 
     is_success, stdouts, stderrs = run_command_in_sandbox(
         sandbox=sandbox,
