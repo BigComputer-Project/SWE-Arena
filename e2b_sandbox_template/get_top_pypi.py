@@ -2,7 +2,7 @@ import requests
 
 def get_top_pypi_packages(limit=50):
     # API endpoint for PyPI download statistics (30 days)
-    url = "https://hugovk.github.io/top-pypi-packages/top-pypi-packages-30-days.min.json"
+    url = "https://hugovk.github.io/top-pypi-packages/top-pypi-packages.min.json"
     
     try:
         response = requests.get(url)
