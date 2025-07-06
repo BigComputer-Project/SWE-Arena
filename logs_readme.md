@@ -65,12 +65,12 @@ The same `conv_logs` file will contain the outputs of both models in a battle se
 - **Purpose**: Record precise code execution states
 - **Characteristics**: Each model's each sandbox operation has an independent file
 - **Use Cases**: Code debugging, execution state tracking, version control
-- 
+
 ```
 logs/{date}/sandbox_logs/sandbox-logs-{conv_id}-{chat_round}-{sandbox_run_round}.json
 ```
 **Example**: `logs/2025_01_15/sandbox_logs/sandbox-logs-def456-1-1.json`
-- Meaning: on 2025_01_15, the battle session `def456`, the first response, the first time to run.
+- Meaning: on 2025_01_15, the conv id `def456`, the first response, the first time to run.
 - If users send another followup prompt, it will be `logs/2025_01_15/sandbox_logs/sandbox-logs-def456-2-1.json`.
 - If users run the sandbox again to re-initialize, it will be `logs/2025_01_15/sandbox_logs/sandbox-logs-def456-2-2.json`.
 
