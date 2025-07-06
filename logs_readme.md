@@ -74,6 +74,44 @@ logs/{date}/sandbox_logs/sandbox-logs-{conv_id}-{chat_round}-{sandbox_run_round}
 - If users send another followup prompt, it will be `logs/2025_01_15/sandbox_logs/sandbox-logs-def456-2-1.json`.
 - If users run the sandbox again to re-initialize, it will be `logs/2025_01_15/sandbox_logs/sandbox-logs-def456-2-2.json`.
 
+## Log Content Format
+
+### Conversation Logs Content
+Conversation logs use **JSONL (JSON Lines)** format where each line represents a separate record. Each record contains the complete conversation history up to that point, making the logs self-contained and allowing full context reconstruction.
+
+**Example content structure**:
+```jsonl
+{"tstamp": 1234567890, "type": "chat", "model": "gpt-4", "state": {"conv_id": "def456", "chat_session_id": "abc123", "messages": [["user", "Hello"], ["assistant", "Hi there!"]]}}
+{"tstamp": 1234567891, "type": "chat", "model": "claude-3", "state": {"conv_id": "ghi789", "chat_session_id": "abc123", "messages": [["user", "Hello"], ["assistant", "Hello! How can I help?"]]}}
+{"tstamp": 1234567892, "type": "leftvote", "model": "gpt-4", "state": {"conv_id": "def456", "chat_session_id": "abc123", "messages": [["user", "Hello"], ["assistant", "Hi there!"], ["user", "Write code"], ["assistant", "Here's some code..."]]}}
+```
+
+Key characteristics:
+- **JSONL format**: One JSON object per line
+- **Incremental records**: Each line is a separate event (chat, vote, etc.)
+- **Full conversation history**: The `messages` field contains the entire conversation history up to that record
+- **Cross-model tracking**: Records from both models in the same battle session
+
+### Sandbox Logs Content
+Sandbox logs use **JSON format** (not JSONL) with a single comprehensive object per file containing the sandbox state and user interactions.
+
+**Example content structure**:
+```json
+{
+  "sandbox_state": {
+    "conv_id": "def456",
+    "chat_session_id": "abc123", 
+    "enabled_round": 1,
+    "sandbox_run_round": 1,
+    "sandbox_id": "e2b_abc123",
+    "code_to_execute": "print('hello world')",
+    "sandbox_output": "hello world\n",
+    "sandbox_error": ""
+  },
+  "user_interaction_records": [...]
+}
+```
+
 ## Relationship Mapping
 
 Both log types are fully correlated through ID fields:
